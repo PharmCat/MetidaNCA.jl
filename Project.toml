@@ -1,0 +1,20 @@
+name = "MetidaNCA"
+uuid = "097c2839-c7bc-4c4b-a5f2-b4167c1b4e7c"
+authors = ["PharmCat <v.s.arnautov@yandex.ru>"]
+version = "0.1.0"
+
+[deps]
+
+MetidaBase = "075456b7-4006-432f-9324-2f8453996c49"
+
+[compat]
+
+MetidaBase = "0.1"
+
+[extras]
+
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+
+[targets]
+test = [ "Test"]

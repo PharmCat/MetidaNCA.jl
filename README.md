@@ -1,2 +1,3 @@
 # MetidaNCA.jl
-NCA
+
+Non-compartment analysis (NCA).
