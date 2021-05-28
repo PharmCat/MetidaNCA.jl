@@ -3,9 +3,11 @@
 
 module MetidaNCA
 
-import Base: ht_keyindex
+import Base: ht_keyindex, length
 import MetidaBase: AbstractIdData, AbstractSubject, DataSet
 using Tables
+
+export pkimport
 
     include("types.jl")
     include("show.jl")

@@ -75,3 +75,7 @@ mutable struct PKSubject{T <: Number, O <: Number} <: AbstractSubject
         PKSubject(time, conc, true, ElimRange(), DoseTime(NaN, 0), KelData(), sort)
     end
 end
+
+function Base.length(obj)
+    length(obj.time)
+end
