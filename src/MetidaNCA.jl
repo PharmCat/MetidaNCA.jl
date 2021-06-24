@@ -3,11 +3,13 @@
 
 module MetidaNCA
 
-import Base: ht_keyindex, length
-import MetidaBase: AbstractIdData, AbstractSubject, DataSet
-using Tables
+import Base: ht_keyindex, length, length, push!
+import MetidaBase: AbstractIdData, AbstractSubject, DataSet, AbstractSubjectResult, AbstractResultData
+import Tables
 
-export pkimport
+export pkimport, nca!
+
+const LOG2 = log(2)
 
     include("types.jl")
     include("show.jl")
