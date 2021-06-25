@@ -7,7 +7,7 @@ import Base: ht_keyindex, length, length, push!
 import MetidaBase: AbstractIdData, AbstractSubject, DataSet, AbstractSubjectResult, AbstractResultData
 import Tables
 
-export pkimport, nca!
+export pkimport, nca!, DoseTime
 
 const LOG2 = log(2)
 

@@ -1,0 +1,8 @@
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+MetidaNCA  = "097c2839-c7bc-4c4b-a5f2-b4167c1b4e7c"
+
+
+[compat]
+Documenter = "≥0.26"
+MetidaNCA  = "0.1"

@@ -80,11 +80,14 @@ mutable struct PKSubject{T <: Number, O <: Number} <: AbstractSubject
     function PKSubject(time::Vector{T}, conc::Vector{O}, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, keldata::KelData, sort = Dict()) where T <: Number where O <: Number
         new{T, O}(time, conc, kelauto, kelrange, dosetime, keldata, sort)::PKSubject
     end
-    function PKSubject(time::Vector, conc::Vector, kelauto::Bool, kelrange, dosetime; sort = Dict())
+    function PKSubject(time::Vector, conc::Vector, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, sort::Dict)
         PKSubject(time, conc, kelauto, kelrange, dosetime, KelData(), sort)
     end
     function PKSubject(time::Vector, conc::Vector, sort::Dict)
         PKSubject(time, conc, true, ElimRange(), DoseTime(NaN, 0), KelData(), sort)
+    end
+    function PKSubject(time::Vector, conc::Vector, kelauto::Bool, kelrange, dosetime; sort = Dict())
+        PKSubject(time, conc, kelauto, kelrange, dosetime, KelData(), sort)
     end
     function PKSubject(time::Vector, conc::Vector; sort = Dict())
         PKSubject(time, conc, true, ElimRange(), DoseTime(NaN, 0), KelData(), sort)

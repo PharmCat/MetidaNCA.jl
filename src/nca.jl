@@ -102,7 +102,7 @@ function slope(x, y)
     Σx2 = 0.0
     Σy2 = 0.0
     @inbounds for i = 1:n
-        Σxy += x[i] .* y[i]
+        Σxy += x[i] * y[i]
         Σx  += x[i]
         Σy  += y[i]
         Σx2 += x[i]^2
@@ -168,16 +168,9 @@ function interpolate(t₁, t₂, tx, c₁::T, c₂::T, intpm, aftertmax) where T
 end
 
 function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, verbose = false, warn = true, io::IO = stdout) where T where O
-    result   = Dict()
-    #=
-        result    = Dict(:Obsnum   => 0,   :Tmax   => 0,   :Tmaxn    => 0,   :Tlast   => 0,
-        :Cmax    => 0,   :Cdose    => NaN, :Clast  => 0,   :Ctau     => NaN, :Ctaumin => NaN, :Cavg => NaN,
-        :Swing   => NaN, :Swingtau => NaN, :Fluc   => NaN, :Fluctau  => NaN,
-        :AUClast => 0,   :AUCall   => 0,   :AUCtau => 0,   :AUMClast => 0,   :AUMCall => 0,   :AUMCtau => 0,
-        :MRTlast => 0,   :Kel      => NaN, :HL     => NaN,
-        :Rsq     => NaN, :ARsq     => NaN, :Rsqn   => NaN,
-        :AUCinf  => NaN, :AUCpct   => NaN)
-    =#
+
+    result   = Dict{Symbol, Union{eltype(data.time), eltype(data.obs)}}()
+
     if verbose
         println(io, "Non-compartmental Pharmacokinetic Analysis")
         printsortval(io, data.sort)
@@ -188,12 +181,12 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, v
 
     time             = data.time
     obs              = data.obs
-    auctype          = promote_type(eltype(time), eltype(obs))
+    auctype  = promote_type(eltype(time), eltype(obs))
     fobs             = firstobs(data.time, data.obs, data.dosetime.time)
 
 
     if length(obs) - fobs < 2
-        return NCAResult(data, calcm, result, Dict())
+        return NCAResult(data, calcm, result, data.id)
     end
 
 
@@ -312,19 +305,17 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, v
         aumclast += aumcpartl[i]
     end
     aucall  = auclast
-    aumcall = aumclast
     if tlastn < obsnum
         for i = tlastn:obsnum-1
             aucall  += aucpartl[i]
-            aumcall += aumcpartl[i]
         end
     end
     #-----------------------------------------------------------------------
     #-----------------------------------------------------------------------
-    result[:AUCall]    = aucall
-    result[:AUMCall]   = aumcall
     result[:AUClast]   = auclast
     result[:AUMClast]  = aumclast
+
+    result[:AUCall]    = aucall
     #---------------------------------------------------------------------------
     #---------------------------------------------------------------------------
     result[:MRTlast]    = result[:AUMClast] / result[:AUClast]
@@ -437,5 +428,14 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, v
     end
     =#
     #-----------------------------------------------------------------------
-    return NCAResult(data, calcm, result, Dict())
+    return NCAResult(data, calcm, result, data.id)
+end
+
+
+function nca!(data::DataSet{T1}; adm = :ev, calcm = :lint, intpm = nothing, verbose = false, warn = true, io::IO = stdout) where T1 <: PKSubject{T,O}  where T  where O
+    result = Vector{NCAResult{T1}}(undef, length(data))
+    for i = 1:length(data)
+        result[i] = nca!(data[i]; adm = adm, calcm = calcm, intpm = intpm, verbose = verbose, warn = warn, io = io)
+    end
+    DataSet(result)
 end
