@@ -157,7 +157,7 @@ end
 function interpolate(t₁, t₂, tx, c₁::T, c₂::T, intpm, aftertmax) where T
     if intpm == :lint
         c = linpredict(t₁, t₂, tx, c₁, c₂)
-    elseif intpm == :luldt && aftermax && c₁ > c₂ > zero(T)
+    elseif intpm == :luldt && aftertmax && c₁ > c₂ > zero(T)
         c = logcpredict(t₁, t₂, tx, c₁, c₂)
     elseif intpm == :luld && c₁ > c₂ > zero(T)
         c = logcpredict(t₁, t₂, tx, c₁, c₂)
@@ -194,7 +194,7 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, v
     if  data.dosetime.tau > zero(typeof(data.dosetime.tau))
         #taulast, taulastp, result[:Ctaumin] = taulastmin(time, obs, fobs, lobs, tautime)
         tautime = data.dosetime.time + data.dosetime.tau
-        result[:Ctaumin] = ctaumin(time, obs, fobs, dosetime)
+        result[:Ctaumin] = ctaumin(time, obs, fobs, tautime)
     end
 
     # Dose concentration
@@ -355,9 +355,8 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, v
         eaucpartl  = eaumcpartl = 0.0
         taulastp = findlast(x -> x < tautime, time_auc)
         if tautime < time_auc[end]
-            if tautime > result[:Tmax] aftertmax = true else aftertmax = false end
-            result[:Ctau] = interpolate(time_auc[taulastp], time_auc[taulastp + 1], tautime, obs_auc[taulastp], obs_auc[taulastp + 1], intpm, aftermax)
-            eaucpartl, eaumcpartl = aucpart(time_auc[taulastp], tautime, obs_auc[taulastp], result[:Ctau], calcm, aftertmax)
+            result[:Ctau] = interpolate(time_auc[taulastp], time_auc[taulastp + 1], tautime, obs_auc[taulastp], obs_auc[taulastp + 1], intpm, true)
+            eaucpartl, eaumcpartl = aucpart(time_auc[taulastp], tautime, obs_auc[taulastp], result[:Ctau], calcm, true)
                 #remoove part after tau
         elseif tautime > time_obs[end] && result[:LZint] !== NaN
                 #extrapolation
@@ -370,8 +369,8 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, v
         auctau   = eaucpartl  + doseaucpart
         aumctau  = eaumcpartl + doseaumcpart
         for i = 1:taulastp-1
-            auctau  = aucpartl[i]
-            aumctau = aumcpartl[i]
+            auctau  += aucpartl[i]
+            aumctau += aumcpartl[i]
         end
         result[:AUCtau]   = auctau
         result[:AUMCtau]  = aumctau
