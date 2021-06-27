@@ -10,5 +10,5 @@ makedocs(
 
             ],
         )
-deploydocs(repo = "github.com/PharmCat/MetidaNCA.jl.git", push_preview = true, devbranch = "main"
+deploydocs(repo = "github.com/PharmCat/MetidaNCA.jl.git", devbranch = "main"
 )
