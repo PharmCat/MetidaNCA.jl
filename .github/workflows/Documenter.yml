@@ -13,6 +13,8 @@ on:
       - 'change.log'
       - '.gitignore'
       - 'Project.toml'
+  page_build:
+  workflow_dispatch:
   release:
     types: [published]
   pull_request:
