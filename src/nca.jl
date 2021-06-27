@@ -138,15 +138,21 @@ function aucpart(t₁, t₂, c₁, c₂, calcm)
 end
 =#
 function aucpart(t₁, t₂, c₁::T, c₂::T, calcm, aftertmax) where T
-    if calcm == :lint
+    if calcm == :lint || c₁ <= zero(T) && c₂ <= zero(T)
         auc   =  linauc(t₁, t₂, c₁, c₂)
         aumc  = linaumc(t₁, t₂, c₁, c₂)
-    elseif calcm == :luldt && aftertmax && c₁ > c₂ > zero(T)
+    elseif calcm == :logt && aftertmax && c₁ > zero(T) && c₂ > zero(T)
         auc   =  logauc(t₁, t₂, c₁, c₂)
         aumc  = logaumc(t₁, t₂, c₁, c₂)
     elseif calcm == :luld &&  c₁ > c₂ > zero(T)
         auc   =  logauc(t₁, t₂, c₁, c₂)
         aumc  = logaumc(t₁, t₂, c₁, c₂)
+    elseif calcm == :luldt && aftertmax && c₁ > c₂ > zero(T)
+        auc   =  logauc(t₁, t₂, c₁, c₂)
+        aumc  = logaumc(t₁, t₂, c₁, c₂)
+    #elseif calcm == :log && c₁ > zero(T) && c₂ > zero(T)
+        #auc   =  logauc(t₁, t₂, c₁, c₂)
+        #aumc  = logaumc(t₁, t₂, c₁, c₂)
     else
         auc   =  linauc(t₁, t₂, c₁, c₂)
         aumc  = linaumc(t₁, t₂, c₁, c₂)
@@ -155,12 +161,16 @@ function aucpart(t₁, t₂, c₁::T, c₂::T, calcm, aftertmax) where T
 end
 
 function interpolate(t₁, t₂, tx, c₁::T, c₂::T, intpm, aftertmax) where T
-    if intpm == :lint
+    if intpm == :lint || c₁ <= zero(T) || c₂ <= zero(T)
         c = linpredict(t₁, t₂, tx, c₁, c₂)
-    elseif intpm == :luldt && aftertmax && c₁ > c₂ > zero(T)
+    elseif intpm == :logt && aftertmax && c₁ > zero(T) && c₂ > zero(T)
         c = logcpredict(t₁, t₂, tx, c₁, c₂)
     elseif intpm == :luld && c₁ > c₂ > zero(T)
         c = logcpredict(t₁, t₂, tx, c₁, c₂)
+    elseif intpm == :luldt && aftertmax && c₁ > c₂ > zero(T)
+        c = logcpredict(t₁, t₂, tx, c₁, c₂)
+    #elseif intpm == :log && c₁ > zero(T) && c₂ > zero(T)
+        #c = logcpredict(t₁, t₂, tx, c₁, c₂)
     else
         c = linpredict(t₁, t₂, tx, c₁, c₂)
     end

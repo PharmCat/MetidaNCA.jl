@@ -1,4 +1,4 @@
-using MetidaNCA
+#using MetidaNCA
 using Test
 using DataFrames, CSV
 
@@ -544,8 +544,150 @@ end
 end
 
 
+@testset "  Log trapezoidal ATM, Dose 120, Dosetime 0, tau 12        " begin
+    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 120, time = 0, tau = 12))
+    sort!(ds, :Subject)
+    dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :logt)
+    @test dsnca[:, :Cmax] == [190.869
+    261.177
+    105.345
+    208.542
+    169.334
+    154.648
+    153.254
+    138.327
+    167.347
+    125.482]
+
+    # Tmax
+    @test dsnca[:, :Tmax] == [1
+    1
+    1.5
+    1
+    4
+    2.5
+    2.5
+    4
+    3
+    2]
+
+    # Cdose
+    @test round.(dsnca[:, :Cdose], sigdigits = 6) == round.([0.0
+    0.0
+    0.0
+    0.0
+    0.0
+    0.0
+    0.0
+    0.0
+    0.0
+    0.0], sigdigits = 6)
+
+    # Tlag
+    #=
+    @test round.(dsnca[:, :Tlag], sigdigits = 6) == round.([0
+    0
+    0
+    0
+    0.5
+    0
+    0
+    0
+    0
+    0], sigdigits = 6)
+    =#
+
+    # Clast
+    @test dsnca[:, :Clast] == [112.846
+    85.241
+    67.901
+    97.625
+    110.778
+    69.501
+    58.051
+    74.437
+    93.44
+    42.191]
+
+    # AUClast
+    @test round.(dsnca[:, :AUClast], sigdigits = 6) == round.([9572.8582
+    10054.0370
+    5391.5322
+    9296.2179
+    9518.6531
+    6948.5757
+    6987.0645
+    7064.7816
+    8298.9634
+    5485.6538], sigdigits = 6)
+
+end
+
+
 @testset "  Linear up Log down ATM, Dose 120, Dosetime 0, tau 12     " begin
     ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 120, time = 0, tau = 12))
     sort!(ds, :Subject)
     dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luldt)
+    # Cmax
+    @test dsnca[:, :Cmax] == [190.869
+    261.177
+    105.345
+    208.542
+    169.334
+    154.648
+    153.254
+    138.327
+    167.347
+    125.482]
+
+    # Tmax
+    @test dsnca[:, :Tmax] == [1
+    1
+    1.5
+    1
+    4
+    2.5
+    2.5
+    4
+    3
+    2]
+
+    # Cdose
+    @test round.(dsnca[:, :Cdose], sigdigits = 6) == round.([0.0
+    0.0
+    0.0
+    0.0
+    0.0
+    0.0
+    0.0
+    0.0
+    0.0
+    0.0], sigdigits = 6)
+
+    # Tlag
+    #=
+    @test round.(dsnca[:, :Tlag], sigdigits = 6) == round.([0
+    0
+    0
+    0
+    0.5
+    0
+    0
+    0
+    0
+    0], sigdigits = 6)
+    =#
+
+    # Clast
+    @test dsnca[:, :Clast] == [112.846
+    85.241
+    67.901
+    97.625
+    110.778
+    69.501
+    58.051
+    74.437
+    93.44
+    42.191]
+
 end
