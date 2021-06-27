@@ -691,3 +691,13 @@ end
     42.191]
 
 end
+
+
+@testset "  setkelauto!                                              " begin
+end
+
+@testset "  setdosetime!                                             " begin
+end
+
+@testset "  setkelrange!                                             " begin
+end

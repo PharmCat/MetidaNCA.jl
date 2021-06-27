@@ -29,7 +29,7 @@ function  Base.length(keldata::KelData)
 end
 
 # Elimination settings
-mutable struct ElimRange
+mutable struct ElimRange{Symbol}
     kelstart::Int
     kelend::Int
     kelexcl::Vector{Int}
@@ -39,7 +39,7 @@ mutable struct ElimRange
         if kelend   < 0 throw(ArgumentError("Kel endpoint < 0")) end
         if any(x -> x < 0, kelexcl) throw(ArgumentError("Exclude point < 0")) end
         if kelstart in kelexcl || kelend in kelexcl throw(ArgumentError("Kel start or kel end in exclusion")) end
-        new(kelstart, kelend, kelexcl)::ElimRange
+        new{:point}(kelstart, kelend, kelexcl)::ElimRange
     end
     function ElimRange(kelstart, kelend)
         ElimRange(kelstart, kelend, Vector{Int}(undef, 0))
@@ -109,5 +109,27 @@ struct NCAResult{T} <: AbstractSubjectResult{T}
     end
     function NCAResult(subject::T, method, result) where T <: AbstractSubject
         NCAResult(subject, method, result, Dict())
+    end
+end
+
+"""
+
+Rule for PK subject.
+
+STEP 1 (NaN step): replace all NaN values with nan reyword value (if nan !== NaN);
+STEP 2 (LLOQ step): replace values below lloq with btmax value if this value befor Tmax or with atmax if this value after Tmax (if lloq !== NaN);
+STEP 3 (remove NaN): rm == true, then remove all NaN values;
+"""
+struct LimitRule{T<:Real}
+    lloq::T
+    btmax::Float64
+    atmax::Float64
+    nan::Float64
+    rm::Bool
+    function LimitRule(lloq::T, btmax, atmax, nan, rm::Bool) where T <: Real
+        new{T}(lloq, btmax, atmax, nan, rm)::LimitRule
+    end
+    function LimitRule(;lloq = NaN, btmax = NaN, atmax = NaN, nan = NaN, rm::Bool = false)
+        LimitRule(lloq, btmax, atmax, nan, rm)
     end
 end

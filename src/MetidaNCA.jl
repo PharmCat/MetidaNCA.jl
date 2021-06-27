@@ -12,6 +12,9 @@ export pkimport, nca!, DoseTime
 const LOG2 = log(2)
 
     include("types.jl")
+    include("setkelauto.jl")
+    include("setkelrange.jl")
+    include("setdosetime.jl")
     include("show.jl")
     include("import.jl")
     include("nca.jl")
