@@ -2,7 +2,7 @@ name: Documenter
 on:
   push:
     branches:
-      - master
+      - main
     tags: '*'
     paths-ignore:
       - 'LICENSE.md'
@@ -13,13 +13,11 @@ on:
       - 'change.log'
       - '.gitignore'
       - 'Project.toml'
-  page_build:
-  workflow_dispatch:
   release:
     types: [published]
   pull_request:
     branches:
-      - master
+      - main
 jobs:
   build:
     runs-on: ubuntu-latest
