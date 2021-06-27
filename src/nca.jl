@@ -1,7 +1,6 @@
 # Pharmacokinetics
 # Makoid C, Vuchetich J, Banakar V. 1996-1999. Basic Pharmacokinetics.
 
-
 isnanormissing(x) = isnan(x) || ismissing(x)
 
 function findnextnnom(v, range)
@@ -120,23 +119,6 @@ function slope(x, y)
 end #end slope
 
 #---------------------------------------------------------------------------
-#=
-function aucpart(t₁, t₂, c₁, c₂, calcm)
-    if calcm == :lint
-        auc   =  linauc(t₁, t₂, c₁, c₂)
-        aumc  = linaumc(t₁, t₂, c₁, c₂)
-    else
-        if c₁ > 0 && c₂ > 0
-            auc   =  logauc(t₁, t₂, c₁, c₂)
-            aumc  = logaumc(t₁, t₂, c₁, c₂)
-        else
-            auc   =  linauc(t₁, t₂, c₁, c₂)
-            aumc  = linaumc(t₁, t₂, c₁, c₂)
-        end
-    end
-    return auc, aumc
-end
-=#
 function aucpart(t₁, t₂, c₁::T, c₂::T, calcm, aftertmax) where T
     if calcm == :lint || c₁ <= zero(T) && c₂ <= zero(T)
         auc   =  linauc(t₁, t₂, c₁, c₂)
