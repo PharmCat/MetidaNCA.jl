@@ -4,8 +4,8 @@
 module MetidaNCA
 
 import Base: ht_keyindex, length, length, push!
-import MetidaBase: AbstractIdData, AbstractSubject, DataSet, AbstractSubjectResult, AbstractResultData
-import Tables
+
+import MetidaBase: Tables, AbstractIdData, AbstractSubject, DataSet, AbstractSubjectResult, AbstractResultData
 
 export pkimport, nca!, DoseTime
 
