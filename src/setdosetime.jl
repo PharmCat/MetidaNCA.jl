@@ -40,3 +40,10 @@ function setdosetime!(data::DataSet{T}, dosetime::DoseTime, sort::Dict) where T 
     end
     data
 end
+
+"""
+    setdosetime!(data::DataSet{T}, dosetime::DoseTime, sort::Dict) where T <: PKSubject
+"""
+function getdosetime(data::T) where T <: PKSubject
+    data.dosetime
+end

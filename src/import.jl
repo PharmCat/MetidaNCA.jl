@@ -12,6 +12,22 @@ function indsdict!(d::Dict{T}, cdata::Tuple) where T
     end
     d
 end
+"""
+    pkimport(data, time, conc, sort; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
+
+Import PK data from table `data`.
+
+* `time` - time column;
+* `conc` - concentration column;
+* `sort` - subject sorting columns.
+
+keywords:
+
+* `kelauto` - if `true` auto range settings, if `false` used `kelstart`/`kelend` from `elimrange`;
+* `elimrange` - set elimination range settings;
+* `dosetime` - set dose and dose time, by default dosetime = 0, dose is `NaN`.
+
+"""
 function pkimport(data, time, conc, sort; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
     cols   = Tables.columns(data)
     cdata  = Tuple(Tables.getcolumn(cols, y) for y in sort)
@@ -31,4 +47,12 @@ function pkimport(data, time, conc, sort; kelauto = true,  elimrange = ElimRange
         i += one(Int)
     end
     return DataSet(sdata)
+end
+"""
+    pkimport(time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
+
+Import PK data from time vector `time` and concentration vector `conc`.
+"""
+function pkimport(time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
+    PKSubject(time, conc, kelauto, elimrange,  dosetime, Dict())
 end

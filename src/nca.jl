@@ -11,23 +11,15 @@ end
 
 function firstobs(time::Vector, obs::Vector, dosetime)
     @inbounds for i = 1:length(time)
-        if time[i] >= dosetime || !isnanormissing(obs[i]) return i end
+        if time[i] >= dosetime && !isnanormissing(obs[i]) return i end
     end
 end
 
-function ctaumin(time::Vector{T}, obs::Vector, fobs, tautime) where T
-    ttauminp = 0
-    @inbounds for i = length(obs):-1:fobs
-        if  time[i] < tautime && !isnanormissing(obs[i])
-            ttauminp = i
-            break
-        end
-    end
-    min = obs[fobs]
-    if ttauminp > fobs
-        @inbounds for i = fobs+1:ttauminp
-            if !isnanormissing(obs[i]) && obs[i] < min min = obs[i] end
-        end
+function ctaumin(time::AbstractVector, obs::AbstractVector, taulastp::Int)
+    min = first(obs)
+    if length(obs) == 1 return min end
+    @inbounds for i = 2:taulastp
+        if  obs[i] < min  min = obs[i] end
     end
     min
 end
@@ -44,10 +36,11 @@ function firstnnom(obs::Vector{T}, range) where T
     end
 end
 
-function ctmax(time::AbstractVector, obs::AbstractVector{T}) where T
+function ctmax(time::AbstractVector, obs::AbstractVector{T}, taulastp) where T
     cmax  = obs[1]
     tmaxn = 1
-    @inbounds for i = 2:length(obs)
+    if length(obs) == 1 return cmax, first(time), tmaxn end
+    @inbounds for i = 2:taulastp
         if obs[i] > cmax
             cmax  = obs[i]
             tmaxn = i
@@ -171,84 +164,40 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, v
     end
     if isnothing(intpm) intpm = calcm end
 
-    time             = data.time
-    obs              = data.obs
-    auctype  = promote_type(eltype(time), eltype(obs))
-    fobs             = firstobs(data.time, data.obs, data.dosetime.time)
+    auctype  = promote_type(eltype(data.time), eltype(data.obs))
+    fobs     = firstobs(data.time, data.obs, data.dosetime.time)
 
 
-    if length(obs) - fobs < 2
+    if length(data.obs) - fobs < 2
         return NCAResult(data, calcm, result, data.id)
     end
-
+    time             = data.time
+    obs              = data.obs
+    # STEP 1 FILTER ALL BEFORE DOSETIME AND ALL NAN OR MISSING VALUES
+    aucinds = filter!(x-> x ∉ findall(isnanormissing, obs), collect(fobs:length(obs)))
+    #println(fobs)
+    time_auc = time[aucinds]
+    obs_auc  = view(obs, aucinds)
 
     # If TAU set, calculates start and edt timepoints for AUCtau
     if  data.dosetime.tau > zero(typeof(data.dosetime.tau))
         #taulast, taulastp, result[:Ctaumin] = taulastmin(time, obs, fobs, lobs, tautime)
-        tautime = data.dosetime.time + data.dosetime.tau
-        result[:Ctaumin] = ctaumin(time, obs, fobs, tautime)
-    end
+        #tautime = data.dosetime.time + data.dosetime.tau
 
-    # Dose concentration
-    # Dosetime is first point
-    cdoseins = false
-    if  data.dosetime.time == time[fobs]
-        result[:Cdose] = obs[fobs]
-        doseaucpart =  doseaumcpart = 0.0
-    # Dosetime before first point
-    elseif data.dosetime.time < time[fobs]
-        if adm == :iv
-            if !isnanormissig(obs[fobs]) && !isnanormissig(obs[fobs + 1]) && obs[fobs] > obs[fobs + 1] > zero(O)
-                result[:Cdose] = logcpredict(time[fobs], time[fobs + 1], data.dosetime.time, obs[fobs], obs[fobs+1])
-            else
-                result[:Cdose] = firstnnom(obs, fobs:lobs)
-            end
-            doseaucpart, doseaumcpart  = aucpart(data.dosetime.time, time[fobs], result[:Cdose], obs[fobs], calcm, true)
-        else
-            if  data.dosetime.tau > zero(typeof(data.dosetime.tau))
-                result[:Cdose] = result[:Ctaumin]
-            else
-                result[:Cdose] = zero(O)
-            end
-            doseaucpart, doseaumcpart  = aucpart(data.dosetime.time, time[fobs], result[:Cdose], obs[fobs], calcm, false)
-        end
-        cdodeins = true
+        taulastp = findlast(x -> x <= data.dosetime.time + data.dosetime.tau, time_auc)
+
+        result[:Ctaumin] = ctaumin(time_auc, obs_auc, taulastp)
     else
-        error("Dose time after first observation!") # Remove
+        taulastp = length(obs_auc)
     end
 
-    aucinds = filter!(x-> x ∉ findall(isnanormissing, obs), collect(fobs:length(obs)))
-    #println(fobs)
-    time_auc = view(time, aucinds)
-    obs_auc  = view(obs, aucinds)
     #println(length(time_auc))
     result[:Obsnum] = obsnum = length(obs_auc)
-    #CMAX TMAX FOR TAU RANGE
-    result[:Cmax], result[:Tmax], tmaxn = ctmax(time_auc, obs_auc)
+    # STEP 2 - CMAX TMAX FOR TAU RANGE
+    result[:Cmax], result[:Tmax], tmaxn = ctmax(time_auc, obs_auc, taulastp)
 
-    #Areas
-    aucpartl  = Array{auctype, 1}(undef, obsnum - 1)
-    aumcpartl = Array{auctype, 1}(undef, obsnum - 1)
-    #Calculate all UAC part based on data
-    for i = 1:(obsnum - 1)
-        aucpartl[i], aumcpartl[i] = aucpart(time_auc[i], time_auc[i + 1], obs_auc[i], obs_auc[i + 1], calcm, i >= tmaxn)
-    end
-
-    # C last and T last
-    tlastn = 0
-    for i = obsnum:-1:1
-        if obs_auc[i] > zero(O)
-            result[:Tlast]   = time_auc[i]
-            result[:Clast]   = obs_auc[i]
-            tlastn           = i
-            break
-        end
-    end
-
-    #-----------------------------------------------------------------------
-    #-----------------------------------------------------------------------
-
-    #Elimination
+    # STEP 3
+    # Elimination
     keldata                = KelData()
     if data.kelauto
         if (adm != :iv && obsnum - tmaxn > 2) || (adm == :iv && obsnum - tmaxn > 1)
@@ -289,7 +238,63 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, v
             push!(keldata, time_auc[stimep], time_auc[etimep], sl[1], sl[2], sl[3], sl[4])
         end
     end
+    # C last and T last
+    tlastn = 0
+    for i = obsnum:-1:1
+        if obs_auc[i] > zero(O)
+            result[:Tlast]   = time_auc[i]
+            result[:Clast]   = obs_auc[i]
+            tlastn           = i
+            break
+        end
+    end
 
+    # STEP 5
+    if  data.dosetime.time > 0.0
+        time_auc .-= data.dosetime.time
+    end
+
+    # STEP 4
+    # Dose concentration
+    # Dosetime is first point
+    cdoseins = false
+    #time_auc .-= data.dosetime.time
+    if  first(time_auc) == 0.0
+        result[:Cdose] = first(obs_auc)
+        doseaucpart =  doseaumcpart = 0.0
+    # Dosetime before first point
+    else
+        if adm == :iv
+            if  first(obs_auc) > obs_auc[2] > zero(O)
+                result[:Cdose] = logcpredict(first(time_auc), time_auc[2], data.dosetime.time, first(obs_auc), obs_auc[2])
+            else
+                result[:Cdose] = firstnnom(obs, fobs:lobs)
+            end
+            doseaucpart, doseaumcpart  = aucpart(0.0, first(time_auc), result[:Cdose], first(obs_auc), calcm, true)
+        else
+            if  data.dosetime.tau > zero(typeof(data.dosetime.tau))
+                result[:Cdose] = result[:Ctaumin]
+            else
+                result[:Cdose] = zero(O)
+            end
+            doseaucpart, doseaumcpart  = aucpart(0.0, first(time_auc), result[:Cdose], first(obs_auc), calcm, false)
+        end
+        cdodeins = true
+    end
+
+
+
+    # STEP 5
+    #Areas
+    aucpartl  = Array{auctype, 1}(undef, obsnum - 1)
+    aumcpartl = Array{auctype, 1}(undef, obsnum - 1)
+    #Calculate all AUC/AUMC part based on data
+    for i = 1:(obsnum - 1)
+        aucpartl[i], aumcpartl[i] = aucpart(time_auc[i], time_auc[i + 1], obs_auc[i], obs_auc[i + 1], calcm, i >= tmaxn)
+    end
+
+    #-----------------------------------------------------------------------
+    #-----------------------------------------------------------------------
     auclast  = doseaucpart
     aumclast = doseaumcpart
     for i = 1:tlastn-1
@@ -339,23 +344,24 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, v
             result[:Clinf]           = data.dosetime.dose / result[:AUCinf]
             result[:Vssinf]          = result[:Clinf] * result[:MRTinf]
         end
+    else
+        result[:Kel] = NaN
     end
-        #-----------------------------------------------------------------------
-        #Steady-state
-
+    #-----------------------------------------------------------------------
+    # STEP 6
+    # Steady-state
     if data.dosetime.tau > 0
         eaucpartl  = eaumcpartl = 0.0
-        taulastp = findlast(x -> x < tautime, time_auc)
-        if tautime < time_auc[end]
-            result[:Ctau] = interpolate(time_auc[taulastp], time_auc[taulastp + 1], tautime, obs_auc[taulastp], obs_auc[taulastp + 1], intpm, true)
-            eaucpartl, eaumcpartl = aucpart(time_auc[taulastp], tautime, obs_auc[taulastp], result[:Ctau], calcm, true)
+        if time_auc[taulastp] < data.dosetime.tau < time_auc[end]
+            result[:Ctau] = interpolate(time_auc[taulastp], time_auc[taulastp + 1], data.dosetime.tau, obs_auc[taulastp], obs_auc[taulastp + 1], intpm, true)
+            eaucpartl, eaumcpartl = aucpart(time_auc[taulastp], data.dosetime.tau, obs_auc[taulastp], result[:Ctau], calcm, true)
                 #remoove part after tau
-        elseif tautime > time_obs[end] && result[:LZint] !== NaN
+        elseif data.dosetime.tau > time_auc[end] && result[:Kel] !== NaN
                 #extrapolation
-            result[:Ctau] = exp(result[:LZint] + result[:LZ] * tautime)
-            eaucpartl, eaumcpartl = aucpart(time_auc[end], tautime, obs_auc[end], result[:Ctau], calcm, true)
+            result[:Ctau] = exp(result[:LZint] + result[:LZ] * (data.dosetime.tau + data.dosetime.time))
+            eaucpartl, eaumcpartl = aucpart(time_auc[end], data.dosetime.tau, obs_auc[end], result[:Ctau], calcm, true)
         else
-            result[:Ctau] = obs[end]
+            result[:Ctau] = obs_auc[taulastp]
         end
 
         auctau   = eaucpartl  + doseaucpart
@@ -374,8 +380,8 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, v
         if result[:Ctau] != 0
             result[:Swingtau] = (result[:Cmax] - result[:Ctau])/result[:Ctau]
         end
-        result[:Fluc]     = (result[:Cmax] - result[:Ctaumin])/result[:Cavg]
-        result[:Fluctau]  = (result[:Cmax] - result[:Ctau])/result[:Cavg]
+        result[:Fluc]     = (result[:Cmax] - result[:Ctaumin])/result[:Cavg]*100
+        result[:Fluctau]  = (result[:Cmax] - result[:Ctau])/result[:Cavg]*100
         #If Kel calculated
         if result[:Kel] !== NaN
             result[:Accind]   = 1 / (1 - (exp(-result[:Kel] * data.dosetime.tau)))
@@ -422,7 +428,11 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, v
     return NCAResult(data, calcm, result, data.id)
 end
 
+"""
+    nca!(data::DataSet{T1}; adm = :ev, calcm = :lint, intpm = nothing, verbose = false, warn = true, io::IO = stdout) where T1 <: PKSubject{T,O}  where T  where O
 
+Non-compartmental (NCA) analysis of pharmacokinetic (PK) data.
+"""
 function nca!(data::DataSet{T1}; adm = :ev, calcm = :lint, intpm = nothing, verbose = false, warn = true, io::IO = stdout) where T1 <: PKSubject{T,O}  where T  where O
     result = Vector{NCAResult{T1}}(undef, length(data))
     for i = 1:length(data)

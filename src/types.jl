@@ -34,7 +34,7 @@ mutable struct ElimRange{Symbol}
     kelend::Int
     kelexcl::Vector{Int}
     function ElimRange(kelstart, kelend, kelexcl)::ElimRange
-        if kelstart < kelend throw(ArgumentError("Kel start < kel end")) end
+        if kelstart > kelend throw(ArgumentError("Kel start > kel end")) end
         if kelstart < 0 throw(ArgumentError("Kel start point < 0")) end
         if kelend   < 0 throw(ArgumentError("Kel endpoint < 0")) end
         if any(x -> x < 0, kelexcl) throw(ArgumentError("Exclude point < 0")) end
@@ -44,8 +44,8 @@ mutable struct ElimRange{Symbol}
     function ElimRange(kelstart, kelend)
         ElimRange(kelstart, kelend, Vector{Int}(undef, 0))
     end
-    function ElimRange()
-        ElimRange(0, 0, Vector{Int}(undef, 0))
+    function ElimRange(;kelstart = 0, kelend = 0, kelexcl = Int[])
+        ElimRange(kelstart, kelend, kelexcl)
     end
 end
 
@@ -54,8 +54,9 @@ struct DoseTime{D <: Number, T <: Number, TAU <: Number}
     dose::D
     time::T
     tau::TAU
-    function DoseTime(dose, time, tau)
-        new{typeof(dose), typeof(time), typeof(tau)}(dose, time, tau)::DoseTime
+    function DoseTime(dose::D, time::T, tau::TAU) where D where T where TAU
+        if time < zero(T) throw(ArgumentError("Dose time can't be less zero!")) end
+        new{D, T, TAU}(dose, time, tau)::DoseTime
     end
     function DoseTime(;dose = NaN, time = 0, tau = NaN)
         DoseTime(dose, time, tau)
