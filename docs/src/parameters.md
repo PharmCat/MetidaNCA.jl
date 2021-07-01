@@ -86,19 +86,19 @@ HL = ln(2) / \lambda_z
 ### AUCinf
 
 ```math
-AUC_\infty = AUC_{last} + \frac{Clast}{\lambda_z}
+AUC_\infty = AUC_{last} + \frac{C_{last}}{\lambda_z}
 ```
 
 ### AUMCinf
 
 ```math
-AUMC_\infty =  AUMC_{last} + \frac{tlast\times Clast}{\lambda_z} + \frac{Clast}{\lambda_z^2}
+AUMC_\infty =  AUMC_{last} + \frac{t_{last}\times C_{last}}{\lambda_z} + \frac{C_{last}}{\lambda_z^2}
 ```
 
 ### AUCpct
 
 ```math
-AUCpct = (AUC_\infty - AUC_{last}) / AUC_\infty * 100.0 %
+AUCpct = (AUC_\infty - AUC_{last}) / AUC_\infty * 100.0 \%
 ```
 
 ## If Dose used
@@ -132,5 +132,5 @@ Accind = \frac{1}{1 - exp(-\lambda_z \tau)}
 ### MRTtauinf
 
 ```math
-MRTtauinf = (AUMC_\tau + \tau * (AUCinf - AUC_\tau)) / AUC_\tau
+MRT_{\tau\inf} = (AUMC_\tau + \tau * (AUC_\infty - AUC_\tau)) / AUC_\tau
 ```

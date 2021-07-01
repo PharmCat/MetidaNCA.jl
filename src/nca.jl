@@ -3,11 +3,6 @@
 
 isnanormissing(x) = isnan(x) || ismissing(x)
 
-function findnextnnom(v, range)
-    for i in range
-        if !isnanormissing(v[i]) return i end
-    end
-end
 
 function firstobs(time::Vector, obs::Vector, dosetime)
     @inbounds for i = 1:length(time)
@@ -22,18 +17,6 @@ function ctaumin(time::AbstractVector, obs::AbstractVector, taulastp::Int)
         if  obs[i] < min  min = obs[i] end
     end
     min
-end
-
-function firstabovezero(obs::Vector{T}, range) where T
-    @inbounds for i in range
-        if obs[i] > zero(T) return obs[i] end
-    end
-end
-
-function firstnnom(obs::Vector{T}, range) where T
-    @inbounds for i in range
-        if !isnanormissing(obs[i]) return obs[i] end
-    end
 end
 
 function ctmax(time::AbstractVector, obs::AbstractVector{T}, taulastp) where T
@@ -73,15 +56,6 @@ end
 #linear prediction bx from ax, a1 < ax < a2
 function linpredict(a₁, a₂, ax, b₁, b₂)
     return (ax - a₁) / (a₂ - a₁)*(b₂ - b₁) + b₁
-end
-
-
-function cpredict(t₁, t₂, tx, c₁, c₂, calcm)
-    if calcm == :lint || c₂ >= c₁
-        return linpredict(t₁, t₂, tx, c₁, c₂)
-    else
-        return logcpredict(t₁, t₂, tx, c₁, c₂)
-    end
 end
 
 function slope(x, y)
@@ -268,7 +242,7 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, v
             if  first(obs_auc) > obs_auc[2] > zero(O)
                 result[:Cdose] = logcpredict(first(time_auc), time_auc[2], data.dosetime.time, first(obs_auc), obs_auc[2])
             else
-                result[:Cdose] = firstnnom(obs, fobs:lobs)
+                result[:Cdose] = first(obs_auc)
             end
             doseaucpart, doseaumcpart  = aucpart(0.0, first(time_auc), result[:Cdose], first(obs_auc), calcm, true)
         else
