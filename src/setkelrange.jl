@@ -8,6 +8,13 @@ function setkelrange!(data::T, range::ElimRange{:point}; kelauto = false) where 
     data
 end
 """
+    setdosetime!(data::DataSet{T}, dosetime::DoseTime, ind::Int) where T <: PKSubject
+"""
+function setkelrange!(data::DataSet{T}, range::ElimRange{:point}, ind::Int; kelauto = false) where T <: PKSubject
+    setkelrange!(data[ind], range)
+    data
+end
+"""
     getkelrange(data::T) where T <: PKSubject
 """
 function getkelrange(data::T) where T <: PKSubject

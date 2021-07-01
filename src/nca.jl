@@ -179,7 +179,7 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, v
     time_auc = time[aucinds]
     obs_auc  = view(obs, aucinds)
 
-    # If TAU set, calculates start and edt timepoints for AUCtau
+    # If TAU set, calculates start and end timepoints for AUCtau
     if  data.dosetime.tau > zero(typeof(data.dosetime.tau))
         #taulast, taulastp, result[:Ctaumin] = taulastmin(time, obs, fobs, lobs, tautime)
         #tautime = data.dosetime.time + data.dosetime.tau
@@ -249,12 +249,12 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, v
         end
     end
 
-    # STEP 5
+    # STEP 4
     if  data.dosetime.time > 0.0
         time_auc .-= data.dosetime.time
     end
 
-    # STEP 4
+    # STEP 5
     # Dose concentration
     # Dosetime is first point
     cdoseins = false
@@ -284,7 +284,7 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, v
 
 
 
-    # STEP 5
+    # STEP 6
     #Areas
     aucpartl  = Array{auctype, 1}(undef, obsnum - 1)
     aumcpartl = Array{auctype, 1}(undef, obsnum - 1)
@@ -348,7 +348,7 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, v
         result[:Kel] = NaN
     end
     #-----------------------------------------------------------------------
-    # STEP 6
+    # STEP 7
     # Steady-state
     if data.dosetime.tau > 0
         eaucpartl  = eaumcpartl = 0.0

@@ -1,8 +1,12 @@
-# Metida
+# MetidaNCA
 
 ```@meta
 CurrentModule = MetidaNCA
 ```
+
+Non-compartment pharmacokinetic analysis (NCA).
+
+*This program comes with absolutely no warranty. No liability is accepted for any loss and risk to public health resulting from use of this software.
 
 ## NCA
 

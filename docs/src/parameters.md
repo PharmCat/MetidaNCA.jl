@@ -71,7 +71,7 @@ Area from dose time to last observed concentration (>0).
 All values used to calculate AUC/AUMC.
 
 
-### ```math \lambda_z ```- elimination constant
+### 𝝺z - elimination constant
 
 Linear regression used for logarithmic transformed concentration data.
 
@@ -86,13 +86,13 @@ HL = ln(2) / \lambda_z
 ### AUCinf
 
 ```math
-AUCinf = AUClast + \frac{Clast}{\lambda_z}
+AUC_\infty = AUClast + \frac{Clast}{\lambda_z}
 ```
 
 ### AUMCinf
 
 ```math
-AUMCinf =  AUMClast + \frac{tlast\times Clast}{\lambda_z} + \frac{Clast}{\lambda_z^2}
+AUMC_\infty =  AUMClast + \frac{tlast\times Clast}{\lambda_z} + \frac{Clast}{\lambda_z^2}
 ```
 
 ### AUCpct
@@ -117,7 +117,7 @@ Cllast = Dose / AUClast
 Clinf = Dose / AUCinf
 ```
 
-## If Tau used
+##  Steady-state parameters (If Tau used)
 
 ### AUCtau / AUMCtau
 

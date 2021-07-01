@@ -29,3 +29,21 @@ MetidaNCA.setkelauto!
 ```@docs
 MetidaNCA.setkelrange!
 ```
+
+### getdosetime
+
+```@docs
+MetidaNCA.getdosetime
+```
+
+### getkelauto
+
+```@docs
+MetidaNCA.getkelauto
+```
+
+### getkelrange
+
+```@docs
+MetidaNCA.getkelrange
+```
