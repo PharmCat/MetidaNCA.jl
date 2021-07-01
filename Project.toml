@@ -10,6 +10,7 @@ MetidaBase = "075456b7-4006-432f-9324-2f8453996c49"
 [compat]
 
 MetidaBase = "0.1"
+julia = "1"
 
 [extras]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
