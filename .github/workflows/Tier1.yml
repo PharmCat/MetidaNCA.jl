@@ -2,7 +2,7 @@ name: Tier 1
 on:
   push:
     branches:
-      - master
+      - main
     paths-ignore:
       - 'LICENSE.md'
       - 'README.md'
@@ -14,7 +14,7 @@ on:
       - '.gitignore'
   pull_request:
     branches:
-      - master
+      - main
     paths-ignore:
       - 'LICENSE.md'
       - 'README.md'
