@@ -9,7 +9,8 @@ makedocs(
             "Home" => "index.md",
             "Examples" => "examples.md",
             "Details" => "details.md",
-            "Parameters" => "parameters.md"
+            "Parameters" => "parameters.md",
+            "API" => "api.md"
             ],
         )
 deploydocs(repo = "github.com/PharmCat/MetidaNCA.jl.git", devbranch = "main", forcepush = true

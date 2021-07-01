@@ -1,8 +1,12 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 MetidaNCA  = "097c2839-c7bc-4c4b-a5f2-b4167c1b4e7c"
+CSV        = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 
 
 [compat]
 Documenter = "≥0.26"
 MetidaNCA  = "0.1"
+CSV        = "0.7, 0.8"
+DataFrames = "0.22, 1"

@@ -86,19 +86,19 @@ HL = ln(2) / \lambda_z
 ### AUCinf
 
 ```math
-AUC_\infty = AUClast + \frac{Clast}{\lambda_z}
+AUC_\infty = AUC_{last} + \frac{Clast}{\lambda_z}
 ```
 
 ### AUMCinf
 
 ```math
-AUMC_\infty =  AUMClast + \frac{tlast\times Clast}{\lambda_z} + \frac{Clast}{\lambda_z^2}
+AUMC_\infty =  AUMC_{last} + \frac{tlast\times Clast}{\lambda_z} + \frac{Clast}{\lambda_z^2}
 ```
 
 ### AUCpct
 
 ```math
-AUCpct = (AUCinf - AUClast) / AUCinf * 100.0%
+AUCpct = (AUC_\infty - AUC_{last}) / AUC_\infty * 100.0 %
 ```
 
 ## If Dose used
@@ -108,13 +108,13 @@ AUCpct = (AUCinf - AUClast) / AUCinf * 100.0%
 #### Cllast
 
 ```math
-Cllast = Dose / AUClast
+CL_{last} = Dose / AUC_{last}
 ```
 
 #### Clinf
 
 ```math
-Clinf = Dose / AUCinf
+CL_\infty = Dose / AUC_\infty
 ```
 
 ##  Steady-state parameters (If Tau used)
@@ -132,5 +132,5 @@ Accind = \frac{1}{1 - exp(-\lambda_z \tau)}
 ### MRTtauinf
 
 ```math
-MRTtauinf = (AUMCtau + \tau * (AUCinf - AUCtau)) / AUCtau
+MRTtauinf = (AUMC_\tau + \tau * (AUCinf - AUC_\tau)) / AUC_\tau
 ```
