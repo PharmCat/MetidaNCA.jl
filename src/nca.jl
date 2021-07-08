@@ -241,7 +241,7 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
             end
         end
         if length(timep) > 1
-            sl = slope(view(time_auc, timep), log.(view(conc_auc, timep)))
+            sl = slope(view(time_auc, timep), log.(view(obs_auc, timep)))
             push!(keldata, time_auc[stimep], time_auc[etimep], sl[1], sl[2], sl[3], sl[4])
         end
     end

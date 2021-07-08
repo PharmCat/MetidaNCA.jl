@@ -1353,6 +1353,8 @@ sort!(ds, :Subject)
     @testset "  #1 setkelauto!                                            " begin
         ka = MetidaNCA.setkelauto!(ds[1], false)
         @test MetidaNCA.getkelauto(ka) == true
+
+        dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luldt)
     end
     @testset "  setdosetime!                                             " begin
         dt = MetidaNCA.DoseTime(dose = 110, time = 2.1, tau = 10)
@@ -1365,11 +1367,15 @@ sort!(ds, :Subject)
         MetidaNCA.setdosetime!(ds, dt2, [1,2,3])
         MetidaNCA.setdosetime!(ds, dt2, Dict(:Formulation => "R"))
         MetidaNCA.setdosetime!(ds, dt2)
+
+        dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luldt)
     end
     @testset "  #2 setkelauto!                                            " begin
         MetidaNCA.setkelauto!(ds, false, [1,2,3])
         MetidaNCA.setkelauto!(ds, false, Dict(:Formulation => "R"))
         MetidaNCA.setkelauto!(ds, false)
+
+        dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luldt)
     end
     @testset "  setkelrange!                                             " begin
         kr =  MetidaNCA.ElimRange(kelstart = 4, kelend = 12, kelexcl = Int[5,6])
@@ -1382,14 +1388,27 @@ sort!(ds, :Subject)
         MetidaNCA.setkelrange!(ds, kr2, [1,2,3])
         MetidaNCA.setkelrange!(ds, kr2, Dict(:Formulation => "R"))
         MetidaNCA.setkelrange!(ds, kr2)
+
+        dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luldt)
     end
 end
 @testset "  applylimitrule!                                          " begin
     ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
     sort!(ds, :Subject)
-
     lr = MetidaNCA.LimitRule(;lloq = 0.5, btmax = 0.0, atmax = NaN, nan = NaN, rm = true)
-
     MetidaNCA.applylimitrule!(ds[1], lr)
 
+    dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luldt)
+end
+
+@testset "  kel                                                      " begin
+    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
+    sort!(ds, :Subject)
+    kr1 = MetidaNCA.ElimRange(kelstart = 4, kelend = 12, kelexcl = Int[5,6])
+    kr2 = MetidaNCA.ElimRange(kelstart = 3, kelend = 12, kelexcl = Int[7])
+
+    MetidaNCA.setkelrange!(ds, kr1, Dict(:Formulation => "T"))
+    MetidaNCA.setkelrange!(ds, kr2, Dict(:Formulation => "R"))
+    
+    dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luldt)
 end
