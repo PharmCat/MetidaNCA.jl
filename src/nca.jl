@@ -1,7 +1,8 @@
 # Pharmacokinetics
 # Makoid C, Vuchetich J, Banakar V. 1996-1999. Basic Pharmacokinetics.
 
-isnanormissing(x) = isnan(x) || ismissing(x)
+isnanormissing(x::Number) = isnan(x)
+isnanormissing(x::Missing) = true
 
 
 function firstobs(time::Vector, obs::Vector, dosetime)
@@ -31,6 +32,38 @@ function ctmax(time::AbstractVector, obs::AbstractVector{T}, taulastp) where T
     end
     return cmax, time[tmaxn], tmaxn
 end
+function ctmax(time::AbstractVector, obs::AbstractVector{T}) where T
+    f = findfirst(!isnanormissing, obs)
+    cmax  = obs[f]
+    tmaxn = f
+    if length(obs) - f == 0 return cmax, time[f], tmaxn end
+    @inbounds for i = f+1:length(obs)
+        if !isnanormissing(obs[i]) && obs[i] > cmax
+            cmax  = obs[i]
+            tmaxn = i
+        end
+    end
+    return cmax, time[tmaxn], tmaxn
+end
+function ctmax(data::PKSubject)
+    fobs = firstobs(data.time, data.obs, data.dosetime.time)
+    if  data.dosetime.tau > 0
+        taulastp = findlast(x -> x <= data.dosetime.time + data.dosetime.tau, data.time)
+    else
+        taulastp = length(data.obs)
+    end
+    cmax  = data.obs[fobs]
+    tmaxn = fobs
+    if length(data.obs) - fobs == 0 return cmax, data.time[fobs], tmaxn end
+    @inbounds for i = fobs + 1:length(data.obs)
+        if !isnanormissing(data.obs[i]) && data.obs[i] > cmax
+            cmax  = data.obs[i]
+            tmaxn = i
+        end
+    end
+    return cmax, data.time[tmaxn], tmaxn
+end
+
 
 function logcpredict(t₁, t₂, tx, c₁, c₂)
     return exp(log(c₁) + (tx-t₁)/(t₂-t₁)*(log(c₂) - log(c₁)))
@@ -126,7 +159,7 @@ function interpolate(t₁, t₂, tx, c₁::T, c₂::T, intpm, aftertmax) where T
     return c
 end
 
-function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, verbose = false, warn = true, io::IO = stdout) where T where O
+function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, limitrule = nothing, verbose = false, warn = true, io::IO = stdout) where T where O
 
     result   = Dict{Symbol, Union{eltype(data.time), eltype(data.obs)}}()
 
@@ -407,10 +440,10 @@ end
 
 Non-compartmental (NCA) analysis of pharmacokinetic (PK) data.
 """
-function nca!(data::DataSet{T1}; adm = :ev, calcm = :lint, intpm = nothing, verbose = false, warn = true, io::IO = stdout) where T1 <: PKSubject{T,O}  where T  where O
-    result = Vector{NCAResult{T1}}(undef, length(data))
+function nca!(data::DataSet{Subj}; adm = :ev, calcm = :lint, intpm = nothing, limitrule = nothing, verbose = false, warn = true, io::IO = stdout) where Subj <: PKSubject{T,O}  where T  where O
+    result = Vector{NCAResult{Subj}}(undef, length(data))
     for i = 1:length(data)
-        result[i] = nca!(data[i]; adm = adm, calcm = calcm, intpm = intpm, verbose = verbose, warn = warn, io = io)
+        result[i] = nca!(data[i]; adm = adm, calcm = calcm, intpm = intpm, limitrule = limitrule, verbose = verbose, warn = warn, io = io)
     end
     DataSet(result)
 end

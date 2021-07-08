@@ -1,4 +1,4 @@
-
+#Subject
 """
     setkelauto!(data::T, kelauto::Bool) where T <: PKSubject
 
@@ -11,6 +11,7 @@ function setkelauto!(data::T, kelauto::Bool) where T <: PKSubject
     if data.kelrange.kelend  > 0 && data.kelrange.kelstart > 0 data.kelauto = kelauto end
     data
 end
+#DS ind Int
 """
     setkelauto!(data::DataSet{T}, kelauto::Bool, ind::Int) where T <: PKSubject
 """
@@ -18,6 +19,37 @@ function setkelauto!(data::DataSet{T}, kelauto::Bool, ind::Int) where T <: PKSub
     setkelauto!(data[ind], kelauto)
     data
 end
+#DS iter Int
+"""
+    setkelauto!(data::DataSet{T}, kelauto::Bool, inds::Union{Vector{Int}, UnitRange{Int}, Tuple{Vararg{Int}}}) where T <: PKSubject
+"""
+function setkelauto!(data::DataSet{T}, kelauto::Bool, inds::Union{Vector{Int}, UnitRange{Int}, Tuple{Vararg{Int}}}) where T <: PKSubject
+    for i in inds
+        setkelauto!(data[i], kelauto)
+    end
+    data
+end
+#DS all
+"""
+    setkelauto!(data::DataSet{T}, kelauto::Bool) where T <: PKSubject
+"""
+function setkelauto!(data::DataSet{T}, kelauto::Bool) where T <: PKSubject
+    for i = 1:length(data)
+        setkelauto!(data[i], kelauto)
+    end
+    data
+end
+#DS Dict
+"""
+    setkelauto!(data::DataSet{T}, kelauto::Bool, sort::Dict) where T <: PKSubject
+"""
+function setkelauto!(data::DataSet{T}, kelauto::Bool, sort::Dict) where T <: PKSubject
+    for i = 1:length(data)
+        if sort ⊆ data[i].id setkelauto!(data[i], kelauto) end
+    end
+    data
+end
+#GET subj
 """
     getkelauto!(data::T) where T <: PKSubject
 """

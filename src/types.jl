@@ -1,14 +1,14 @@
 
 # Elimination data
-struct KelData{T1<:Number,T2<:Number,T3<:Number,T4<:Number,T5<:Number,T6<:Number}
-    s::Array{T1, 1}
-    e::Array{T2, 1}
-    a::Array{T3, 1}
-    b::Array{T4, 1}
-    r::Array{T5, 1}
-    ar::Array{T6, 1}
-    function KelData(s::Vector{T1}, e::Vector{T2}, a::Vector{T3}, b::Vector{T4}, r::Vector{T5}, ar::Vector{T6})::KelData where T1 <: Number where T2 <: Number where T3 <: Number where T4 <: Number where T5 <: Number where T6 <: Number
-        new{T1,T2,T3,T4,T5,T6}(s, e, a, b, r, ar)::KelData
+struct KelData{S<:Number,E<:Number}
+    s::Vector{S}
+    e::Vector{E}
+    a::Vector{Float64}
+    b::Vector{Float64}
+    r::Vector{Float64}
+    ar::Vector{Float64}
+    function KelData(s::Vector{S}, e::Vector{E}, a, b, r, ar)::KelData where S <: Number where E <: Number
+        new{S, E}(s, e, a, b, r, ar)::KelData
     end
     function KelData()::KelData
         KelData(Float64[], Float64[], Float64[], Float64[], Float64[], Float64[])
@@ -114,6 +114,9 @@ struct NCAResult{T} <: AbstractSubjectResult{T}
 end
 
 """
+    LimitRule(lloq::T, btmax, atmax, nan, rm::Bool) where T <: Real
+
+    LimitRule(;lloq = NaN, btmax = NaN, atmax = NaN, nan = NaN, rm::Bool = false)
 
 Rule for PK subject.
 

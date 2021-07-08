@@ -15,6 +15,8 @@ Non-compartment pharmacokinetic analysis (NCA).
 ```@contents
 Pages = [
         "index.md",
+        "parameters.md",
+        "api.md",
       ]
 Depth = 3
 ```

@@ -35,7 +35,7 @@ function Base.show(io::IO, obj::PKSubject)
         println(io, obj.time[i], " => ", obj.obs[i])
     end
 end
-function Base.show(io::IO, obj::DataSet{PKSubject})
+function Base.show(io::IO, obj::DataSet{Subj}) where Subj <: PKSubject
     println(io, "DataSet: Pharmacokinetic subject")
     println(io, "Length: $(length(obj))")
     for i = 1:length(obj)

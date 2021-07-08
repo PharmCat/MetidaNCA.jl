@@ -1,4 +1,4 @@
-
+#Subject
 """
     setdosetime!(data::T, dosetime::DoseTime) where T <: PKSubject
 """
@@ -6,6 +6,7 @@ function setdosetime!(data::T, dosetime::DoseTime) where T <: PKSubject
     data.dosetime = dosetime
     data
 end
+#DS ind Int
 """
     setdosetime!(data::DataSet{T}, dosetime::DoseTime, ind::Int) where T <: PKSubject
 """
@@ -13,6 +14,7 @@ function setdosetime!(data::DataSet{T}, dosetime::DoseTime, ind::Int) where T <:
     setdosetime!(data[ind], dosetime)
     data
 end
+#DS iter Int
 """
     setdosetime!(data::DataSet{T}, dosetime::DoseTime, inds::Union{Vector{Int}, UnitRange{Int}, Tuple{Vararg{Int}}}) where T <: PKSubject
 """
@@ -22,6 +24,7 @@ function setdosetime!(data::DataSet{T}, dosetime::DoseTime, inds::Union{Vector{I
     end
     data
 end
+#DS all
 """
     setdosetime!(data::DataSet{T}, dosetime::DoseTime) where T <: PKSubject
 """
@@ -31,6 +34,7 @@ function setdosetime!(data::DataSet{T}, dosetime::DoseTime) where T <: PKSubject
     end
     data
 end
+#DS Dict
 """
     setdosetime!(data::DataSet{T}, dosetime::DoseTime, sort::Dict) where T <: PKSubject
 """
@@ -40,10 +44,20 @@ function setdosetime!(data::DataSet{T}, dosetime::DoseTime, sort::Dict) where T 
     end
     data
 end
-
+#GET subj
 """
-    setdosetime!(data::DataSet{T}, dosetime::DoseTime, sort::Dict) where T <: PKSubject
+    getdosetime(data::T) where T <: PKSubject
+
+Return dosetime.
 """
 function getdosetime(data::T) where T <: PKSubject
     data.dosetime
 end
+
+
+#Subject
+#DS ind Int
+#DS iter Int
+#DS all
+#DS Dict
+#GET subj

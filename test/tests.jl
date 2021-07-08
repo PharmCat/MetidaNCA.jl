@@ -43,16 +43,19 @@ pkdata2  = CSV.File(joinpath(path, "csv", "pkdata2.csv")) |> DataFrame
 # Fluctau
 # Swing
 # Swingtau
+@testset "   Simple test                                             " begin
 
+    tdat = pkdata2[1:16, :Time]
+    cdat = pkdata2[1:16, :Concentration]
+    ds = MetidaNCA.pkimport(tdat, cdat)
+    sbj = MetidaNCA.nca!(ds)
+
+end
 
 @testset "  Linear trapezoidal, Dose 100, Dosetime 0, no tau         " begin
 
 ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
 sort!(ds, :Subject)
-
-sbj = MetidaNCA.nca!(ds[1])
-
-# Linear trapezoidal, Dose 100, Dosetime 0, no tau
 
 dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
 
@@ -1240,10 +1243,114 @@ end
 
 end
 
+
+@testset "  Linear trapezoidal, Dose 120, Dosetime 0.0, tau 12       " begin
+    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 120, time = 0, tau = 12))
+    sort!(ds, :Subject)
+    dsnca = MetidaNCA.nca!(ds, adm = :iv, calcm = :lint)
+
+
+    # Cmax
+    @test dsnca[:, :Cmax] == [190.869
+    261.177
+    105.345
+    208.542
+    169.334
+    154.648
+    153.254
+    138.327
+    167.347
+    125.482]
+
+    # Tmax
+    @test dsnca[:, :Tmax] == [1
+    1
+    1.5
+    1
+    4
+    2.5
+    2.5
+    4
+    3
+    2]
+
+    # Cdose
+    @test round.(dsnca[:, :Cdose], sigdigits = 6) == round.([0.0
+    0.0
+    0.0
+    0.0
+    0.0
+    0.0
+    0.0
+    0.0
+    0.0
+    0.0], sigdigits = 6)
+
+    # Tlag
+    #=
+    @test round.(dsnca[:, :Tlag], sigdigits = 6) == round.([0
+    0
+    0
+    0
+    0.5
+    0
+    0
+    0
+    0
+    0], sigdigits = 6)
+    =#
+
+    # Clast
+    @test dsnca[:, :Clast] == [112.846
+    85.241
+    67.901
+    97.625
+    110.778
+    69.501
+    58.051
+    74.437
+    93.44
+    42.191]
+
+    # AUClast
+    # AUMClast / AUMCtau
+    # AUCall
+    # Rsq
+    # Adjusted Rsq
+    # Kel
+    # HL
+    # LZint
+    # Clast_pred
+    # AUCinf
+    # AUCinf_pred
+    # AUMCinf
+    # AUMCinf_pred
+    # AUCpct
+    # MRTlast
+    # MRTinf / MRTtauinf
+    # MRTinf_pred
+    # Cllast
+    # Clinf / Cltau
+    # Vzlast
+    # Vzinf / Vztau
+    # Vssinf
+
+    # AUCtau
+    # Ctau
+    # Cavg
+    # Ctaumin
+    # Accind
+    # Fluc
+    # Fluctau
+    # Swing
+    # Swingtau
+
+end
+
 @testset "  set-get*! tests                                          " begin
 ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
 sort!(ds, :Subject)
-    @testset "  setkelauto!                                              " begin
+    @testset "  #1 setkelauto!                                            " begin
         ka = MetidaNCA.setkelauto!(ds[1], false)
         @test MetidaNCA.getkelauto(ka) == true
     end
@@ -1254,8 +1361,16 @@ sort!(ds, :Subject)
         @test dts.dose == 110
         @test dts.time == 2.1
         @test dts.tau == 10
+        dt2 = MetidaNCA.DoseTime(dose = 100, time = 2.2, tau = 9)
+        MetidaNCA.setdosetime!(ds, dt2, [1,2,3])
+        MetidaNCA.setdosetime!(ds, dt2, Dict(:Formulation => "R"))
+        MetidaNCA.setdosetime!(ds, dt2)
     end
-
+    @testset "  #2 setkelauto!                                            " begin
+        MetidaNCA.setkelauto!(ds, false, [1,2,3])
+        MetidaNCA.setkelauto!(ds, false, Dict(:Formulation => "R"))
+        MetidaNCA.setkelauto!(ds, false)
+    end
     @testset "  setkelrange!                                             " begin
         kr =  MetidaNCA.ElimRange(kelstart = 4, kelend = 12, kelexcl = Int[5,6])
         MetidaNCA.setkelrange!(ds[1], kr)
@@ -1263,5 +1378,18 @@ sort!(ds, :Subject)
         @test krs.kelstart == 4
         @test krs.kelend == 12
         @test krs.kelexcl == [5,6]
+        kr2 =  MetidaNCA.ElimRange(kelstart = 3, kelend = 12, kelexcl = Int[7])
+        MetidaNCA.setkelrange!(ds, kr2, [1,2,3])
+        MetidaNCA.setkelrange!(ds, kr2, Dict(:Formulation => "R"))
+        MetidaNCA.setkelrange!(ds, kr2)
     end
+end
+@testset "  applylimitrule!                                          " begin
+    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
+    sort!(ds, :Subject)
+
+    lr = MetidaNCA.LimitRule(;lloq = 0.5, btmax = 0.0, atmax = NaN, nan = NaN, rm = true)
+
+    MetidaNCA.applylimitrule!(ds[1], lr)
+
 end

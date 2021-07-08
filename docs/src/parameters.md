@@ -2,11 +2,11 @@
 
 ## Basic parameters
 
-### Cmax
+### Cmax: Maximum concentration
 
 Maximum concentration from dose time to dose time + tau (if tau > 0). Firs observation used.
 
-### Tmax
+### Tmax: Time at maximum concentration
 
 Time at maximum concentration from dose time to dose time + tau (if tau > 0). Firs observation used.
 
@@ -98,7 +98,7 @@ AUMC_\infty =  AUMC_{last} + \frac{t_{last}\times C_{last}}{\lambda_z} + \frac{C
 ### AUCpct
 
 ```math
-AUCpct = (AUC_\infty - AUC_{last}) / AUC_\infty * 100.0 \%
+AUCpct = (AUC_\infty - AUC_{last}) / AUC_\infty * 100 \%
 ```
 
 ## If Dose used
@@ -123,7 +123,19 @@ CL_\infty = Dose / AUC_\infty
 
 Area from dose time to dose time + tau.
 
-### Accumulation index
+### Cavg
+
+```math
+C_{avg} = AUC_\tau / \tau
+```
+
+### Fluc: Fluctuation
+
+```math
+Fluc = ( C_{max} - C_{\tau min} ) / C_{avg} * 100 \%
+```
+
+### Accind: Accumulation index
 
 ```math
 Accind = \frac{1}{1 - exp(-\lambda_z \tau)}

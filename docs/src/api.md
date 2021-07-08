@@ -47,3 +47,15 @@ MetidaNCA.getkelauto
 ```@docs
 MetidaNCA.getkelrange
 ```
+
+### LimitRule
+
+```@docs
+MetidaNCA.LimitRule
+```
+
+### applylimitrule!
+
+```@docs
+MetidaNCA.applylimitrule!
+```

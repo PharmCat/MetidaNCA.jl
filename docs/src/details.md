@@ -2,7 +2,7 @@
 
 ## Step 1
 
-Filter all values before dose time and NaN or missing values. If TAU set, calculate start and end timepoints for AUCtau.
+Filter all values before dose time and `NaN` or `missing` values. If TAU set, calculate start and end timepoints for AUCtau.
 
 ## Step 2
 
@@ -26,4 +26,4 @@ Calculate areas.
 
 ## Step 7
 
-Calculate steady-state parameters. 
+Calculate steady-state parameters.
