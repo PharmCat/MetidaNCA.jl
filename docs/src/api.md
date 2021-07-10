@@ -12,6 +12,12 @@ MetidaNCA.pkimport
 MetidaNCA.nca!
 ```
 
+### DoseTime
+
+```@docs
+MetidaNCA.DoseTime
+```
+
 ### setdosetime!
 
 ```@docs
@@ -22,6 +28,12 @@ MetidaNCA.setdosetime!
 
 ```@docs
 MetidaNCA.setkelauto!
+```
+
+### ElimRange
+
+```@docs
+MetidaNCA.ElimRange
 ```
 
 ### setkelrange!

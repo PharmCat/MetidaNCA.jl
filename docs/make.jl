@@ -1,6 +1,7 @@
-using Documenter, MetidaNCA
+using Documenter, MetidaNCA, Weave, PrettyTables, CSV, DataFrames
 #using DocumenterLaTeX
 
+include("validation.jl")
 makedocs(
         modules = [MetidaNCA],
         sitename = "MetidaNCA.jl",

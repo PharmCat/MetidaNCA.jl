@@ -29,11 +29,20 @@ function  Base.length(keldata::KelData)
 end
 
 # Elimination settings
+"""
+    ElimRange(kelstart::Int, kelend::Int, kelexcl::Vector{Int})::ElimRange
+
+Elimination settings for PK subject.
+
+* `kelstart` - start point;
+* `kelend` - end point;
+* `kelexcl` - excluded points.
+"""
 mutable struct ElimRange{Symbol}
     kelstart::Int
     kelend::Int
     kelexcl::Vector{Int}
-    function ElimRange(kelstart, kelend, kelexcl)::ElimRange
+    function ElimRange(kelstart::Int, kelend::Int, kelexcl::Vector{Int}; time = false)::ElimRange
         if kelstart > kelend throw(ArgumentError("Kel start > kel end")) end
         if kelstart < 0 throw(ArgumentError("Kel start point < 0")) end
         if kelend   < 0 throw(ArgumentError("Kel endpoint < 0")) end
@@ -50,11 +59,22 @@ mutable struct ElimRange{Symbol}
 end
 
 # Dose settings
+"""
+    DoseTime(dose::D, time::T, tau::TAU) where D <: Number where T <: Number where TAU <: Number
+
+Dose settings.
+
+* `dose` - dose;
+* `time` - dose time;
+* `tau` - tau (τ);
+
+Dose time set 0 by default.
+"""
 struct DoseTime{D <: Number, T <: Number, TAU <: Number}
     dose::D
     time::T
     tau::TAU
-    function DoseTime(dose::D, time::T, tau::TAU) where D where T where TAU
+    function DoseTime(dose::D, time::T, tau::TAU) where D <: Number where T <: Number where TAU <: Number
         if time < zero(T) throw(ArgumentError("Dose time can't be less zero!")) end
         new{D, T, TAU}(dose, time, tau)::DoseTime
     end
@@ -118,11 +138,17 @@ end
 
     LimitRule(;lloq = NaN, btmax = NaN, atmax = NaN, nan = NaN, rm::Bool = false)
 
+* `lloq` - LLOQ - low limit of quantification;
+* `btmax` - value for points before Tmax;
+* `atmat` - values for points after Tmax;
+* `nan` - values for replacing `NaN`;
+* `rm` - if `true`, removee all `NaN` points.
+
 Rule for PK subject.
 
-STEP 1 (NaN step): replace all NaN values with nan reyword value (if nan !== NaN);
-STEP 2 (LLOQ step): replace values below lloq with btmax value if this value befor Tmax or with atmax if this value after Tmax (if lloq !== NaN);
-STEP 3 (remove NaN): rm == true, then remove all NaN values;
+* STEP 1 (NaN step): replace all `NaN` and `missing` values with nan keyword value (if `nan` not NaN);
+* STEP 2 (LLOQ step): replace values below `lloq` with `btmax` value if this value befor Tmax or with atmax if this value after Tmax (if `lloq` not NaN);
+* STEP 3 (remove NaN): `rm` == true, then remove all `NaN` and `missing` values.
 """
 struct LimitRule{T<:Real}
     lloq::T
