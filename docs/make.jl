@@ -14,20 +14,9 @@ makedocs(
             "Examples" => "examples.md",
             "Details" => "details.md",
             "Parameters" => "parameters.md",
-            "API" => "api.md",
-            "Validation" => "validation_report.md"
+            "API" => "api.md"
             ],
         )
-
-makedocs(
-    format = Documenter.LaTeX(),
-    modules = [MetidaNCA],
-    sitename = "MetidaNCA.jl",
-    authors = "Vladimir Arnautov",
-    pages = [
-        "Validation" => "validation_report.md"
-        ]
-    )
 
 
 deploydocs(repo = "github.com/PharmCat/MetidaNCA.jl.git", devbranch = "main", forcepush = true
