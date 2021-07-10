@@ -3,6 +3,8 @@ using Documenter, MetidaNCA, Weave, PrettyTables, CSV, DataFrames
 
 include("validation.jl")
 
+#v_out_path = joinpath(dirname(@__FILE__), "src", "validation_report.md")
+
 makedocs(
         modules = [MetidaNCA],
         sitename = "MetidaNCA.jl",
@@ -23,8 +25,8 @@ makedocs(
     sitename = "MetidaNCA.jl",
     authors = "Vladimir Arnautov",
     pages = [
-        "Validation" = "validation_report.md"
-    ]
+        "Validation" => "validation_report.md"
+        ]
     )
 
 
