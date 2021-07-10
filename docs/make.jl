@@ -15,7 +15,7 @@ makedocs(
             "Details" => "details.md",
             "Parameters" => "parameters.md",
             "API" => "api.md",
-            "Validation"
+            "Validation" => "validation_report.md"
             ],
         )
 
