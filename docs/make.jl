@@ -18,7 +18,7 @@ makedocs(
             "Validation" => "validation_report.md"
             ],
         )
-#=
+##=
 makedocs(
     format = Documenter.LaTeX(),
     modules = [MetidaNCA],
@@ -29,6 +29,6 @@ makedocs(
         ]
     )
 
-=#
+##=
 deploydocs(repo = "github.com/PharmCat/MetidaNCA.jl.git", devbranch = "main", forcepush = true
 )
