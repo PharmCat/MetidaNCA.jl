@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install TeXlive
-        run: sudo apt-get install texlive texlive-publishers texlive-science latexmk cm-super texlive-latex-base texlive-fonts-recommended texlive-fonts-extra texlive-latex-extra
+        run: sudo apt-get install texlive texlive-publishers texlive-science latexmk cm-super texlive-xetex texlive-latex-base texlive-fonts-recommended
       - uses: julia-actions/setup-julia@latest
         with:
           version: '1.4'
