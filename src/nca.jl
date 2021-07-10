@@ -163,18 +163,18 @@ end
     nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, limitrule = nothing, verbose = false, warn = true, io::IO = stdout) where T where O
 
 * `adm` - administration:
-- `:ev` - extra vascular;
-- `:iv` - intravascular bolus;
+    - `:ev` - extra vascular;
+    - `:iv` - intravascular bolus;
 * `calcm` - AUC/AUMC calculation method:
-- `:lint` - linear trapezoidal;
-- `:logt` - log-trapezoidal after Tmax;
-- `:luld` - linar up log down;
-- `:luldt` - linear up log down after Tmax;
+    - `:lint` - linear trapezoidal;
+    - `:logt` - log-trapezoidal after Tmax;
+    - `:luld` - linar up log down;
+    - `:luldt` - linear up log down after Tmax;
 * `intpm` - interpolation method:
-- `:lint` - linear trapezoidal;
-- `:logt` - log-trapezoidal after Tmax;
-- `:luld` - linar up log down;
-- `:luldt` - linear up log down after Tmax;
+    - `:lint` - linear trapezoidal;
+    - `:logt` - log-trapezoidal after Tmax;
+    - `:luld` - linar up log down;
+    - `:luldt` - linear up log down after Tmax;
 * `limitrule` use limitrule for data;
 * `verbose` - print to `io`;
 * `warn` - show warnings;
@@ -186,10 +186,16 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
     result   = Dict{Symbol, Union{eltype(data.time), eltype(data.obs)}}()
 
     if verbose
-        println(io, "Non-compartmental Pharmacokinetic Analysis")
-        printsortval(io, data.sort)
-        println(io, "Settings:")
-        println(io, "Method: $(calcm)")
+        println(io, "  Non-compartmental Pharmacokinetic Analysis")
+        if length(data.id) > 0
+            print(io, "    Subject: ")
+            for (k,v) in data.id
+                print(io, "$(k) => $(v); ")
+            end
+            println(io, "")
+        end
+        println(io, "    Settings:")
+        println(io, "    Method: $(calcm); Dode: $(data.dosetime.dose); Dose time: $(data.dosetime.time)")
     end
     if isnothing(intpm) intpm = calcm end
 

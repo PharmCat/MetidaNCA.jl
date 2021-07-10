@@ -1348,6 +1348,13 @@ end
 
 end
 
+@testset "  Verbose                                                  " begin
+    io = IOBuffer();
+    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 2.0, tau = 10))
+    sort!(ds, :Subject)
+    dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint, verbose = true, io = io)
+end
+
 @testset "  set-get*! tests                                          " begin
 ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
 sort!(ds, :Subject)
