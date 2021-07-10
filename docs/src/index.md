@@ -10,6 +10,10 @@ Non-compartment pharmacokinetic analysis (NCA).
 
 ## NCA
 
+## Validation
+
+Validation report: [validation_report.pdf](./validation_report.pdf)
+
 ## Contents
 
 ```@contents
