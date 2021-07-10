@@ -29,6 +29,6 @@ makedocs(
         ]
     )
 
-#=
+=#
 deploydocs(repo = "github.com/PharmCat/MetidaNCA.jl.git", devbranch = "main", forcepush = true
 )
