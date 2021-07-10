@@ -44,12 +44,13 @@ pkdata2  = CSV.File(joinpath(path, "csv", "pkdata2.csv")) |> DataFrame
 # Swing
 # Swingtau
 @testset "   Simple test                                             " begin
-
     tdat = pkdata2[1:16, :Time]
     cdat = pkdata2[1:16, :Concentration]
     ds = MetidaNCA.pkimport(tdat, cdat)
     sbj = MetidaNCA.nca!(ds)
-
+    ct = MetidaNCA.ctmax(ds)
+    @test  sbj[:Cmax] == ct[1]
+    @test  sbj[:Tmax] == ct[2]
 end
 
 @testset "  Linear trapezoidal, Dose 100, Dosetime 0, no tau         " begin
@@ -1364,6 +1365,7 @@ sort!(ds, :Subject)
         @test dts.time == 2.1
         @test dts.tau == 10
         dt2 = MetidaNCA.DoseTime(dose = 100, time = 2.2, tau = 9)
+        MetidaNCA.setdosetime!(ds, dt2, 4)
         MetidaNCA.setdosetime!(ds, dt2, [1,2,3])
         MetidaNCA.setdosetime!(ds, dt2, Dict(:Formulation => "R"))
         MetidaNCA.setdosetime!(ds, dt2)
@@ -1371,6 +1373,7 @@ sort!(ds, :Subject)
         dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luldt)
     end
     @testset "  #2 setkelauto!                                            " begin
+        MetidaNCA.setkelauto!(ds, false, 4)
         MetidaNCA.setkelauto!(ds, false, [1,2,3])
         MetidaNCA.setkelauto!(ds, false, Dict(:Formulation => "R"))
         MetidaNCA.setkelauto!(ds, false)
@@ -1385,6 +1388,7 @@ sort!(ds, :Subject)
         @test krs.kelend == 12
         @test krs.kelexcl == [5,6]
         kr2 =  MetidaNCA.ElimRange(kelstart = 3, kelend = 12, kelexcl = Int[7])
+        MetidaNCA.setkelrange!(ds, kr2, 4)
         MetidaNCA.setkelrange!(ds, kr2, [1,2,3])
         MetidaNCA.setkelrange!(ds, kr2, Dict(:Formulation => "R"))
         MetidaNCA.setkelrange!(ds, kr2)
@@ -1409,6 +1413,6 @@ end
 
     MetidaNCA.setkelrange!(ds, kr1, Dict(:Formulation => "T"))
     MetidaNCA.setkelrange!(ds, kr2, Dict(:Formulation => "R"))
-    
+
     dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luldt)
 end

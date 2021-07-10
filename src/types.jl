@@ -50,9 +50,11 @@ mutable struct ElimRange{Symbol}
         if kelstart in kelexcl || kelend in kelexcl throw(ArgumentError("Kel start or kel end in exclusion")) end
         new{:point}(kelstart, kelend, kelexcl)::ElimRange
     end
+    #=
     function ElimRange(kelstart, kelend)
         ElimRange(kelstart, kelend, Vector{Int}(undef, 0))
     end
+    =#
     function ElimRange(;kelstart = 0, kelend = 0, kelexcl = Int[])
         ElimRange(kelstart, kelend, kelexcl)
     end
@@ -81,12 +83,14 @@ struct DoseTime{D <: Number, T <: Number, TAU <: Number}
     function DoseTime(;dose = NaN, time = 0, tau = NaN)
         DoseTime(dose, time, tau)
     end
+    #=
     function DoseTime(dose)
         DoseTime(dose, 0, NaN)
     end
     function DoseTime(dose, time)
         DoseTime(dose, time, NaN)
     end
+    =#
 end
 
 # PK subject
@@ -104,6 +108,7 @@ mutable struct PKSubject{T <: Number, O <: Number} <: AbstractSubject
     function PKSubject(time::Vector, conc::Vector, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, sort::Dict)
         PKSubject(time, conc, kelauto, kelrange, dosetime, KelData(), sort)
     end
+    #=
     function PKSubject(time::Vector, conc::Vector, sort::Dict)
         PKSubject(time, conc, true, ElimRange(), DoseTime(NaN, 0), KelData(), sort)
     end
@@ -113,6 +118,7 @@ mutable struct PKSubject{T <: Number, O <: Number} <: AbstractSubject
     function PKSubject(time::Vector, conc::Vector; sort = Dict())
         PKSubject(time, conc, true, ElimRange(), DoseTime(NaN, 0), KelData(), sort)
     end
+    =#
 end
 
 function Base.length(obj::T) where T <: AbstractSubject
@@ -128,9 +134,11 @@ struct NCAResult{T} <: AbstractSubjectResult{T}
     function NCAResult(subject::T, method, result, id) where T <: AbstractSubject
         new{T}(subject, method, result, id)
     end
+    #=
     function NCAResult(subject::T, method, result) where T <: AbstractSubject
         NCAResult(subject, method, result, Dict())
     end
+    =#
 end
 
 """
