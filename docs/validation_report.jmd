@@ -123,6 +123,8 @@ Purpose of this testing procedures to demonstrate performance for some critical 
 
 ```julia; echo = false
 
+pkdata2  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "pkdata2.csv")) |> DataFrame
+
 refdict = Dict(
 :Cmax => [
     190.869
@@ -402,8 +404,6 @@ end
 
 
 ```julia; echo = false
-
-pkdata2  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "pkdata2.csv")) |> DataFrame
 
 pretty_table(pkdata2; tf = tf_ascii_rounded)
 ```
