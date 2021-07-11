@@ -119,7 +119,7 @@ Purpose of this testing procedures to demonstrate performance for some critical 
 
 ## Parameter's names description
 
-```julia
+```julia; echo = false
 
 dfn = DataFrame(
 ["Cmax" "Maximum concentration"
