@@ -117,9 +117,38 @@ Pkg.test("MetidaNCA")
 
 Purpose of this testing procedures to demonstrate performance for some critical tasks.
 
-#### Results
+## Parameter's names description
 
-##### Linear-trapezoidal rule; Extravascular
+```julia
+
+dfn = DataFrame(
+["Cmax" "Maximum concentration"
+"Tmax" "Time at Cmax"
+"Cdose" "Concentration at dose time"
+"Clast" "Last non-zero concentration"
+"AUClast" "AUC to Clast"
+"AUMClast" "AUMC to Clast"
+"AUCall" "AUC with all values"
+"Rsq" "r square"
+"ARsq" "Adjusted r square"
+"Kel" "Terminal elimination constant"
+"HL" "Half live or T1/2"
+"LZint" "Intercept"
+"Clast_pred" "Predicted Clast"
+"AUCinf" "AUC extrapolated to infinity"
+"AUCpct" "Percentage AUClast from AUCinf"
+"MRTlast" "Mean Residence Time (last)"
+"MRTinf" "Mean Residence Time (inf)"
+"Clinf" "Clearence"
+"Vzinf" "Volume of distribution"], ["Name", "Description"])
+
+pretty_table(dfn; tf = tf_ascii_rounded)
+
+```
+
+## Results
+
+### Linear-trapezoidal rule; Extravascular
 
 ```julia; echo = false
 
@@ -371,7 +400,7 @@ dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
 subjects = collect(1:10)
 
 for l in list
-    println("###### $l")
+    println("#### $l")
     println("")
     vals = round.(dsnca[:, l], sigdigits = 6)
     refs = round.(refdict[l], sigdigits = 6)
