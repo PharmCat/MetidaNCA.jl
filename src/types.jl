@@ -129,7 +129,7 @@ end
 struct NCAResult{T} <: AbstractSubjectResult{T}
     subject::T
     method::Symbol
-    result::Dict
+    result::Dict{Symbol, Float64}
     id::Dict
     function NCAResult(subject::T, method, result, id) where T <: AbstractSubject
         new{T}(subject, method, result, id)

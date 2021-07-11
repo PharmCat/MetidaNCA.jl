@@ -14,14 +14,9 @@ function Base.show(io::IO, obj::ElimRange)
     end
 end
 function Base.show(io::IO, obj::KelData)
-    m = copy(obj.s)
-    m = hcat(m, obj.e)
-    m = hcat(m, obj.a)
-    m = hcat(m, obj.b)
-    m = hcat(m, obj.r)
-    m = hcat(m, obj.ar)
+    m = hcat(copy(obj.s), obj.e, obj.a, obj.b, obj.r, obj.ar)
     println(io, "Elimination table:")
-    print(io, m)
+    PrettyTables.pretty_table(io, m; header = ["Strat time", "End time", "a", "b", "r²", "Adjusted r²"])
 end
 
 # PK Subject

@@ -240,6 +240,7 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
 
     # STEP 3
     # Elimination
+    local excltime
     keldata                = KelData()
     if data.kelauto
         if (adm != :iv && obsnum - tmaxn > 2) || (adm == :iv && obsnum - tmaxn > 1)
@@ -299,7 +300,9 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
     # STEP 5
     # Dose concentration
     # Dosetime is first point
-    cdoseins = false
+    local doseaucpart
+    local doseaumcpart
+    local cdoseins::Int = 0
     #time_cp .-= data.dosetime.time
     if  first(time_cp) == 0.0
         result[:Cdose] = first(obs_cp)
@@ -321,7 +324,7 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
             end
             doseaucpart, doseaumcpart  = aucpart(0.0, first(time_cp), result[:Cdose], first(obs_cp), calcm, false)
         end
-        cdodeins = true
+        cdoseins = 1
     end
 
 
@@ -434,7 +437,7 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
         result[:Vsstau]          = result[:Cltau] * result[:MRTtauinf]
     end
     ############################################################################
-    #=
+
     if verbose
         aucpartlsum  = similar(aucpartl)
         aumcpartlsum = similar(aumcpartl)
@@ -442,30 +445,56 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
             aucpartlsum[i]  = sum(view(aucpartl, 1:i))
             aumcpartlsum[i] = sum(view(aumcpartl, 1:i))
         end
-        astx    = Vector{String}(undef, length(time))
-        astx[1] = ""
-        for i = 1:length(pmask)
-            if pmask[i] astx[i+1] = "Yes" else astx[i+1] = "No" end
+        aucpartlsum  .+= doseaucpart
+        aumcpartlsum .+= doseaumcpart
+
+        if  data.dosetime.time > 0
+            time_cp .+= data.dosetime.time
         end
-        mx = hcat(time, obs, round.(vcat([0], aucpartl), digits = 3),  round.(vcat([0], aucpartlsum), digits = 3), round.(vcat([0], aumcpartl), digits = 3),  round.(vcat([0], aumcpartlsum), digits = 3), astx)
-        mx = vcat(permutedims(["Time", "Concentrtion", "AUC", "AUC (cumulate)", "AUMC", "AUMC (cumulate)", "Include"]), mx)
-        printmatrix(io, mx)
-        println(io, "")
-        println(io, "Cdose: $(result[:Cdose]), Dose time: $(data.dosetime.time)")
-        if data.dosetime.time > time[1]
-            println("Dose AUC  part: $(doseaucpart)")
-            println("Dose AUMC part: $(doseaumcpart)")
+
+        mx = hcat(time_cp, obs_cp, round.(vcat([0.0], aucpartl), digits = 3),  round.(vcat([0.0], aucpartlsum), digits = 3), round.(vcat([0.0], aumcpartl), digits = 3),  round.(vcat([0.0], aumcpartlsum), digits = 3), fill("", length(obs_cp)))
+
+        if cdoseins > 0
+            println(io, "    Dose interpolated part AUC $(doseaucpart); AUMC $(doseaumcpart)")
+            dline = [data.dosetime.time result[:Cdose] 0.0 0.0 0.0 0.0 "D*"]
+            mx[1,3] = mx[1,4] = doseaucpart
+            mx[1,5] = mx[1,6] = doseaumcpart
+            mx = vcat(dline, mx)
+            ins = 1
+        else
+            mx[1, 7] = "D"
         end
+
+        if !isnan(result[:Kel])
+            for i = 1:length(time_cp)
+                if time_cp[i] >= keldata.s[rsqn] && time_cp[i] <= keldata.e[rsqn]
+                    if length(data.kelrange.kelexcl) > 0
+                        if time_cp[i] in excltime
+                            mx[i+cdoseins, 7] = "Excl"
+                        else
+                            mx[i+cdoseins, 7] = "E"
+                        end
+                    else
+                        mx[i+cdoseins, 7] = "E"
+                    end
+                end
+            end
+        end
+
+        PrettyTables.pretty_table(io, mx; header = ["Time", "Concentrtion", "AUC", "AUC (cumulate)", "AUMC", "AUMC (cumulate)", "Info"])
         println(io, "")
-        if tautime < time[end] && tautime > 0
-            println(io, "Tau + dosetime is less then end time. Interpolation used.")
-            println(io, "Interpolation between: $(time[ncae]) - $( time[ncae + 1]), method: $(intp)")
-            println(io, "Ctau: $(result[:Ctau])")
-            println(io, "AUC  final part: $(eaucpartl)")
-            println(io, "AUMC final part: $(eaumcpartl)")
+        println(io, "    Cdose: $(result[:Cdose]), Dose time: $(data.dosetime.time)")
+        println(io, "    Kel start: $(keldata.s[rsqn]); end: $(keldata.e[rsqn])")
+        println(io, "")
+        if data.dosetime.tau < time_cp[end] && data.dosetime.tau > 0
+            println(io, "    Tau + dosetime is less then end time. Interpolation used.")
+            println(io, "    Ctau: $(result[:Ctau])")
+            println(io, "    AUC  final part: $(eaucpartl)")
+            println(io, "    AUMC final part: $(eaumcpartl)")
+            println(io, "")
         end
     end
-    =#
+
     #-----------------------------------------------------------------------
     return NCAResult(data, calcm, result, data.id)
 end
