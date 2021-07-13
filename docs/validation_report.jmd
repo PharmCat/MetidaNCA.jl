@@ -144,6 +144,10 @@ dfn = DataFrame(
 
 pretty_table(dfn; tf = tf_ascii_rounded)
 
+include("refdict.jl")
+
+pkdata2  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "pkdata2.csv")) |> DataFrame
+
 ```
 
 ## Results
@@ -151,228 +155,6 @@ pretty_table(dfn; tf = tf_ascii_rounded)
 ### Linear-trapezoidal rule; Extravascular
 
 ```julia; echo = false
-
-pkdata2  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "pkdata2.csv")) |> DataFrame
-
-refdict = Dict(
-:Cmax => [
-    190.869
-    261.177
-    105.345
-    208.542
-    169.334
-    154.648
-    153.254
-    138.327
-    167.347
-    125.482
-],
-:Tmax => [
-    1
-    1
-    1.5
-    1
-    4
-    2.5
-    2.5
-    4
-    3
-    2
-],
-:Cdose => [
-    0.0
-    0.0
-    0.0
-    0.0
-    0.0
-    0.0
-    0.0
-    0.0
-    0.0
-    0.0
-],
-:Clast => [
-    112.846
-    85.241
-    67.901
-    97.625
-    110.778
-    69.501
-    58.051
-    74.437
-    93.44
-    42.191
-],
-:AUClast => [
-    9585.4218
-    10112.176
-    5396.5498
-    9317.8358
-    9561.26
-    6966.598
-    7029.5735
-    7110.6745
-    8315.0803
-    5620.8945
-],
-:AUMClast => [
-    333582.48
-    298701.39
-    186032.06
-    313955.9
-    315181.56
-    226977.06
-    219797.71
-    240526.05
-    277613.98
-    154893.06
-],
-:AUCall => [
-    9585.4218
-    10112.1760
-    5396.5498
-    9317.8358
-    9561.2600
-    6966.5980
-    7029.5735
-    7110.6745
-    8315.0803
-    5620.8945
-],
-:Rsq => [
-    0.78607696
-    0.99276359
-    0.81358898
-    0.91885869
-    0.85335995
-    0.95011904
-    0.97031231
-    0.94796904
-    0.94753789
-    0.88092269
-],
-:ARsq => [
-    0.71476928
-    0.99035145
-    0.77630678
-    0.83771737
-    0.82891994
-    0.92517856
-    0.96041642
-    0.92195356
-    0.92130684
-    0.86391165
-],
-:Kel => [
-    0.0033847439
-    0.014106315
-    0.0032914304
-    0.0076953442
-    0.0068133279
-    0.0076922807
-    0.012458956
-    0.0089300798
-    0.0056458649
-    0.017189737
-],
-:HL => [
-    204.78571
-    49.137367
-    210.59148
-    90.073577
-    101.73401
-    90.10945
-    55.634451
-    77.619371
-    122.77077
-    40.323315
-],
-:Clast_pred => [
-    117.30578
-    82.53669
-    66.931057
-    100.76793
-    105.29832
-    71.939942
-    61.172702
-    75.604277
-    93.761762
-    38.810857
-],
-:AUCinf => [
-    42925.019
-    16154.93
-    26026.183
-    22004.078
-    25820.275
-    16001.76
-    11688.953
-    15446.21
-    24865.246
-    8075.3242
-],
-:AUCpct => [
-    77.669383
-    37.405019
-    79.26492
-    57.6540502829908
-    62.969953
-    56.463551
-    39.861391
-    53.964925
-    66.559429
-    30.394194
-],
-:MRTlast => [
-    34.801023
-    29.538786
-    34.472406
-    33.69408
-    32.964438
-    32.58076
-    31.267574
-    33.826053
-    33.386807
-    27.556657
-],
-:MRTinf => [
-    293.16224
-    71.937917
-    305.04073
-    130.69968
-    149.96684
-    128.24114
-    79.498252
-    114.8571
-    176.97811
-    58.746446
-],
-:Clinf => [
-    0.0023296437
-    0.0061900608
-    0.0038422846
-    0.0045446122
-    0.0038729255
-    0.0062493127
-    0.0085550864
-    0.0064740799
-    0.0040216775
-    0.012383404
-],
-:Vzinf => [
-    0.68827768
-    0.43881487
-    1.1673601
-    0.59056646
-    0.56843374
-    0.8124135
-    0.68666158
-    0.72497447
-    0.71232266
-    0.72039519
-],
-)
-
 
 list = [:Cmax
 :Tmax
@@ -411,6 +193,50 @@ for l in list
 end
 
 
+
+```
+
+### Linear-Up Log-Down; Extravascular; Dosetime 0.25; Tau 9
+
+
+```julia; echo = false
+
+list = [:Cmax
+:Tmax
+:Cdose
+:Clast
+:AUClast
+:AUCtau
+:AUMCtau
+:AUCall
+:Rsq
+:ARsq
+:Kel
+:HL
+:Clast_pred
+:AUCinf
+:AUCpct
+:MRTtauinf
+:Cltau
+:Vztau]
+
+dt = MetidaNCA.DoseTime(dose = 100, time = 0.25, tau = 9)
+MetidaNCA.setdosetime!(ds, dt)
+
+dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luld)
+
+subjects = MetidaNCA.getid(dsnca, :, :Subject)
+
+for l in list
+    println("#### $l")
+    println("")
+    vals = round.(dsnca[:, l], sigdigits = 6)
+    refs = round.(refdict2[l], sigdigits = 6)
+
+    mx = hcat(subjects, vals, refs, vals .- refs)
+    df = DataFrame(mx, ["Subjct", "Value", "Reference", "Difference"])
+    pretty_table(df)
+end
 
 ```
 
@@ -1360,3 +1186,1013 @@ MRTlast                                                  27.5567
 MRTINF_obs                                               58.7464
 MRTINF_pred                                              56.9637
 ```
+
+## Reference values 2: Linear-up Log-Down rule; Extravascular
+
+WinNonlin 8.2.0.4383
+Subject=1,Formulation=T
+
+                                                  Date:    2/11/2020
+                                                  Time:     22:58:06
+
+
+                  WINNONLIN NONCOMPARTMENTAL ANALYSIS PROGRAM
+                                   8.2.0.4383
+                            Core Version 11Oct2017
+
+Settings
+--------
+Model:  Plasma Data, Extravascular Administration
+Number of nonmissing observations:   15
+Steady state interval Tau:      9.00
+Dose time:      0.25
+Dose amount:      100.00
+Calculation method:  Linear Trapezoidal Rule for for Increasing Values,
+                     Log Trapezoidal Rule for Decreasing Values
+Weighting for lambda_z calculations:  Uniform weighting
+Lambda_z method:  Find best fit for lambda_z,  Log regression
+
+
+Summary Table
+-------------
+      Time         Conc.      Pred.    Residual      AUC       AUMC      Weight
+-------------------------------------------------------------------------------
+     0.2500 @      121.2                           0.0000     0.0000
+     0.5000        178.9                            37.52      5.592
+      1.000        190.9                            130.0      52.56
+      1.500        164.9                            218.8      140.8
+      2.000        140.0                            294.8      254.4
+      2.500        129.6                            362.2      388.9
+      3.000        131.4                            427.4      552.1
+      4.000        150.9                            568.5      1016.
+      5.000        121.2                            704.0      1589.
+      6.000        139.2                            834.3      2277.
+      8.000        128.5                            1102.      4080.
+      10.00 *      143.2      144.7     -1.453      1374.      6473.      1.000
+      12.00 *      145.0      143.7      1.244      1662.      9573.      1.000
+      24.00 *      133.2      138.0     -4.840      3330.  3.903e+04      1.000
+      48.00 *      137.3      127.2      10.04      6575.  1.556e+05      1.000
+      72.00 *      112.8      117.3     -4.460      9567.  3.332e+05      1.000
+
+
+@) Note - the concentration at dose time was added for extrapolation purposes.
+
+*) Starred values were included in the estimation of Lambda_z.
+
+
+Final Parameters
+---------------
+N_Samples                                                15
+Dose                                                    100.0000
+Rsq                                                       0.7861
+Rsq_adjusted                                              0.7148
+Corr_XY                                                  -0.8866
+No_points_lambda_z                                        5
+Lambda_z                                                  0.0034
+Lambda_z_intercept                                        5.0085
+Lambda_z_lower                                           10.0000
+Lambda_z_upper                                           72.0000
+HL_Lambda_z                                             204.7857
+Span                                                      0.3028
+Tlag                                                      0.0000
+Tmax                                                      1.0000
+Cmax                                                    190.8690
+Cmax_D                                                    1.9087
+Tlast                                                    72.0000
+Clast                                                   112.8460
+Clast_pred                                              117.3058
+AUClast                                                9566.5968
+AUClast_D                                                95.6660
+AUCall                                                 9566.5968
+AUCINF_obs                                            42906.1941
+AUCINF_D_obs                                            429.0619
+AUC_%Extrap_obs                                          77.7035
+AUCINF_pred                                           44223.8063
+AUCINF_D_pred                                           442.2381
+AUC_%Extrap_pred                                         78.3678
+Tmin                                                      5.0000
+Cmin                                                    121.2390
+Ctau                                                    137.7219
+Cavg                                                    140.9195
+Swing                                                     0.5743
+Swing_Tau                                                 0.3859
+Fluctuation%                                             49.4112
+Fluctuation%_Tau                                         37.7145
+CLss_F                                                    0.0788
+MRTINF_obs                                              299.7917
+MRTINF_pred                                             309.1418
+Vz_F                                                     23.2949
+Accumulation_Index                                       33.3296
+AUC_TAU                                                1268.2756
+AUC_TAU_D                                                12.6828
+AUC_TAU_%Extrap                                           0.0000
+AUMC_TAU                                               5477.2042
+
+
+
+WinNonlin 8.2.0.4383
+Subject=2,Formulation=R
+
+                                                  Date:    2/11/2020
+                                                  Time:     22:58:06
+
+
+                  WINNONLIN NONCOMPARTMENTAL ANALYSIS PROGRAM
+                                   8.2.0.4383
+                            Core Version 11Oct2017
+
+Settings
+--------
+Model:  Plasma Data, Extravascular Administration
+Number of nonmissing observations:   15
+Steady state interval Tau:      9.00
+Dose time:      0.25
+Dose amount:      100.00
+Calculation method:  Linear Trapezoidal Rule for for Increasing Values,
+                     Log Trapezoidal Rule for Decreasing Values
+Weighting for lambda_z calculations:  Uniform weighting
+Lambda_z method:  Find best fit for lambda_z,  Log regression
+
+
+Summary Table
+-------------
+      Time         Conc.      Pred.    Residual      AUC       AUMC      Weight
+-------------------------------------------------------------------------------
+     0.2500 @      62.22                           0.0000     0.0000
+     0.5000        62.22                            15.56      1.944
+      1.000        261.2                            96.41      54.80
+      1.500        234.1                            220.1      177.9
+      2.000        234.1                            337.1      353.5
+      2.500        222.9                            451.4      581.7
+      3.000        213.9                            560.5      854.5
+      4.000        196.0                            765.4      1519.
+      5.000        199.6                            963.2      2360.
+      6.000        196.0                            1161.      3399.
+      8.000        213.4                            1570.      6179.
+      10.00 *      200.1      197.9      2.174      1984.      9791.      1.000
+      12.00 *      196.0      192.4      3.626      2380.  1.405e+04      1.000
+      24.00 *      160.3      162.4     -2.108      4511.  5.145e+04      1.000
+      48.00 *      110.3      115.8     -5.512      7721.  1.638e+05      1.000
+      72.00 *      85.24      82.54      2.704  1.005e+04  3.020e+05      1.000
+
+
+@) Note - the concentration at dose time was added for extrapolation purposes.
+
+*) Starred values were included in the estimation of Lambda_z.
+
+
+Final Parameters
+---------------
+N_Samples                                                15
+Dose                                                    100.0000
+Rsq                                                       0.9928
+Rsq_adjusted                                              0.9904
+Corr_XY                                                  -0.9964
+No_points_lambda_z                                        5
+Lambda_z                                                  0.0141
+Lambda_z_intercept                                        5.4289
+Lambda_z_lower                                           10.0000
+Lambda_z_upper                                           72.0000
+HL_Lambda_z                                              49.1374
+Span                                                      1.2618
+Tlag                                                      0.0000
+Tmax                                                      1.0000
+Cmax                                                    261.1770
+Cmax_D                                                    2.6118
+Tlast                                                    72.0000
+Clast                                                    85.2410
+Clast_pred                                               82.5367
+AUClast                                               10054.2865
+AUClast_D                                               100.5429
+AUCall                                                10054.2865
+AUCINF_obs                                            16097.0411
+AUCINF_D_obs                                            160.9704
+AUC_%Extrap_obs                                          37.5395
+AUCINF_pred                                           15905.3319
+AUCINF_D_pred                                           159.0533
+AUC_%Extrap_pred                                         36.7867
+Tmin                                                      0.5000
+Cmin                                                     62.2220
+Ctau                                                    204.9625
+Cavg                                                    203.5356
+Swing                                                     3.1975
+Swing_Tau                                                 0.2743
+Fluctuation%                                             97.7495
+Fluctuation%_Tau                                         27.6190
+CLss_F                                                    0.0546
+MRTINF_obs                                               74.6550
+MRTINF_pred                                              73.7131
+Vz_F                                                      3.8699
+Accumulation_Index                                        8.3873
+AUC_TAU                                                1831.8205
+AUC_TAU_D                                                18.3182
+AUC_TAU_%Extrap                                           0.0000
+AUMC_TAU                                               8367.5709
+
+
+
+WinNonlin 8.2.0.4383
+Subject=3,Formulation=R
+
+                                                  Date:    2/11/2020
+                                                  Time:     22:58:06
+
+
+                  WINNONLIN NONCOMPARTMENTAL ANALYSIS PROGRAM
+                                   8.2.0.4383
+                            Core Version 11Oct2017
+
+Settings
+--------
+Model:  Plasma Data, Extravascular Administration
+Number of nonmissing observations:   15
+Steady state interval Tau:      9.00
+Dose time:      0.25
+Dose amount:      100.00
+Calculation method:  Linear Trapezoidal Rule for for Increasing Values,
+                     Log Trapezoidal Rule for Decreasing Values
+Weighting for lambda_z calculations:  Uniform weighting
+Lambda_z method:  Find best fit for lambda_z,  Log regression
+
+
+Summary Table
+-------------
+      Time         Conc.      Pred.    Residual      AUC       AUMC      Weight
+-------------------------------------------------------------------------------
+     0.2500 @      49.85                           0.0000     0.0000
+     0.5000        49.85                            12.46      1.558
+      1.000        77.37                            44.27      19.18
+      1.500        105.3                            89.94      66.61
+      2.000        100.9                            141.5      143.9
+      2.500        72.75                            184.5      229.4
+      3.000        69.99                            220.2      318.5
+      4.000        93.57                            302.0      590.2
+      5.000        91.98                            394.8      984.3
+      6.000 *      82.71      83.17    -0.4609      482.0      1442.      1.000
+      8.000 *      84.21      82.63      1.580      648.9      2570.      1.000
+      10.00 *      85.34      82.08      3.259      818.5      4055.      1.000
+      12.00 *      76.03      81.54     -5.518      979.7      5784.      1.000
+      24.00 *      81.26      78.39      2.872      1923.  2.272e+04      1.000
+      48.00 *      70.11      72.43     -2.326      3737.  8.701e+04      1.000
+      72.00 *      67.90      66.93     0.9699      5392.  1.858e+05      1.000
+
+
+@) Note - the concentration at dose time was added for extrapolation purposes.
+
+*) Starred values were included in the estimation of Lambda_z.
+
+
+Final Parameters
+---------------
+N_Samples                                                15
+Dose                                                    100.0000
+Rsq                                                       0.8136
+Rsq_adjusted                                              0.7763
+Corr_XY                                                  -0.9020
+No_points_lambda_z                                        7
+Lambda_z                                                  0.0033
+Lambda_z_intercept                                        4.4406
+Lambda_z_lower                                            6.0000
+Lambda_z_upper                                           72.0000
+HL_Lambda_z                                             210.5915
+Span                                                      0.3134
+Tlag                                                      0.0000
+Tmax                                                      1.5000
+Cmax                                                    105.3450
+Cmax_D                                                    1.0535
+Tlast                                                    72.0000
+Clast                                                    67.9010
+Clast_pred                                               66.9311
+AUClast                                                5392.4572
+AUClast_D                                                53.9246
+AUCall                                                 5392.4572
+AUCINF_obs                                            26022.0900
+AUCINF_D_obs                                            260.2209
+AUC_%Extrap_obs                                          79.2774
+AUCINF_pred                                           25727.4026
+AUCINF_D_pred                                           257.2740
+AUC_%Extrap_pred                                         79.0400
+Tmin                                                      0.5000
+Cmin                                                     49.8490
+Ctau                                                     84.9156
+Cavg                                                     83.8499
+Swing                                                     1.1133
+Swing_Tau                                                 0.2406
+Fluctuation%                                             66.1849
+Fluctuation%_Tau                                         24.3642
+CLss_F                                                    0.1325
+MRTINF_obs                                              305.9200
+MRTINF_pred                                             302.4055
+Vz_F                                                     40.2597
+Accumulation_Index                                       34.2602
+AUC_TAU                                                 754.6494
+AUC_TAU_D                                                 7.5465
+AUC_TAU_%Extrap                                           0.0000
+AUMC_TAU                                               3455.3464
+
+
+
+WinNonlin 8.2.0.4383
+Subject=4,Formulation=R
+
+                                                  Date:    2/11/2020
+                                                  Time:     22:58:06
+
+
+                  WINNONLIN NONCOMPARTMENTAL ANALYSIS PROGRAM
+                                   8.2.0.4383
+                            Core Version 11Oct2017
+
+Settings
+--------
+Model:  Plasma Data, Extravascular Administration
+Number of nonmissing observations:   15
+Steady state interval Tau:      9.00
+Dose time:      0.25
+Dose amount:      100.00
+Calculation method:  Linear Trapezoidal Rule for for Increasing Values,
+                     Log Trapezoidal Rule for Decreasing Values
+Weighting for lambda_z calculations:  Uniform weighting
+Lambda_z method:  Find best fit for lambda_z,  Log regression
+
+
+Summary Table
+-------------
+      Time         Conc.      Pred.    Residual      AUC       AUMC      Weight
+-------------------------------------------------------------------------------
+     0.2500 @      52.42                           0.0000     0.0000
+     0.5000        52.42                            13.11      1.638
+      1.000        208.5                            78.35      44.02
+      1.500        188.9                            177.6      142.9
+      2.000        165.2                            266.0      275.0
+      2.500        147.0                            344.0      430.5
+      3.000        152.7                            418.9      618.2
+      4.000        154.3                            572.4      1118.
+      5.000        128.4                            713.4      1715.
+      6.000        149.8                            852.5      2450.
+      8.000        151.1                            1153.      4482.
+      10.00        136.8                            1441.      6995.
+      12.00        132.3                            1710.      9885.
+      24.00 *      141.2      145.8     -4.547      3351.  3.934e+04      1.000
+      48.00 *      129.1      121.2      7.930      6594.  1.547e+05      1.000
+      72.00 *      97.63      100.8     -3.143      9297.  3.147e+05      1.000
+
+
+@) Note - the concentration at dose time was added for extrapolation purposes.
+
+*) Starred values were included in the estimation of Lambda_z.
+
+
+Final Parameters
+---------------
+N_Samples                                                15
+Dose                                                    100.0000
+Rsq                                                       0.9189
+Rsq_adjusted                                              0.8377
+Corr_XY                                                  -0.9586
+No_points_lambda_z                                        3
+Lambda_z                                                  0.0077
+Lambda_z_intercept                                        5.1669
+Lambda_z_lower                                           24.0000
+Lambda_z_upper                                           72.0000
+HL_Lambda_z                                              90.0736
+Span                                                      0.5329
+Tlag                                                      0.0000
+Tmax                                                      1.0000
+Cmax                                                    208.5420
+Cmax_D                                                    2.0854
+Tlast                                                    72.0000
+Clast                                                    97.6250
+Clast_pred                                              100.7679
+AUClast                                                9297.0963
+AUClast_D                                                92.9710
+AUCall                                                 9297.0963
+AUCINF_obs                                            21983.3385
+AUCINF_D_obs                                            219.8334
+AUC_%Extrap_obs                                          57.7084
+AUCINF_pred                                           22391.7586
+AUCINF_D_pred                                           223.9176
+AUC_%Extrap_pred                                         58.4798
+Tmin                                                      0.5000
+Cmin                                                     52.4210
+Ctau                                                    141.9970
+Cavg                                                    148.4979
+Swing                                                     2.9782
+Swing_Tau                                                 0.4686
+Fluctuation%                                            105.1335
+Fluctuation%_Tau                                         44.8121
+CLss_F                                                    0.0748
+MRTINF_obs                                              143.5384
+MRTINF_pred                                             146.2888
+Vz_F                                                      9.7232
+Accumulation_Index                                       14.9445
+AUC_TAU                                                1336.4809
+AUC_TAU_D                                                13.3648
+AUC_TAU_%Extrap                                           0.0000
+AUMC_TAU                                               6014.6460
+
+
+
+WinNonlin 8.2.0.4383
+Subject=5,Formulation=T
+
+                                                  Date:    2/11/2020
+                                                  Time:     22:58:07
+
+
+                  WINNONLIN NONCOMPARTMENTAL ANALYSIS PROGRAM
+                                   8.2.0.4383
+                            Core Version 11Oct2017
+
+Settings
+--------
+Model:  Plasma Data, Extravascular Administration
+Number of nonmissing observations:   15
+Steady state interval Tau:      9.00
+Dose time:      0.25
+Dose amount:      100.00
+Calculation method:  Linear Trapezoidal Rule for for Increasing Values,
+                     Log Trapezoidal Rule for Decreasing Values
+Weighting for lambda_z calculations:  Uniform weighting
+Lambda_z method:  Find best fit for lambda_z,  Log regression
+
+
+Summary Table
+-------------
+      Time         Conc.      Pred.    Residual      AUC       AUMC      Weight
+-------------------------------------------------------------------------------
+     0.2500 @     0.0000                           0.0000     0.0000
+     0.5000       0.0000                           0.0000     0.0000
+      1.000        9.545                            2.386      1.790
+      1.500        154.0                            43.26      51.69
+      2.000        152.3                            119.8      166.5
+      2.500        151.5                            195.8      318.4
+      3.000        161.3                            274.0      514.5
+      4.000        169.3                            439.3      1054.
+      5.000 *      162.9      166.2     -3.309      605.4      1759.      1.000
+      6.000 *      166.7      165.1      1.563      770.2      2625.      1.000
+      8.000 *      168.7      162.9      5.815      1105.      4891.      1.000
+      10.00 *      155.1      160.6     -5.546      1429.      7717.      1.000
+      12.00 *      154.1      158.5     -4.409      1738.  1.104e+04      1.000
+      24.00 *      163.0      146.0      16.94      3640.  4.513e+04      1.000
+      48.00 *      109.8      124.0     -14.19      6872.  1.581e+05      1.000
+      72.00 *      110.8      105.3      5.480      9519.  3.164e+05      1.000
+
+
+@) Note - the concentration at dose time was added for extrapolation purposes.
+
+*) Starred values were included in the estimation of Lambda_z.
+
+
+Final Parameters
+---------------
+N_Samples                                                15
+Dose                                                    100.0000
+Rsq                                                       0.8534
+Rsq_adjusted                                              0.8289
+Corr_XY                                                  -0.9238
+No_points_lambda_z                                        8
+Lambda_z                                                  0.0068
+Lambda_z_intercept                                        5.1474
+Lambda_z_lower                                            5.0000
+Lambda_z_upper                                           72.0000
+HL_Lambda_z                                             101.7340
+Span                                                      0.6586
+Tlag                                                      0.2500
+Tmax                                                      4.0000
+Cmax                                                    169.3340
+Cmax_D                                                    1.6933
+Tlast                                                    72.0000
+Clast                                                   110.7780
+Clast_pred                                              105.2983
+AUClast                                                9519.1809
+AUClast_D                                                95.1918
+AUCall                                                 9519.1809
+AUCINF_obs                                            25778.1958
+AUCINF_D_obs                                            257.7820
+AUC_%Extrap_obs                                          63.0727
+AUCINF_pred                                           24973.9369
+AUCINF_D_pred                                           249.7394
+AUC_%Extrap_pred                                         61.8835
+Tmin                                                      0.5000
+Cmin                                                      0.0000
+Ctau                                                    160.0571
+Cavg                                                    145.6561
+Swing                                                    Missing
+Swing_Tau                                                 0.0580
+Fluctuation%                                            116.2561
+Fluctuation%_Tau                                          6.3691
+CLss_F                                                    0.0763
+MRTINF_obs                                              173.0221
+MRTINF_pred                                             167.5004
+Vz_F                                                     11.1962
+Accumulation_Index                                       16.8130
+AUC_TAU                                                1310.9045
+AUC_TAU_D                                                13.1090
+AUC_TAU_%Extrap                                           0.0000
+AUMC_TAU                                               6609.7883
+
+
+
+WinNonlin 8.2.0.4383
+Subject=6,Formulation=T
+
+                                                  Date:    2/11/2020
+                                                  Time:     22:58:07
+
+
+                  WINNONLIN NONCOMPARTMENTAL ANALYSIS PROGRAM
+                                   8.2.0.4383
+                            Core Version 11Oct2017
+
+Settings
+--------
+Model:  Plasma Data, Extravascular Administration
+Number of nonmissing observations:   15
+Steady state interval Tau:      9.00
+Dose time:      0.25
+Dose amount:      100.00
+Calculation method:  Linear Trapezoidal Rule for for Increasing Values,
+                     Log Trapezoidal Rule for Decreasing Values
+Weighting for lambda_z calculations:  Uniform weighting
+Lambda_z method:  Find best fit for lambda_z,  Log regression
+
+
+Summary Table
+-------------
+      Time         Conc.      Pred.    Residual      AUC       AUMC      Weight
+-------------------------------------------------------------------------------
+     0.2500 @      57.88                           0.0000     0.0000
+     0.5000        57.88                            14.47      1.809
+      1.000        100.5                            54.07      24.27
+      1.500        138.7                            113.9      86.44
+      2.000        147.3                            185.3      194.2
+      2.500        154.6                            260.8      345.6
+      3.000        122.3                            329.7      517.3
+      4.000        132.9                            457.3      934.6
+      5.000        126.1                            586.8      1484.
+      6.000        140.5                            720.0      2187.
+      8.000        115.5                            975.2      3902.
+      10.00        102.2                            1193.      5800.
+      12.00 *      113.8      114.1    -0.3825      1409.      8132.      1.000
+      24.00 *      101.0      104.1     -3.021      2696.  3.083e+04      1.000
+      48.00 *      92.55      86.53      6.024      5018.  1.134e+05      1.000
+      72.00 *      69.50      71.94     -2.439      6949.  2.277e+05      1.000
+
+
+@) Note - the concentration at dose time was added for extrapolation purposes.
+
+*) Starred values were included in the estimation of Lambda_z.
+
+
+Final Parameters
+---------------
+N_Samples                                                15
+Dose                                                    100.0000
+Rsq                                                       0.9501
+Rsq_adjusted                                              0.9252
+Corr_XY                                                  -0.9747
+No_points_lambda_z                                        4
+Lambda_z                                                  0.0077
+Lambda_z_intercept                                        4.8297
+Lambda_z_lower                                           12.0000
+Lambda_z_upper                                           72.0000
+HL_Lambda_z                                              90.1095
+Span                                                      0.6659
+Tlag                                                      0.0000
+Tmax                                                      2.5000
+Cmax                                                    154.6480
+Cmax_D                                                    1.5465
+Tlast                                                    72.0000
+Clast                                                    69.5010
+Clast_pred                                               71.9399
+AUClast                                                6948.9856
+AUClast_D                                                69.4899
+AUCall                                                 6948.9856
+AUCINF_obs                                            15984.1474
+AUCINF_D_obs                                            159.8415
+AUC_%Extrap_obs                                          56.5258
+AUCINF_pred                                           16301.2109
+AUCINF_D_pred                                           163.0121
+AUC_%Extrap_pred                                         57.3714
+Tmin                                                      0.5000
+Cmin                                                     57.8820
+Ctau                                                    106.9863
+Cavg                                                    123.8045
+Swing                                                     1.6718
+Swing_Tau                                                 0.4455
+Fluctuation%                                             78.1603
+Fluctuation%_Tau                                         38.4976
+CLss_F                                                    0.0897
+MRTINF_obs                                              124.6534
+MRTINF_pred                                             127.2144
+Vz_F                                                     11.6672
+Accumulation_Index                                       14.9503
+AUC_TAU                                                1114.2404
+AUC_TAU_D                                                11.1424
+AUC_TAU_%Extrap                                           0.0000
+AUMC_TAU                                               5064.7238
+
+
+
+WinNonlin 8.2.0.4383
+Subject=7,Formulation=R
+
+                                                  Date:    2/11/2020
+                                                  Time:     22:58:07
+
+
+                  WINNONLIN NONCOMPARTMENTAL ANALYSIS PROGRAM
+                                   8.2.0.4383
+                            Core Version 11Oct2017
+
+Settings
+--------
+Model:  Plasma Data, Extravascular Administration
+Number of nonmissing observations:   15
+Steady state interval Tau:      9.00
+Dose time:      0.25
+Dose amount:      100.00
+Calculation method:  Linear Trapezoidal Rule for for Increasing Values,
+                     Log Trapezoidal Rule for Decreasing Values
+Weighting for lambda_z calculations:  Uniform weighting
+Lambda_z method:  Find best fit for lambda_z,  Log regression
+
+
+Summary Table
+-------------
+      Time         Conc.      Pred.    Residual      AUC       AUMC      Weight
+-------------------------------------------------------------------------------
+     0.2500 @      19.95                           0.0000     0.0000
+     0.5000        19.95                            4.988     0.6234
+      1.000        128.4                            42.08      25.95
+      1.500        136.8                            108.4      92.77
+      2.000        113.1                            170.7      185.7
+      2.500        153.3                            237.3      321.4
+      3.000        123.6                            306.2      493.2
+      4.000        142.7                            439.3      930.6
+      5.000        112.3                            566.2      1467.
+      6.000        139.9                            692.4      2136.
+      8.000        105.5                            936.2      3771.
+      10.00 *      134.4      132.4      1.964      1176.      5899.      1.000
+      12.00 *      123.4      129.2     -5.814      1434.      8665.      1.000
+      24.00 *      110.5      111.2    -0.7336      2836.  3.339e+04      1.000
+      48.00 *      90.29      82.49      7.798      5237.  1.183e+05      1.000
+      72.00 *      58.05      61.17     -3.122      6989.  2.214e+05      1.000
+
+
+@) Note - the concentration at dose time was added for extrapolation purposes.
+
+*) Starred values were included in the estimation of Lambda_z.
+
+
+Final Parameters
+---------------
+N_Samples                                                15
+Dose                                                    100.0000
+Rsq                                                       0.9703
+Rsq_adjusted                                              0.9604
+Corr_XY                                                  -0.9850
+No_points_lambda_z                                        5
+Lambda_z                                                  0.0125
+Lambda_z_intercept                                        5.0107
+Lambda_z_lower                                           10.0000
+Lambda_z_upper                                           72.0000
+HL_Lambda_z                                              55.6345
+Span                                                      1.1144
+Tlag                                                      0.0000
+Tmax                                                      2.5000
+Cmax                                                    153.2540
+Cmax_D                                                    1.5325
+Tlast                                                    72.0000
+Clast                                                    58.0510
+Clast_pred                                               61.1727
+AUClast                                                6988.7726
+AUClast_D                                                69.8877
+AUCall                                                 6988.7726
+AUCINF_obs                                            11648.1518
+AUCINF_D_obs                                            116.4815
+AUC_%Extrap_obs                                          40.0010
+AUCINF_pred                                           11898.7107
+AUCINF_D_pred                                           118.9871
+AUC_%Extrap_pred                                         41.2645
+Tmin                                                      0.5000
+Cmin                                                     19.9500
+Ctau                                                    123.5724
+Cavg                                                    119.9297
+Swing                                                     6.6819
+Swing_Tau                                                 0.2402
+Fluctuation%                                            111.1518
+Fluctuation%_Tau                                         24.7492
+CLss_F                                                    0.0926
+MRTINF_obs                                               92.7359
+MRTINF_pred                                              94.8251
+Vz_F                                                      7.4362
+Accumulation_Index                                        9.4275
+AUC_TAU                                                1079.3669
+AUC_TAU_D                                                10.7937
+AUC_TAU_%Extrap                                           0.0000
+AUMC_TAU                                               4976.9637
+
+
+
+WinNonlin 8.2.0.4383
+Subject=8,Formulation=R
+
+                                                  Date:    2/11/2020
+                                                  Time:     22:58:07
+
+
+                  WINNONLIN NONCOMPARTMENTAL ANALYSIS PROGRAM
+                                   8.2.0.4383
+                            Core Version 11Oct2017
+
+Settings
+--------
+Model:  Plasma Data, Extravascular Administration
+Number of nonmissing observations:   15
+Steady state interval Tau:      9.00
+Dose time:      0.25
+Dose amount:      100.00
+Calculation method:  Linear Trapezoidal Rule for for Increasing Values,
+                     Log Trapezoidal Rule for Decreasing Values
+Weighting for lambda_z calculations:  Uniform weighting
+Lambda_z method:  Find best fit for lambda_z,  Log regression
+
+
+Summary Table
+-------------
+      Time         Conc.      Pred.    Residual      AUC       AUMC      Weight
+-------------------------------------------------------------------------------
+     0.2500 @      22.72                           0.0000     0.0000
+     0.5000        136.9                            19.95      4.278
+      1.000        126.6                            85.81      36.99
+      1.500        118.5                            147.1      98.09
+      2.000        134.9                            210.4      194.1
+      2.500        113.2                            272.3      317.4
+      3.000        130.9                            333.3      471.1
+      4.000        138.3                            467.9      910.5
+      5.000        22.72                            531.9      1173.
+      6.000        53.77                            570.2      1382.
+      8.000        55.11                            679.1      2118.
+      10.00        102.9                            837.1      3548.
+      12.00 *      134.1      129.2      4.939      1074.      6127.      1.000
+      24.00 *      108.0      116.1     -8.045      2521.  3.150e+04      1.000
+      48.00 *      98.47      93.68      4.791      4997.  1.196e+05      1.000
+      72.00 *      74.44      75.60     -1.167      7059.  2.416e+05      1.000
+
+
+@) Note - the concentration at dose time was added for extrapolation purposes.
+
+*) Starred values were included in the estimation of Lambda_z.
+
+
+Final Parameters
+---------------
+N_Samples                                                15
+Dose                                                    100.0000
+Rsq                                                       0.9480
+Rsq_adjusted                                              0.9220
+Corr_XY                                                  -0.9736
+No_points_lambda_z                                        4
+Lambda_z                                                  0.0089
+Lambda_z_intercept                                        4.9685
+Lambda_z_lower                                           12.0000
+Lambda_z_upper                                           72.0000
+HL_Lambda_z                                              77.6194
+Span                                                      0.7730
+Tlag                                                      0.0000
+Tmax                                                      4.0000
+Cmax                                                    138.3270
+Cmax_D                                                    1.3833
+Tlast                                                    72.0000
+Clast                                                    74.4370
+Clast_pred                                               75.6043
+AUClast                                                7058.8190
+AUClast_D                                                70.5882
+AUCall                                                 7058.8190
+AUCINF_obs                                            15394.3548
+AUCINF_D_obs                                            153.9435
+AUC_%Extrap_obs                                          54.1467
+AUCINF_pred                                           15525.0677
+AUCINF_D_pred                                           155.2507
+AUC_%Extrap_pred                                         54.5328
+Tmin                                                      5.0000
+Cmin                                                     22.7240
+Ctau                                                     84.9595
+Cavg                                                     85.1800
+Swing                                                     5.0873
+Swing_Tau                                                 0.6282
+Fluctuation%                                            135.7161
+Fluctuation%_Tau                                         62.6526
+CLss_F                                                    0.1304
+MRTINF_obs                                              175.4619
+MRTINF_pred                                             176.9964
+Vz_F                                                     14.6071
+Accumulation_Index                                       12.9490
+AUC_TAU                                                 766.6202
+AUC_TAU_D                                                 7.6662
+AUC_TAU_%Extrap                                           0.0000
+AUMC_TAU                                               2863.0052
+
+
+
+WinNonlin 8.2.0.4383
+Subject=9,Formulation=T
+
+                                                  Date:    2/11/2020
+                                                  Time:     22:58:08
+
+
+                  WINNONLIN NONCOMPARTMENTAL ANALYSIS PROGRAM
+                                   8.2.0.4383
+                            Core Version 11Oct2017
+
+Settings
+--------
+Model:  Plasma Data, Extravascular Administration
+Number of nonmissing observations:   15
+Steady state interval Tau:      9.00
+Dose time:      0.25
+Dose amount:      100.00
+Calculation method:  Linear Trapezoidal Rule for for Increasing Values,
+                     Log Trapezoidal Rule for Decreasing Values
+Weighting for lambda_z calculations:  Uniform weighting
+Lambda_z method:  Find best fit for lambda_z,  Log regression
+
+
+Summary Table
+-------------
+      Time         Conc.      Pred.    Residual      AUC       AUMC      Weight
+-------------------------------------------------------------------------------
+     0.2500 @      105.4                           0.0000     0.0000
+     0.5000        113.4                            27.35      3.543
+      1.000        128.3                            87.76      34.68
+      1.500        125.4                            151.2      98.03
+      2.000        146.9                            219.3      201.5
+      2.500        140.6                            291.1      345.1
+      3.000        167.3                            368.1      539.2
+      4.000        157.5                            530.5      1066.
+      5.000        141.4                            679.7      1699.
+      6.000        140.3                            820.6      2438.
+      8.000        105.4                            1065.      4074.
+      10.00        164.8                            1335.      6499.
+      12.00 *      135.6      131.6      4.014      1634.      9708.      1.000
+      24.00 *      117.1      122.9     -5.823      3148.  3.635e+04      1.000
+      48.00 *      109.7      107.4      2.377      5869.  1.333e+05      1.000
+      72.00 *      93.44      93.76    -0.3218      8302.  2.779e+05      1.000
+
+
+@) Note - the concentration at dose time was added for extrapolation purposes.
+
+*) Starred values were included in the estimation of Lambda_z.
+
+
+Final Parameters
+---------------
+N_Samples                                                15
+Dose                                                    100.0000
+Rsq                                                       0.9475
+Rsq_adjusted                                              0.9213
+Corr_XY                                                  -0.9734
+No_points_lambda_z                                        4
+Lambda_z                                                  0.0056
+Lambda_z_intercept                                        4.9473
+Lambda_z_lower                                           12.0000
+Lambda_z_upper                                           72.0000
+HL_Lambda_z                                             122.7708
+Span                                                      0.4887
+Tlag                                                      0.0000
+Tmax                                                      3.0000
+Cmax                                                    167.3470
+Cmax_D                                                    1.6735
+Tlast                                                    72.0000
+Clast                                                    93.4400
+Clast_pred                                               93.7618
+AUClast                                                8302.3681
+AUClast_D                                                83.0237
+AUCall                                                 8302.3681
+AUCINF_obs                                            24852.5338
+AUCINF_D_obs                                            248.5253
+AUC_%Extrap_obs                                          66.5935
+AUCINF_pred                                           24909.5245
+AUCINF_D_pred                                           249.0952
+AUC_%Extrap_pred                                         66.6699
+Tmin                                                      8.0000
+Cmin                                                    105.4380
+Ctau                                                    142.5661
+Cavg                                                    135.5147
+Swing                                                     0.5872
+Swing_Tau                                                 0.1738
+Fluctuation%                                             45.6844
+Fluctuation%_Tau                                         18.2865
+CLss_F                                                    0.0820
+MRTINF_obs                                              178.8105
+MRTINF_pred                                             179.2311
+Vz_F                                                     14.5225
+Accumulation_Index                                       20.1843
+AUC_TAU                                                1219.6319
+AUC_TAU_D                                                12.1963
+AUC_TAU_%Extrap                                           0.0000
+AUMC_TAU                                               5386.8832
+
+
+
+WinNonlin 8.2.0.4383
+Subject=10,Formulation=R
+
+                                                  Date:    2/11/2020
+                                                  Time:     22:58:08
+
+
+                  WINNONLIN NONCOMPARTMENTAL ANALYSIS PROGRAM
+                                   8.2.0.4383
+                            Core Version 11Oct2017
+
+Settings
+--------
+Model:  Plasma Data, Extravascular Administration
+Number of nonmissing observations:   15
+Steady state interval Tau:      9.00
+Dose time:      0.25
+Dose amount:      100.00
+Calculation method:  Linear Trapezoidal Rule for for Increasing Values,
+                     Log Trapezoidal Rule for Decreasing Values
+Weighting for lambda_z calculations:  Uniform weighting
+Lambda_z method:  Find best fit for lambda_z,  Log regression
+
+
+Summary Table
+-------------
+      Time         Conc.      Pred.    Residual      AUC       AUMC      Weight
+-------------------------------------------------------------------------------
+     0.2500 @      13.63                           0.0000     0.0000
+     0.5000        13.63                            3.409     0.4261
+      1.000        62.56                            22.46      13.01
+      1.500        112.7                            66.26      59.94
+      2.000        125.5                            125.8      150.0
+      2.500        116.3                            186.2      270.7
+      3.000        112.7                            243.4      413.7
+      4.000 *      117.0      124.9     -7.925      358.3      787.9      1.000
+      5.000 *      119.8      122.8     -2.972      476.7      1292.      1.000
+      6.000 *      107.6      120.7     -13.13      590.2      1887.      1.000
+      8.000 *      120.5      116.6      3.868      818.3      3439.      1.000
+      10.00 *      124.2      112.7      11.50      1063.      5584.      1.000
+      12.00 *      106.5      108.9     -2.386      1293.      8052.      1.000
+      24.00 *      116.5      88.57      27.94      2631.  3.216e+04      1.000
+      48.00 *      45.20      58.63     -13.43      4439.  9.341e+04      1.000
+      72.00 *      42.19      38.81      3.380      5487.  1.559e+05      1.000
+
+
+@) Note - the concentration at dose time was added for extrapolation purposes.
+
+*) Starred values were included in the estimation of Lambda_z.
+
+
+Final Parameters
+---------------
+N_Samples                                                15
+Dose                                                    100.0000
+Rsq                                                       0.8809
+Rsq_adjusted                                              0.8639
+Corr_XY                                                  -0.9386
+No_points_lambda_z                                        9
+Lambda_z                                                  0.0172
+Lambda_z_intercept                                        4.8964
+Lambda_z_lower                                            4.0000
+Lambda_z_upper                                           72.0000
+HL_Lambda_z                                              40.3233
+Span                                                      1.6864
+Tlag                                                      0.0000
+Tmax                                                      2.0000
+Cmax                                                    125.4820
+Cmax_D                                                    1.2548
+Tlast                                                    72.0000
+Clast                                                    42.1910
+Clast_pred                                               38.8109
+AUClast                                                5486.8389
+AUClast_D                                                54.8684
+AUCall                                                 5486.8389
+AUCINF_obs                                             7941.2686
+AUCINF_D_obs                                             79.4127
+AUC_%Extrap_obs                                          30.9073
+AUCINF_pred                                            7744.6313
+AUCINF_D_pred                                            77.4463
+AUC_%Extrap_pred                                         29.1530
+Tmin                                                      0.5000
+Cmin                                                     13.6340
+Ctau                                                    122.7865
+Cavg                                                    107.8118
+Swing                                                     8.2036
+Swing_Tau                                                 0.0220
+Fluctuation%                                            103.7437
+Fluctuation%_Tau                                          2.5002
+CLss_F                                                    0.1031
+MRTINF_obs                                               69.5163
+MRTINF_pred                                              67.6924
+Vz_F                                                      5.9955
+Accumulation_Index                                        6.9767
+AUC_TAU                                                 970.3063
+AUC_TAU_D                                                 9.7031
+AUC_TAU_%Extrap                                           0.0000
+AUMC_TAU                                               4713.4797

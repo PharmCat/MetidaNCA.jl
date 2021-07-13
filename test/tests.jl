@@ -5,7 +5,7 @@ using DataFrames, CSV
 path     = dirname(@__FILE__)
 io       = IOBuffer();
 pkdata2  = CSV.File(joinpath(path, "csv", "pkdata2.csv")) |> DataFrame
-
+include("refdicts.jl")
 # Cmax
 # Tmax
 # Cdose
@@ -51,6 +51,10 @@ pkdata2  = CSV.File(joinpath(path, "csv", "pkdata2.csv")) |> DataFrame
     ct = MetidaNCA.ctmax(ds)
     @test  sbj[:Cmax] == ct[1]
     @test  sbj[:Tmax] == ct[2]
+    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
+    sort!(ds, :Subject)
+    dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
+    @test  MetidaNCA.getid(dsnca, :, :Subject) == collect(1:10)
 end
 
 @testset "  Linear trapezoidal, Dose 100, Dosetime 0, no tau         " begin
@@ -58,225 +62,6 @@ end
 ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
 sort!(ds, :Subject)
 dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
-
-    refdict = Dict(
-    :Cmax => [
-        190.869
-        261.177
-        105.345
-        208.542
-        169.334
-        154.648
-        153.254
-        138.327
-        167.347
-        125.482
-    ],
-    :Tmax => [
-        1
-        1
-        1.5
-        1
-        4
-        2.5
-        2.5
-        4
-        3
-        2
-    ],
-    :Cdose => [
-        0.0
-        0.0
-        0.0
-        0.0
-        0.0
-        0.0
-        0.0
-        0.0
-        0.0
-        0.0
-    ],
-    :Clast => [
-        112.846
-        85.241
-        67.901
-        97.625
-        110.778
-        69.501
-        58.051
-        74.437
-        93.44
-        42.191
-    ],
-    :AUClast => [
-        9585.4218
-        10112.176
-        5396.5498
-        9317.8358
-        9561.26
-        6966.598
-        7029.5735
-        7110.6745
-        8315.0803
-        5620.8945
-    ],
-    :AUMClast => [
-        333582.48
-        298701.39
-        186032.06
-        313955.9
-        315181.56
-        226977.06
-        219797.71
-        240526.05
-        277613.98
-        154893.06
-    ],
-    :AUCall => [
-        9585.4218
-        10112.1760
-        5396.5498
-        9317.8358
-        9561.2600
-        6966.5980
-        7029.5735
-        7110.6745
-        8315.0803
-        5620.8945
-    ],
-    :Rsq => [
-        0.78607696
-        0.99276359
-        0.81358898
-        0.91885869
-        0.85335995
-        0.95011904
-        0.97031231
-        0.94796904
-        0.94753789
-        0.88092269
-    ],
-    :ARsq => [
-        0.71476928
-        0.99035145
-        0.77630678
-        0.83771737
-        0.82891994
-        0.92517856
-        0.96041642
-        0.92195356
-        0.92130684
-        0.86391165
-    ],
-    :Kel => [
-        0.0033847439
-        0.014106315
-        0.0032914304
-        0.0076953442
-        0.0068133279
-        0.0076922807
-        0.012458956
-        0.0089300798
-        0.0056458649
-        0.017189737
-    ],
-    :HL => [
-        204.78571
-        49.137367
-        210.59148
-        90.073577
-        101.73401
-        90.10945
-        55.634451
-        77.619371
-        122.77077
-        40.323315
-    ],
-    :Clast_pred => [
-        117.30578
-        82.53669
-        66.931057
-        100.76793
-        105.29832
-        71.939942
-        61.172702
-        75.604277
-        93.761762
-        38.810857
-    ],
-    :AUCinf => [
-        42925.019
-        16154.93
-        26026.183
-        22004.078
-        25820.275
-        16001.76
-        11688.953
-        15446.21
-        24865.246
-        8075.3242
-    ],
-    :AUCpct => [
-        77.669383
-        37.405019
-        79.26492
-        57.65405
-        62.969953
-        56.463551
-        39.861391
-        53.964925
-        66.559429
-        30.394194
-    ],
-    :MRTlast => [
-        34.801023
-        29.538786
-        34.472406
-        33.69408
-        32.964438
-        32.58076
-        31.267574
-        33.826053
-        33.386807
-        27.556657
-    ],
-    :MRTinf => [
-        293.16224
-        71.937917
-        305.04073
-        130.69968
-        149.96684
-        128.24114
-        79.498252
-        114.8571
-        176.97811
-        58.746446
-    ],
-    :Clinf => [
-        0.0023296437
-        0.0061900608
-        0.0038422846
-        0.0045446122
-        0.0038729255
-        0.0062493127
-        0.0085550864
-        0.0064740799
-        0.0040216775
-        0.012383404
-    ],
-    :Vzinf => [
-        0.68827768
-        0.43881487
-        1.1673601
-        0.59056646
-        0.56843374
-        0.8124135
-        0.68666158
-        0.72497447
-        0.71232266
-        0.72039519
-    ],
-)
 
     # Cmax
     @test dsnca[:, :Cmax] == refdict[:Cmax]
@@ -362,6 +147,78 @@ dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
 
 end
 
+@testset "  Linear up Log down, Dose 100, Dosetime 0.25, tau 9       " begin
+    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0.25, tau = 9))
+    sort!(ds, :Subject)
+    dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luld)
+    # Cmax
+    @test dsnca[:, :Cmax] == refdict2[:Cmax]
+
+    # Tmax
+    @test dsnca[:, :Tmax] == refdict2[:Tmax]
+
+    # Cdose
+    @test round.(dsnca[:, :Cdose], sigdigits = 6) == round.(refdict2[:Cdose], sigdigits = 6)
+
+    # Tlag
+    #=
+    @test round.(dsnca[:, :Tlag], sigdigits = 6) == round.([0
+    0
+    0
+    0
+    0.25
+    0
+    0
+    0
+    0
+    0], sigdigits = 6)
+    =#
+
+    # Clast
+    @test dsnca[:, :Clast] == refdict2[:Clast]
+
+    # AUClast
+    @test round.(dsnca[:, :AUClast], digits = 6) == round.(refdict2[:AUClast], digits = 6)
+    # AUMClast / AUMCtau
+
+    @test round.(dsnca[:, :AUMCtau], digits = 6) ==  round.(refdict2[:AUMCtau], digits = 6)
+
+# AUCall
+    @test round.(dsnca[:, :AUCall], digits = 6) == round.(refdict2[:AUCall], digits = 6)
+# Rsq
+# Adjusted Rsq
+    # LZint
+    @test round.(dsnca[:, :LZint], digits = 6) == round.(refdict2[:LZint], digits = 6)
+# Kel
+    @test round.(dsnca[:, :Kel], digits = 6) == round.(refdict2[:Kel], digits = 6)
+# HL
+    @test round.(dsnca[:, :HL], digits = 6) == round.(refdict2[:HL], digits = 6)
+# Clast_pred
+    @test round.(dsnca[:, :Clast_pred], digits = 6) == round.(refdict2[:Clast_pred], digits = 6)
+# AUCinf
+    @test round.(dsnca[:, :AUCinf], digits = 6) == round.(refdict2[:AUCinf], digits = 6)
+# AUCinf_pred
+# AUMCinf
+# AUMCinf_pred
+# AUCpct
+    @test round.(dsnca[:, :AUCpct], digits = 6) == round.(refdict2[:AUCpct], digits = 6)
+# MRTlast
+
+# MRTinf / MRTtauinf
+    @test round.(dsnca[:, :MRTtauinf], digits = 6) == round.(refdict2[:MRTtauinf], digits = 6)
+# MRTinf_pred
+# Cllast
+# Clinf / Cltau
+    @test round.(dsnca[:, :Cltau], digits = 6) == round.(refdict2[:Cltau], digits = 6)
+# Vzlast
+# Vzinf / Vztau
+    @test round.(dsnca[:, :Vztau], digits = 6) == round.(refdict2[:Vztau], digits = 6)
+# Vssinf
+
+    # AUCtau
+    @test round.(dsnca[:, :AUCtau], digits = 6) == round.(refdict2[:AUCtau], digits = 6)
+
+end
 
 @testset "  Linear up Log down, Dose 120, Dosetime 0, tau 12         " begin
     ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 120, time = 0, tau = 12))
@@ -763,140 +620,6 @@ end
 
 end
 
-@testset "  Linear up Log down, Dose 100, Dosetime 0.25, tau 9       " begin
-    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 120, time = 0.25, tau = 9))
-    sort!(ds, :Subject)
-    dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luld)
-    # Cmax
-    @test dsnca[:, :Cmax] == [190.869
-    261.177
-    105.345
-    208.542
-    169.334
-    154.648
-    153.254
-    138.327
-    167.347
-    125.482]
-
-    # Tmax
-    @test dsnca[:, :Tmax] == [1
-    1
-    1.5
-    1
-    4
-    2.5
-    2.5
-    4
-    3
-    2]
-
-    # Cdose
-    @test round.(dsnca[:, :Cdose], sigdigits = 6) == round.([121.239
-    62.222
-    49.849
-    52.421
-    0
-    57.882
-    19.95
-    22.724
-    105.438
-    13.634], sigdigits = 6)
-
-    # Tlag
-    #=
-    @test round.(dsnca[:, :Tlag], sigdigits = 6) == round.([0
-    0
-    0
-    0
-    0.5
-    0
-    0
-    0
-    0
-    0], sigdigits = 6)
-    =#
-
-    # Clast
-    @test dsnca[:, :Clast] == [112.846
-    85.241
-    67.901
-    97.625
-    110.778
-    69.501
-    58.051
-    74.437
-    93.44
-    42.191]
-
-# AUClast
-    @test round.(dsnca[:, :AUClast], digits = 6) == round.([9566.59680869131
-    10054.28647805950
-    5392.45721941379
-    9297.09633445033
-    9519.18087436122
-    6948.98562111745
-    6988.77263241364
-    7058.81896352039
-    8302.36808633358
-    5486.83888944199], digits = 6)
-    # AUMClast / AUMCtau
-
-    @test round.(dsnca[:, :AUMCtau], digits = 6) == round.([5477.20423544297
-    8367.57088170951
-    3455.34643479800
-    6014.64604481587
-    6609.78830163090
-    5064.72384740413
-    4976.96365993911
-    2863.00517022791
-    5386.88322025614
-    4713.47970846693], digits = 6)
-
-# AUCall
-# Rsq
-# Adjusted Rsq
-    # LZint
-    @test round.(dsnca[:, :LZint], digits = 6) == round.([5.00848559255328
-    5.42889759540296
-    4.44064607555325
-    5.16688496904739
-    5.14735707974283
-    4.82967584017057
-    5.01074587961482
-    4.96847859724365
-    4.94725938794774
-    4.89636108788302], digits = 6)
-# Kel
-# HL
-# Clast_pred
-# AUCinf
-# AUCinf_pred
-# AUMCinf
-# AUMCinf_pred
-# AUCpct
-# MRTlast
-# MRTinf / MRTtauinf
-# MRTinf_pred
-# Cllast
-# Clinf / Cltau
-# Vzlast
-# Vzinf / Vztau
-# Vssinf
-
-    # AUCtau
-    @test round.(dsnca[:, :AUCtau], sigdigits = 6) == round.([1268.27563070553
-    1831.82052757491
-    754.64936037981
-    1336.48093242129
-    1310.90451610924
-    1114.24035123260
-    1079.36685444479
-    766.62024499617
-    1219.63186357018
-    970.30626915116], sigdigits = 6)
-
-end
 
 
 @testset "  Linear trapezoidal, Dose 100, Dosetime 2.0, tau 10       " begin

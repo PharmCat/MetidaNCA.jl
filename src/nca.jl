@@ -183,7 +183,7 @@ end
 """
 function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, limitrule = nothing, verbose = false, warn = true, io::IO = stdout) where T where O
 
-    result   = Dict{Symbol, Union{eltype(data.time), eltype(data.obs)}}()
+    result   = Dict{Symbol, Float64}()
 
     if verbose
         println(io, "  Non-compartmental Pharmacokinetic Analysis")
@@ -293,7 +293,7 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
     end
 
     # STEP 4
-    if  data.dosetime.time > 0.0
+    if  data.dosetime.time > 0
         time_cp .-= data.dosetime.time
     end
 
@@ -304,9 +304,9 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
     local doseaumcpart
     local cdoseins::Int = 0
     #time_cp .-= data.dosetime.time
-    if  first(time_cp) == 0.0
+    if  iszero(first(time_cp))
         result[:Cdose] = first(obs_cp)
-        doseaucpart =  doseaumcpart = 0.0
+        doseaucpart =  doseaumcpart = zero(Float64)
     # Dosetime before first point
     else
         if adm == :iv
@@ -315,14 +315,14 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
             else
                 result[:Cdose] = first(obs_cp)
             end
-            doseaucpart, doseaumcpart  = aucpart(0.0, first(time_cp), result[:Cdose], first(obs_cp), calcm, true)
+            doseaucpart, doseaumcpart  = aucpart(0, first(time_cp), result[:Cdose], first(obs_cp), calcm, true)
         else
             if  data.dosetime.tau > zero(typeof(data.dosetime.tau))
                 result[:Cdose] = result[:Ctaumin]
             else
                 result[:Cdose] = zero(O)
             end
-            doseaucpart, doseaumcpart  = aucpart(0.0, first(time_cp), result[:Cdose], first(obs_cp), calcm, false)
+            doseaucpart, doseaumcpart  = aucpart(0, first(time_cp), result[:Cdose], first(obs_cp), calcm, false)
         end
         cdoseins = 1
     end
@@ -367,6 +367,8 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
     end
     #-----------------------------------------------------------------------
     #-----------------------------------------------------------------------
+    tlagn = findfirst(!iszero, obs_cp)
+    if tlagn > 1 result[:Tlag] = time_cp[tlagn-1] else result[:Tlag] = zero(Float64) end
 
     if  length(keldata) > 0
         data.keldata             = keldata
