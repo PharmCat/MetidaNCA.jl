@@ -140,14 +140,14 @@ dfn = DataFrame(
 "MRTlast" "Mean Residence Time (last)"
 "MRTinf" "Mean Residence Time (inf)"
 "Clinf" "Clearence"
-"Vzinf" "Volume of distribution"], ["Name", "Description"])
+"Vzinf" "Volume of distribution"
+"AUCtau" "AUC in Tau range"
+"AUMCtau" "AUC in Tau range"
+"MRTtauinf" "MRT based on Tau"
+"Cltau" "Clearence in Tau range"
+"Vztau" "Volume of distribution in Tau range"], ["Name", "Description"])
 
 pretty_table(dfn; tf = tf_ascii_rounded)
-
-include("refdict.jl")
-
-pkdata2  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "pkdata2.csv")) |> DataFrame
-
 ```
 
 ## Results
@@ -155,6 +155,10 @@ pkdata2  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "p
 ### Linear-trapezoidal rule; Extravascular
 
 ```julia; echo = false
+
+include("refdict.jl")
+
+pkdata2  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "pkdata2.csv")) |> DataFrame
 
 list = [:Cmax
 :Tmax
@@ -1189,6 +1193,7 @@ MRTINF_pred                                              56.9637
 
 ## Reference values 2: Linear-up Log-Down rule; Extravascular
 
+```
 WinNonlin 8.2.0.4383
 Subject=1,Formulation=T
 
@@ -2196,3 +2201,4 @@ AUC_TAU                                                 970.3063
 AUC_TAU_D                                                 9.7031
 AUC_TAU_%Extrap                                           0.0000
 AUMC_TAU                                               4713.4797
+```
