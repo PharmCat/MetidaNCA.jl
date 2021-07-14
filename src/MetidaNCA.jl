@@ -5,7 +5,7 @@ module MetidaNCA
 
 import Base: ht_keyindex, length, length, push!
 
-import MetidaBase: Tables, PrettyTables, AbstractIdData, AbstractSubject, DataSet, AbstractSubjectResult, AbstractResultData, getid
+import MetidaBase: Tables, PrettyTables, AbstractIdData, AbstractSubject, DataSet, AbstractSubjectResult, AbstractResultData, getid, metida_table
 
 export pkimport, nca!, DoseTime, ElimRange, LimitRule, setdosetime!, setkelauto!, setkelrange!, applylimitrule!
 
@@ -15,6 +15,7 @@ const LOG2 = log(2)
     include("setkelauto.jl")
     include("setkelrange.jl")
     include("setdosetime.jl")
+    include("getkeldata.jl")
     include("applylimitrule.jl")
     include("show.jl")
     include("import.jl")

@@ -47,7 +47,12 @@ include("refdicts.jl")
     tdat = pkdata2[1:16, :Time]
     cdat = pkdata2[1:16, :Concentration]
     ds = MetidaNCA.pkimport(tdat, cdat)
+    show(io, ds)
+    show(io, MetidaNCA.getdosetime(ds))
+    show(io, MetidaNCA.getkelrange(ds))
     sbj = MetidaNCA.nca!(ds)
+    show(io, sbj)
+    show(io, MetidaNCA.getkeldata(sbj))
     ct = MetidaNCA.ctmax(ds)
     @test  sbj[:Cmax] == ct[1]
     @test  sbj[:Tmax] == ct[2]
@@ -55,6 +60,7 @@ include("refdicts.jl")
     sort!(ds, :Subject)
     dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
     @test  MetidaNCA.getid(dsnca, :, :Subject) == collect(1:10)
+
 end
 
 @testset "  Linear trapezoidal, Dose 100, Dosetime 0, no tau         " begin
@@ -1200,13 +1206,13 @@ end
     io = IOBuffer();
     ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
     sort!(ds, :Subject)
-    dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint, verbose = true, io = io)
+    dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint, verbose = 1, io = io)
 
     dt = MetidaNCA.DoseTime(dose = 100, time = 0.25, tau = 9)
     MetidaNCA.setdosetime!(ds, dt)
-    dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luld, verbose = true, io = io)
+    dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luld, verbose = 1, io = io)
 
     kr =  MetidaNCA.ElimRange(kelstart = 10, kelend = 16, kelexcl = Int[13,14])
     MetidaNCA.setkelrange!(ds, kr; kelauto = false)
-    dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint, verbose = true, io = io)
+    dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint, verbose = 2, io = io)
 end

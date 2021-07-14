@@ -95,11 +95,11 @@ function slope(x, y)
     if length(x) != length(y) throw(ArgumentError("Unequal vector length!")) end
     n   = length(x)
     if n < 2 throw(ArgumentError("n < 2!")) end
-    Σxy = 0.0
-    Σx  = 0.0
-    Σy  = 0.0
-    Σx2 = 0.0
-    Σy2 = 0.0
+    Σxy::Float64 = zero(Float64)
+    Σx::Float64  = zero(Float64)
+    Σy::Float64  = zero(Float64)
+    Σx2::Float64 = zero(Float64)
+    Σy2::Float64 = zero(Float64)
     @inbounds for i = 1:n
         Σxy += x[i] * y[i]
         Σx  += x[i]
@@ -160,7 +160,7 @@ function interpolate(t₁, t₂, tx, c₁::T, c₂::T, intpm, aftertmax) where T
 end
 
 """
-    nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, limitrule = nothing, verbose = false, warn = true, io::IO = stdout) where T where O
+    nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, limitrule = nothing, verbose = 0, warn = true, io::IO = stdout) where T where O
 
 * `adm` - administration:
     - `:ev` - extra vascular;
@@ -181,11 +181,11 @@ end
 * `io` - output stream.
 
 """
-function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, limitrule = nothing, verbose = false, warn = true, io::IO = stdout) where T where O
+function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, limitrule = nothing, verbose = 0, warn = true, io::IO = stdout) where T where O
 
     result   = Dict{Symbol, Float64}()
 
-    if verbose
+    if verbose > 0
         println(io, "  Non-compartmental Pharmacokinetic Analysis")
         if length(data.id) > 0
             print(io, "    Subject: ")
@@ -271,7 +271,7 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
         etimep = findlast(x -> x <= time[data.kelrange.kelend], time_cp)
         timep = collect(stimep:etimep)
         if length(data.kelrange.kelexcl) > 0
-            for i in data.kelrange.kelexcl
+            @inbounds for i in data.kelrange.kelexcl
                 excltime = view(time, data.kelrange.kelexcl)
                 filter!(x-> x ∉ findall(x -> x in excltime, time_cp), timep)
             end
@@ -283,7 +283,7 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
     end
     # C last and T last
     tlastn = 0
-    for i = obsnum:-1:1
+    @inbounds for i = obsnum:-1:1
         if obs_cp[i] > zero(O)
             result[:Tlast]   = time_cp[i]
             result[:Clast]   = obs_cp[i]
@@ -413,7 +413,7 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
 
         auctau   = eaucpartl  + doseaucpart
         aumctau  = eaumcpartl + doseaumcpart
-        for i = 1:taulastp-1
+        @inbounds for i = 1:taulastp-1
             auctau  += aucpartl[i]
             aumctau += aumcpartl[i]
         end
@@ -440,10 +440,10 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
     end
     ############################################################################
 
-    if verbose
+    if verbose > 0
         aucpartlsum  = similar(aucpartl)
         aumcpartlsum = similar(aumcpartl)
-        for i = 1:length(aucpartl)
+        @inbounds for i = 1:length(aucpartl)
             aucpartlsum[i]  = sum(view(aucpartl, 1:i))
             aumcpartlsum[i] = sum(view(aumcpartl, 1:i))
         end
@@ -454,21 +454,21 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
             time_cp .+= data.dosetime.time
         end
 
-        mx = hcat(time_cp, obs_cp, round.(vcat([0.0], aucpartl), digits = 3),  round.(vcat([0.0], aucpartlsum), digits = 3), round.(vcat([0.0], aumcpartl), digits = 3),  round.(vcat([0.0], aumcpartlsum), digits = 3), fill("", length(obs_cp)))
+        mx = metida_table(collect(time_cp), collect(obs_cp), pushfirst!(aucpartl, 0.0),  pushfirst!(aucpartlsum, 0.0), pushfirst!(aumcpartl, 0.0),  pushfirst!(aumcpartlsum, 0.0), fill("", length(obs_cp));
+        names = Tuple(Symbol.(["Time", "Concentrtion", "AUC", "AUC (cumulate)", "AUMC", "AUMC (cumulate)", "Info"])))
 
         if cdoseins > 0
             println(io, "    Dose interpolated part AUC $(doseaucpart); AUMC $(doseaumcpart)")
-            dline = [data.dosetime.time result[:Cdose] 0.0 0.0 0.0 0.0 "D*"]
             mx[1,3] = mx[1,4] = doseaucpart
             mx[1,5] = mx[1,6] = doseaumcpart
-            mx = vcat(dline, mx)
+            pushfirst!(mx, [data.dosetime.time, result[:Cdose], 0.0, 0.0, 0.0, 0.0,"D*"])
             ins = 1
         else
             mx[1, 7] = "D"
         end
 
         if !isnan(result[:Kel])
-            for i = 1:length(time_cp)
+            @inbounds for i = 1:length(time_cp)
                 if time_cp[i] >= keldata.s[rsqn] && time_cp[i] <= keldata.e[rsqn]
                     if length(data.kelrange.kelexcl) > 0
                         if time_cp[i] in excltime
@@ -483,7 +483,7 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
             end
         end
 
-        PrettyTables.pretty_table(io, mx; header = ["Time", "Concentrtion", "AUC", "AUC (cumulate)", "AUMC", "AUMC (cumulate)", "Info"])
+        PrettyTables.pretty_table(io, mx; tf = PrettyTables.tf_compact)
         println(io, "")
         println(io, "    Cdose: $(result[:Cdose]), Dose time: $(data.dosetime.time)")
         println(io, "    Kel start: $(keldata.s[rsqn]); end: $(keldata.e[rsqn])")
@@ -495,6 +495,11 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
             println(io, "    AUMC final part: $(eaumcpartl)")
             println(io, "")
         end
+
+        if verbose > 1
+            println(io, "    Results:")
+            PrettyTables.pretty_table(io, result; tf = PrettyTables.tf_compact)
+        end
     end
 
     #-----------------------------------------------------------------------
@@ -502,11 +507,11 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
 end
 
 """
-    nca!(data::DataSet{T1}; adm = :ev, calcm = :lint, intpm = nothing, verbose = false, warn = true, io::IO = stdout) where T1 <: PKSubject{T,O}  where T  where O
+    nca!(data::DataSet{T1}; adm = :ev, calcm = :lint, intpm = nothing, verbose = 0, warn = true, io::IO = stdout) where T1 <: PKSubject{T,O}  where T  where O
 
 Non-compartmental (NCA) analysis of pharmacokinetic (PK) data.
 """
-function nca!(data::DataSet{Subj}; adm = :ev, calcm = :lint, intpm = nothing, limitrule = nothing, verbose = false, warn = true, io::IO = stdout) where Subj <: PKSubject{T,O}  where T  where O
+function nca!(data::DataSet{Subj}; adm = :ev, calcm = :lint, intpm = nothing, limitrule = nothing, verbose = 0, warn = true, io::IO = stdout) where Subj <: PKSubject{T,O}  where T  where O
     result = Vector{NCAResult{Subj}}(undef, length(data))
     for i = 1:length(data)
         result[i] = nca!(data[i]; adm = adm, calcm = calcm, intpm = intpm, limitrule = limitrule, verbose = verbose, warn = warn, io = io)
