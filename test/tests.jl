@@ -1,6 +1,6 @@
 #using MetidaNCA
 using Test
-using DataFrames, CSV
+using DataFrames, CSV, Plots
 
 path     = dirname(@__FILE__)
 io       = IOBuffer();
@@ -60,6 +60,12 @@ include("refdicts.jl")
     sort!(ds, :Subject)
     dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
     @test  MetidaNCA.getid(dsnca, :, :Subject) == collect(1:10)
+
+    MetidaNCA.pkplot(ds; typesort = :Subject, pagesort = nothing, sort = Dict(:Formulation => "R"))
+    MetidaNCA.pkplot(ds; typesort = :Formulation, pagesort = nothing, legend = true)
+    pl = MetidaNCA.pkplot(ds; elim = true, ls = true)
+    pl = MetidaNCA.pkplot(ds; typesort = :Subject, pagesort = :Formulation)
+    pl = MetidaNCA.pkplot(ds; typesort = :Formulation, pagesort = :Subject)
 
 end
 

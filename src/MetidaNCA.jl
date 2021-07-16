@@ -3,11 +3,13 @@
 
 module MetidaNCA
 
+using RecipesBase
+
 import Base: ht_keyindex, length, length, push!
 
 import MetidaBase: Tables, PrettyTables, AbstractIdData, AbstractSubject, DataSet, AbstractSubjectResult, AbstractResultData, getid, metida_table
 
-export pkimport, nca!, DoseTime, ElimRange, LimitRule, setdosetime!, setkelauto!, setkelrange!, applylimitrule!
+export pkimport, nca!, DoseTime, ElimRange, LimitRule, setdosetime!, setkelauto!, setkelrange!, applylimitrule!, pkplot
 
 const LOG2 = log(2)
 
@@ -20,5 +22,6 @@ const LOG2 = log(2)
     include("show.jl")
     include("import.jl")
     include("nca.jl")
+    include("plots.jl")
 
 end # module
