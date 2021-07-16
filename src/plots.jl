@@ -219,46 +219,6 @@ function pkplot!(subj; ls = false, elim = false, xticksn = :auto, yticksn = :aut
     return p
 end
 
-function uniqueidlist(data::DataSet{T}, list::AbstractVector{Symbol}) where T <: AbstractIdData
-    dl = Vector{Dict}(undef, 0)
-    for i in data
-        if list ⊆ keys(i.id)
-            subd = Dict(k => i.id[k] for k in list)
-            if subd ∉ dl push!(dl, subd) end
-        end
-    end
-    dl
-end
-function uniqueidlist(data::DataSet{T}, list::Symbol) where T <: AbstractIdData
-    dl = Vector{Dict}(undef, 0)
-    for i in data
-        if list in keys(i.id)
-            subd = Dict(list => i.id[list])
-            if subd ∉ dl push!(dl, subd) end
-        end
-    end
-    dl
-end
-#=
-function uniqueidlist(data::DataSet{T}, list, on) where T <: AbstractIdData
-    dl = Vector{Dict}(undef, 0)
-    for i in data
-        if on ⊆ i.id
-            if list ⊆ keys(i.id)
-                subd = Dict(k => i.id[k] for k in list)
-                if subd ∉ dl push!(dl, subd) end
-            end
-        end
-    end
-    dl
-end
-=#
-function subset(data::DataSet, sort::Dict)
-    inds = findall(x-> sort ⊆ x.id, data.data)
-    if length(inds) > 0 return DataSet(data.data[inds]) end
-    nothing
-end
-
 function pageplot(data, id, ulist; kwargs...)
     kwargs = Dict{Symbol, Any}(kwargs)
     k = keys(kwargs)
@@ -370,3 +330,48 @@ function pkplot(data::DataSet{T};
         return pageplot(data, pagesort, typelist; kwargs...)
     end
 end
+
+
+#=
+function uniqueidlist(data::DataSet{T}, list::AbstractVector{Symbol}) where T <: AbstractIdData
+    dl = Vector{Dict}(undef, 0)
+    for i in data
+        if list ⊆ keys(i.id)
+            subd = Dict(k => i.id[k] for k in list)
+            if subd ∉ dl push!(dl, subd) end
+        end
+    end
+    dl
+end
+function uniqueidlist(data::DataSet{T}, list::Symbol) where T <: AbstractIdData
+    dl = Vector{Dict}(undef, 0)
+    for i in data
+        if list in keys(i.id)
+            subd = Dict(list => i.id[list])
+            if subd ∉ dl push!(dl, subd) end
+        end
+    end
+    dl
+end
+=#
+#=
+function uniqueidlist(data::DataSet{T}, list, on) where T <: AbstractIdData
+    dl = Vector{Dict}(undef, 0)
+    for i in data
+        if on ⊆ i.id
+            if list ⊆ keys(i.id)
+                subd = Dict(k => i.id[k] for k in list)
+                if subd ∉ dl push!(dl, subd) end
+            end
+        end
+    end
+    dl
+end
+=#
+#=
+function subset(data::DataSet, sort::Dict)
+    inds = findall(x-> sort ⊆ x.id, data.data)
+    if length(inds) > 0 return DataSet(data.data[inds]) end
+    nothing
+end
+=#
