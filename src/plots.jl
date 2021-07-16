@@ -118,12 +118,14 @@ end
 
 
 """
-    pkplot(subj::T; plotstyle = PKPLOTSTYLE[1], kwargs...) where T <: AbstractSubject
+    pkplot(subj; ls = false, elim = false, xticksn = 6, yticksn = 5, kwargs...)
 
 Plot for subject
 
-* subj - subject;
-* plotstyle - styles for plots.
+* `ls` - concentration in log scale;
+* `elim` - draw elimination curve;
+* `xticksn` - number of ticks on x axis;
+* `yticksn` - number of ticks on y axis/
 
 """
 function pkplot(subj; ls = false, elim = false, xticksn = 6, yticksn = 5, kwargs...)
@@ -217,7 +219,7 @@ function pkplot!(subj; ls = false, elim = false, xticksn = :auto, yticksn = :aut
     return p
 end
 
-function uniqueidlist(data::DataSet{T}, list) where T <: AbstractIdData
+function uniqueidlist(data::DataSet{T}, list::AbstractVector{Symbol}) where T <: AbstractIdData
     dl = Vector{Dict}(undef, 0)
     for i in data
         if list ⊆ keys(i.id)
@@ -227,6 +229,17 @@ function uniqueidlist(data::DataSet{T}, list) where T <: AbstractIdData
     end
     dl
 end
+function uniqueidlist(data::DataSet{T}, list::Symbol) where T <: AbstractIdData
+    dl = Vector{Dict}(undef, 0)
+    for i in data
+        if list in keys(i.id)
+            subd = Dict(list => i.id[list])
+            if subd ∉ dl push!(dl, subd) end
+        end
+    end
+    dl
+end
+#=
 function uniqueidlist(data::DataSet{T}, list, on) where T <: AbstractIdData
     dl = Vector{Dict}(undef, 0)
     for i in data
@@ -239,11 +252,13 @@ function uniqueidlist(data::DataSet{T}, list, on) where T <: AbstractIdData
     end
     dl
 end
+=#
 function subset(data::DataSet, sort::Dict)
     inds = findall(x-> sort ⊆ x.id, data.data)
     if length(inds) > 0 return DataSet(data.data[inds]) end
     nothing
 end
+
 function pageplot(data, id, ulist; kwargs...)
     kwargs = Dict{Symbol, Any}(kwargs)
     k = keys(kwargs)
@@ -281,7 +296,19 @@ function pageplot(data, id, ulist; kwargs...)
     p
 end
 
+"""
+    pkplot(data::DataSet{T};
+    typesort::Union{Nothing, Symbol, AbstractVector{Symbol}} = nothing,
+    pagesort::Union{Nothing, Symbol, AbstractVector{Symbol}} = nothing,
+    sort::Union{Nothing, Dict{Symbol}} = nothing,
+    kwargs...) where T <: AbstractSubject
 
+PK plot for subject set.
+
+    * `typesort` - sort on page by this id key;
+    * `pagesort` - different pages by this id key;
+    * `sort` - use only subjects if sort ⊆ subject id.
+"""
 function pkplot(data::DataSet{T};
     typesort::Union{Nothing, Symbol, AbstractVector{Symbol}} = nothing,
     pagesort::Union{Nothing, Symbol, AbstractVector{Symbol}} = nothing,

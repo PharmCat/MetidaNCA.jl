@@ -71,3 +71,10 @@ MetidaNCA.LimitRule
 ```@docs
 MetidaNCA.applylimitrule!
 ```
+
+
+### pkplot
+
+```@docs
+MetidaNCA.pkplot
+```
