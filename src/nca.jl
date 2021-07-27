@@ -503,7 +503,7 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
     end
 
     #-----------------------------------------------------------------------
-    return NCAResult(data, calcm, result, data.id)
+    return NCAResult(data, calcm, result)
 end
 
 """
@@ -511,7 +511,7 @@ end
 
 Non-compartmental (NCA) analysis of pharmacokinetic (PK) data.
 """
-function nca!(data::DataSet{Subj}; adm = :ev, calcm = :lint, intpm = nothing, limitrule = nothing, verbose = 0, warn = true, io::IO = stdout) where Subj <: PKSubject{T,O}  where T  where O
+function nca!(data::DataSet{Subj}; adm = :ev, calcm = :lint, intpm = nothing, limitrule = nothing, verbose = 0, warn = true, io::IO = stdout) where Subj <: PKSubject{T,O,V}  where T  where O where V
     result = Vector{NCAResult{Subj}}(undef, length(data))
     for i = 1:length(data)
         result[i] = nca!(data[i]; adm = adm, calcm = calcm, intpm = intpm, limitrule = limitrule, verbose = verbose, warn = warn, io = io)

@@ -69,7 +69,7 @@ include("refdicts.jl")
 
 end
 
-@testset "  Linear trapezoidal, Dose 100, Dosetime 0, no tau         " begin
+@testset "  #1 Linear trapezoidal, Dose 100, Dosetime 0, no tau      " begin
 
 ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
 sort!(ds, :Subject)
@@ -159,7 +159,7 @@ dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
 
 end
 
-@testset "  Linear up Log down, Dose 100, Dosetime 0.25, tau 9       " begin
+@testset "  #2 Linear up Log down, Dose 100, Dosetime 0.25, tau 9    " begin
     ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0.25, tau = 9))
     sort!(ds, :Subject)
     dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luld)

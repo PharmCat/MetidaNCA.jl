@@ -36,7 +36,7 @@ function pkimport(data, time, conc, sort; kelauto = true,  elimrange = ElimRange
 
     timec = Tables.getcolumn(data, time)
     concc = Tables.getcolumn(data, conc)
-    sdata = Vector{PKSubject{eltype(timec),eltype(concc)}}(undef, length(d))
+    sdata = Vector{PKSubject}(undef, length(d))
     i = one(Int)
     @inbounds for (k, v) in d
         timevals = timec[v]
@@ -46,7 +46,7 @@ function pkimport(data, time, conc, sort; kelauto = true,  elimrange = ElimRange
         sdata[i] = PKSubject(timevals[sp], concvals[sp], kelauto, elimrange,  dosetime, Dict(sort .=> k))
         i += one(Int)
     end
-    return DataSet(sdata)
+    return DataSet(identity.(sdata))
 end
 """
     pkimport(time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
@@ -54,5 +54,5 @@ end
 Import PK data from time vector `time` and concentration vector `conc`.
 """
 function pkimport(time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
-    PKSubject(time, conc, kelauto, elimrange,  dosetime, Dict())
+    PKSubject(time, conc, kelauto, elimrange,  dosetime, Dict{Symbol, Any}())
 end

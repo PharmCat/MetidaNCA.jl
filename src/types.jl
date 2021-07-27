@@ -94,18 +94,18 @@ struct DoseTime{D <: Number, T <: Number, TAU <: Number}
 end
 
 # PK subject
-mutable struct PKSubject{T <: Number, O <: Number} <: AbstractSubject
+mutable struct PKSubject{T <: Number, O <: Number, V <: Any} <: AbstractSubject
     time::Vector{T}
     obs::Vector{O}
     kelauto::Bool
     kelrange::ElimRange
     dosetime::DoseTime
     keldata::KelData
-    id::Dict
-    function PKSubject(time::Vector{T}, conc::Vector{O}, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, keldata::KelData, sort = Dict()) where T <: Number where O <: Number
-        new{T, O}(time, conc, kelauto, kelrange, dosetime, keldata, sort)::PKSubject
+    id::Dict{Symbol, V}
+    function PKSubject(time::Vector{T}, conc::Vector{O}, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, keldata::KelData, sort::Dict{Symbol, V} = Dict{Symbol, Any}()) where T <: Number where O <: Number where V
+        new{T, O, V}(time, conc, kelauto, kelrange, dosetime, keldata, sort)::PKSubject
     end
-    function PKSubject(time::Vector, conc::Vector, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, sort::Dict)
+    function PKSubject(time::Vector, conc::Vector, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, sort::Dict{Symbol, V}) where V
         PKSubject(time, conc, kelauto, kelrange, dosetime, KelData(), sort)
     end
     #=
@@ -127,12 +127,11 @@ end
 
 
 struct NCAResult{T} <: AbstractSubjectResult{T}
-    subject::T
+    data::T
     method::Symbol
     result::Dict{Symbol, Float64}
-    id::Dict
-    function NCAResult(subject::T, method, result, id) where T <: AbstractSubject
-        new{T}(subject, method, result, id)
+    function NCAResult(subject::T, method, result) where T <: AbstractSubject
+        new{T}(subject, method, result)
     end
     #=
     function NCAResult(subject::T, method, result) where T <: AbstractSubject

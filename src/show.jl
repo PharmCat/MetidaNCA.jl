@@ -45,6 +45,6 @@ function Base.show(io::IO, obj::DataSet{Res}) where Res <: NCAResult
     println(io, "DataSet: Pharmacokinetic subject NCA result")
     println(io, "Length: $(length(obj))")
     for i = 1:length(obj)
-        println(io, "Subject $(i): ", obj[i].id)
+        println(io, "Subject $(i): ", obj[i].data.id)
     end
 end
