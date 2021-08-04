@@ -159,8 +159,69 @@ function interpolate(t₁, t₂, tx, c₁::T, c₂::T, intpm, aftertmax) where T
     return c
 end
 
+
+function step_3_elim!(result, data::PKSubject{T,O}, adm, obsnum, tmaxn, time_cp, obs_cp, time) where T where O
+    excltime = nothing
+    keldata                = KelData()
+    if data.kelauto
+        if (adm != :iv && obsnum - tmaxn > 2) || (adm == :iv && obsnum - tmaxn > 1)
+            if adm == :iv
+                stimep = tmaxn
+            else
+                stimep = tmaxn + 1
+            end
+            timep = collect(stimep:obsnum)
+            if length(data.kelrange.kelexcl) > 0
+                excltime = view(time, data.kelrange.kelexcl)
+                filter!(x-> x ∉ findall(x -> x in excltime, time_cp), timep)
+            end
+            filter!(x-> x ∉ findall(x -> x <= 0, obs_cp), timep)
+            if length(timep) > 2
+                logconc    = log.(obs_cp)
+                for i = length(timep)-2:-1:1
+                    timepv = view(timep, i:length(timep))
+                    sl = slope(view(time_cp, timepv), view(logconc, timepv))
+                    if sl[1] < 0
+                        push!(keldata, time_cp[timep[i]], time_cp[timep[end]], sl[1], sl[2], sl[3], sl[4])
+                    end
+                end
+            end
+        end
+    else
+        stimep = findfirst(x -> x >= time[data.kelrange.kelstart], time_cp)
+        etimep = findlast(x -> x <= time[data.kelrange.kelend], time_cp)
+        timep = collect(stimep:etimep)
+        if length(data.kelrange.kelexcl) > 0
+            @inbounds for i in data.kelrange.kelexcl
+                excltime = view(time, data.kelrange.kelexcl)
+                filter!(x-> x ∉ findall(x -> x in excltime, time_cp), timep)
+            end
+        end
+        if length(timep) > 1
+            sl = slope(view(time_cp, timep), log.(view(obs_cp, timep)))
+            push!(keldata, time_cp[stimep], time_cp[etimep], sl[1], sl[2], sl[3], sl[4])
+        end
+    end
+    # C last and T last
+    tlastn = 0
+    @inbounds for i = obsnum:-1:1
+        if obs_cp[i] > zero(O)
+            result[:Tlast]   = time_cp[i]
+            result[:Clast]   = obs_cp[i]
+            tlastn           = i
+            break
+        end
+    end
+    keldata, tlastn, excltime
+end
+
+
+function nca(args...; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), kwargs...)
+    pki = pkimport(args...; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime)
+    nca!(pki, kwargs...)
+end
 """
-    nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, limitrule = nothing, verbose = 0, warn = true, io::IO = stdout) where T where O
+    nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, limitrule = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = nothing) where T where O
 
 * `adm` - administration:
     - `:ev` - extra vascular;
@@ -178,10 +239,11 @@ end
 * `limitrule` use limitrule for data;
 * `verbose` - print to `io`;
 * `warn` - show warnings;
-* `io` - output stream.
+* `io` - output stream;
+* `modify!` - function to modify output paramaters, call `modify!(data, result)` if difined.
 
 """
-function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, limitrule = nothing, verbose = 0, warn = true, io::IO = stdout) where T where O
+function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, limitrule = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = nothing) where T where O
 
     result   = Dict{Symbol, Float64}()
 
@@ -240,57 +302,8 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
 
     # STEP 3
     # Elimination
-    local excltime
-    keldata                = KelData()
-    if data.kelauto
-        if (adm != :iv && obsnum - tmaxn > 2) || (adm == :iv && obsnum - tmaxn > 1)
-            if adm == :iv
-                stimep = tmaxn
-            else
-                stimep = tmaxn + 1
-            end
-            timep = collect(stimep:obsnum)
-            if length(data.kelrange.kelexcl) > 0
-                excltime = view(time, data.kelrange.kelexcl)
-                filter!(x-> x ∉ findall(x -> x in excltime, time_cp), timep)
-            end
-            filter!(x-> x ∉ findall(x -> x <= 0, obs_cp), timep)
-            if length(timep) > 2
-                logconc    = log.(obs_cp)
-                for i = length(timep)-2:-1:1
-                    timepv = view(timep, i:length(timep))
-                    sl = slope(view(time_cp, timepv), view(logconc, timepv))
-                    if sl[1] < 0
-                        push!(keldata, time_cp[timep[i]], time_cp[timep[end]], sl[1], sl[2], sl[3], sl[4])
-                    end
-                end
-            end
-        end
-    else
-        stimep = findfirst(x -> x >= time[data.kelrange.kelstart], time_cp)
-        etimep = findlast(x -> x <= time[data.kelrange.kelend], time_cp)
-        timep = collect(stimep:etimep)
-        if length(data.kelrange.kelexcl) > 0
-            @inbounds for i in data.kelrange.kelexcl
-                excltime = view(time, data.kelrange.kelexcl)
-                filter!(x-> x ∉ findall(x -> x in excltime, time_cp), timep)
-            end
-        end
-        if length(timep) > 1
-            sl = slope(view(time_cp, timep), log.(view(obs_cp, timep)))
-            push!(keldata, time_cp[stimep], time_cp[etimep], sl[1], sl[2], sl[3], sl[4])
-        end
-    end
-    # C last and T last
-    tlastn = 0
-    @inbounds for i = obsnum:-1:1
-        if obs_cp[i] > zero(O)
-            result[:Tlast]   = time_cp[i]
-            result[:Clast]   = obs_cp[i]
-            tlastn           = i
-            break
-        end
-    end
+    keldata, tlastn, excltime = step_3_elim!(result, data, adm, obsnum, tmaxn, time_cp, obs_cp, time)
+
 
     # STEP 4
     if  data.dosetime.time > 0
@@ -356,9 +369,10 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
     #-----------------------------------------------------------------------
     result[:AUClast]   = auclast
     result[:AUMClast]  = aumclast
-
     result[:AUCall]    = aucall
     #---------------------------------------------------------------------------
+    # STEP 7
+    # Other parameters
     #---------------------------------------------------------------------------
     result[:MRTlast]    = result[:AUMClast] / result[:AUClast]
     #---------------------------------------------------------------------------
@@ -395,8 +409,8 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
         result[:Kel] = NaN
     end
     #-----------------------------------------------------------------------
-    # STEP 7
-    # Steady-state
+    # STEP 8
+    # Steady-state parameters
     if data.dosetime.tau > 0
         eaucpartl  = eaumcpartl = 0.0
         if time_cp[taulastp] < data.dosetime.tau < time_cp[end]
@@ -502,6 +516,10 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
         end
     end
 
+    if !isnothing(modify!)
+        modify!(data, result)
+    end
+
     #-----------------------------------------------------------------------
     return NCAResult(data, calcm, result)
 end
@@ -511,10 +529,10 @@ end
 
 Non-compartmental (NCA) analysis of pharmacokinetic (PK) data.
 """
-function nca!(data::DataSet{Subj}; adm = :ev, calcm = :lint, intpm = nothing, limitrule = nothing, verbose = 0, warn = true, io::IO = stdout) where Subj <: PKSubject{T,O,V}  where T  where O where V
+function nca!(data::DataSet{Subj}; adm = :ev, calcm = :lint, intpm = nothing, limitrule = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = nothing) where Subj <: PKSubject{T,O,V}  where T  where O where V
     result = Vector{NCAResult{Subj}}(undef, length(data))
     for i = 1:length(data)
-        result[i] = nca!(data[i]; adm = adm, calcm = calcm, intpm = intpm, limitrule = limitrule, verbose = verbose, warn = warn, io = io)
+        result[i] = nca!(data[i]; adm = adm, calcm = calcm, intpm = intpm, limitrule = limitrule, verbose = verbose, warn = warn, io = io, modify! = modify!)
     end
     DataSet(result)
 end

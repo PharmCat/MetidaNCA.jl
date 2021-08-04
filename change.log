@@ -1,3 +1,8 @@
+0.1.5
+  - Use MetidaBase 0.3
+  - nca method to NCA from table
+  - modify! function
+
 0.1.4
   - Plots
 0.1.3

@@ -67,6 +67,9 @@ include("refdicts.jl")
     pl = MetidaNCA.pkplot(ds; typesort = :Subject, pagesort = :Formulation)
     pl = MetidaNCA.pkplot(ds; typesort = :Formulation, pagesort = :Subject)
 
+    dsncafromds = MetidaNCA.nca(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
+    dsncafromds = MetidaNCA.nca(tdat, cdat)
+
 end
 
 @testset "  #1 Linear trapezoidal, Dose 100, Dosetime 0, no tau      " begin

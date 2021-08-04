@@ -48,6 +48,10 @@ function pkimport(data, time, conc, sort; kelauto = true,  elimrange = ElimRange
     end
     return DataSet(identity.(sdata))
 end
+
+function pkimport(data, time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
+    pkimport(Tables.getcolumn(data, time), Tables.getcolumn(data, conc); kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime)
+end
 """
     pkimport(time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
 
