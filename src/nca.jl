@@ -217,8 +217,9 @@ end
 
 
 function nca(args...; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), kwargs...)
-    pki = pkimport(args...; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime)
-    nca!(pki, kwargs...)
+    pki    = pkimport(args...; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime)
+    #kwargs = Dict{Symbol, Any}(kwargs)
+    nca!(pki; kwargs...)
 end
 """
     nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, limitrule = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = nothing) where T where O
@@ -324,7 +325,7 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
     else
         if adm == :iv
             if  first(obs_cp) > obs_cp[2] > zero(O)
-                result[:Cdose] = logcpredict(first(time_cp), time_cp[2], data.dosetime.time, first(obs_cp), obs_cp[2])
+                result[:Cdose] = logcpredict(first(time_cp), time_cp[2], 0, first(obs_cp), obs_cp[2])
             else
                 result[:Cdose] = first(obs_cp)
             end

@@ -54,7 +54,7 @@ function applylimitrule!(time, obs, rule::LimitRule)
     #NaN Rule
     obsn = length(obs)
     if !isnan(rule.nan)
-        for i = 1:length(data)
+        for i = 1:obsn
             if isnanormissing(obs[i])
                 obs[i] = rule.nan
             end
@@ -63,7 +63,7 @@ function applylimitrule!(time, obs, rule::LimitRule)
     #LLOQ rule
     if !isnan(rule.lloq)
         for i = 1:obsn
-            if obs[i] <= rule.lloq
+            if !isnanormissing(obs[i]) && obs[i] <= rule.lloq
                 if i <= tmaxn
                     obs[i] = rule.btmax
                 else

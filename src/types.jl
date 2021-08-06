@@ -94,7 +94,7 @@ struct DoseTime{D <: Number, T <: Number, TAU <: Number}
 end
 
 # PK subject
-mutable struct PKSubject{T <: Number, O <: Number, V <: Any} <: AbstractSubject
+mutable struct PKSubject{T <: Number, O <: Union{Number, Missing}, V <: Any} <: AbstractSubject
     time::Vector{T}
     obs::Vector{O}
     kelauto::Bool
@@ -102,7 +102,7 @@ mutable struct PKSubject{T <: Number, O <: Number, V <: Any} <: AbstractSubject
     dosetime::DoseTime
     keldata::KelData
     id::Dict{Symbol, V}
-    function PKSubject(time::Vector{T}, conc::Vector{O}, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, keldata::KelData, sort::Dict{Symbol, V} = Dict{Symbol, Any}()) where T <: Number where O <: Number where V
+    function PKSubject(time::Vector{T}, conc::Vector{O}, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, keldata::KelData, sort::Dict{Symbol, V} = Dict{Symbol, Any}()) where T <: Number where O <: Union{Number, Missing} where V
         new{T, O, V}(time, conc, kelauto, kelrange, dosetime, keldata, sort)::PKSubject
     end
     function PKSubject(time::Vector, conc::Vector, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, sort::Dict{Symbol, V}) where V

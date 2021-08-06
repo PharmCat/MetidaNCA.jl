@@ -50,7 +50,7 @@ function pkimport(data, time, conc, sort; kelauto = true,  elimrange = ElimRange
 end
 
 function pkimport(data, time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
-    pkimport(Tables.getcolumn(data, time), Tables.getcolumn(data, conc); kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime)
+    pkimport(copy(Tables.getcolumn(data, time)), copy(Tables.getcolumn(data, conc)); kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime)
 end
 """
     pkimport(time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
@@ -58,5 +58,5 @@ end
 Import PK data from time vector `time` and concentration vector `conc`.
 """
 function pkimport(time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
-    PKSubject(time, conc, kelauto, elimrange,  dosetime, Dict{Symbol, Any}())
+    PKSubject(copy(time), copy(conc), kelauto, elimrange,  dosetime, Dict{Symbol, Any}())
 end

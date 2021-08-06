@@ -1,7 +1,10 @@
 0.1.5
+  - FIX Cdose extrapolation for IV
   - Use MetidaBase 0.3
   - nca method to NCA from table
   - modify! function
+  - minor bugfix
+  - missing data test
 
 0.1.4
   - Plots

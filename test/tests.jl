@@ -5,6 +5,7 @@ using DataFrames, CSV, Plots
 path     = dirname(@__FILE__)
 io       = IOBuffer();
 pkdata2  = CSV.File(joinpath(path, "csv", "pkdata2.csv")) |> DataFrame
+missingpk  = CSV.File(joinpath(path, "csv", "missingpk.csv")) |> DataFrame
 include("refdicts.jl")
 # Cmax
 # Tmax
@@ -44,6 +45,26 @@ include("refdicts.jl")
 # Swing
 # Swingtau
 @testset "   Simple test                                             " begin
+    # Basic dataset scenario
+    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
+    sort!(ds, :Subject)
+    show(io, ds)
+    dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
+    @test  MetidaNCA.getid(dsnca, :, :Subject) == collect(1:10)
+    show(io, dsnca)
+
+    dsncafromds = MetidaNCA.nca(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
+    sort!(dsncafromds, :Subject)
+    @test dsnca[:, :AUClast] == dsncafromds[:, :AUClast]
+
+    # Plotting
+    MetidaNCA.pkplot(ds; typesort = :Subject, pagesort = nothing, sort = Dict(:Formulation => "R"))
+    MetidaNCA.pkplot(ds; typesort = :Formulation, pagesort = nothing, legend = true)
+    pl = MetidaNCA.pkplot(ds; elim = true, ls = true)
+    pl = MetidaNCA.pkplot(ds; typesort = :Subject, pagesort = :Formulation, elim = true, ls = true)
+    pl = MetidaNCA.pkplot(ds; typesort = :Formulation, pagesort = :Subject, xticksn = 8, yticksn = 10)
+
+    # Single subject scenario
     tdat = pkdata2[1:16, :Time]
     cdat = pkdata2[1:16, :Concentration]
     ds = MetidaNCA.pkimport(tdat, cdat)
@@ -56,20 +77,30 @@ include("refdicts.jl")
     ct = MetidaNCA.ctmax(ds)
     @test  sbj[:Cmax] == ct[1]
     @test  sbj[:Tmax] == ct[2]
-    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
-    sort!(ds, :Subject)
-    dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
-    @test  MetidaNCA.getid(dsnca, :, :Subject) == collect(1:10)
 
-    MetidaNCA.pkplot(ds; typesort = :Subject, pagesort = nothing, sort = Dict(:Formulation => "R"))
-    MetidaNCA.pkplot(ds; typesort = :Formulation, pagesort = nothing, legend = true)
-    pl = MetidaNCA.pkplot(ds; elim = true, ls = true)
-    pl = MetidaNCA.pkplot(ds; typesort = :Subject, pagesort = :Formulation)
-    pl = MetidaNCA.pkplot(ds; typesort = :Formulation, pagesort = :Subject)
+    dsncafromds =  MetidaNCA.nca(pkdata2[1:16, :], :Time, :Concentration)
+    @test  sbj[:AUClast]  ≈ dsncafromds[:AUClast]
 
-    dsncafromds = MetidaNCA.nca(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
     dsncafromds = MetidaNCA.nca(tdat, cdat)
+    @test  sbj[:AUClast]  ≈ dsncafromds[:AUClast]
 
+
+    # Missing NaN
+
+    dsncafromds =  MetidaNCA.nca(missingpk, :Time, :Concentration)
+    @test  sbj[:AUClast]  ≈ dsncafromds[:AUClast]
+
+    dsncafromds =  MetidaNCA.nca(missingpk, :Time, :Concentration;
+    limitrule = MetidaNCA.LimitRule(;lloq = 0, btmax = 0, atmax = NaN, nan = NaN, rm = true))
+    @test  sbj[:AUClast]  ≈ dsncafromds[:AUClast]
+
+    function newparam(data, result)
+        result[:AUChalf] = result[:AUClast] / 2
+    end
+
+    dsncafromds =  MetidaNCA.nca(missingpk, :Time, :Concentration;
+    limitrule = MetidaNCA.LimitRule(;lloq = 0, btmax = 0, atmax = NaN, nan = NaN, rm = true), modify! = newparam)
+    dsncafromds[:AUChalf] ≈ dsncafromds[:AUClast] / 2
 end
 
 @testset "  #1 Linear trapezoidal, Dose 100, Dosetime 0, no tau      " begin
@@ -979,15 +1010,15 @@ end
     23.98401112], sigdigits = 6)
     # Cavg
     @test round.(dsnca[:, :Cavg], digits = 3) == round.([126.4663632
-119.966718
-71.95902904
-117.9411692
-122.7483395
-87.29151856
-83.95400098
-89.30999936
-107.274135
-63.89420453], digits = 3)
+    119.966718
+    71.95902904
+    117.9411692
+    122.7483395
+    87.29151856
+    83.95400098
+    89.30999936
+    107.274135
+    63.89420453], digits = 3)
     # Ctaumin
     @test round.(dsnca[:, :Ctaumin], sigdigits = 6) == round.([0
     0
@@ -1142,6 +1173,24 @@ end
 
 end
 
+@testset "  Linear up Log down, Dose 100, Dosetime 0.25, tau 9 IV    " begin
+    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0.25, tau = 9))
+    sort!(ds, :Subject)
+    dsnca = MetidaNCA.nca!(ds, adm = :iv, calcm = :luld)
+
+    @test dsnca[:, :Cdose] == [178.949
+    62.222
+    49.849
+    52.421
+    0.0
+    57.882
+    19.95
+    142.34985100539438
+    113.362
+    13.634]
+
+end
+
 @testset "  set-get*! tests                                          " begin
 ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
 sort!(ds, :Subject)
@@ -1197,6 +1246,36 @@ end
     MetidaNCA.applylimitrule!(ds[1], lr)
 
     dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luldt)
+
+    ds = MetidaNCA.pkimport(missingpk, :Time, :Concentration)
+
+    @test ismissing(ds.obs[13])
+    @test isnan(ds.obs[15])
+    @test length(ds) == 18
+    MetidaNCA.applylimitrule!(ds, lr)
+    @test length(ds) == 16
+
+    ds = MetidaNCA.pkimport(missingpk, :Time, :Concentration)
+    lr = MetidaNCA.LimitRule(;lloq = 180, btmax = 0.0, atmax = 0.5, nan = 1000, rm = false)
+    MetidaNCA.applylimitrule!(ds, lr)
+    @test ds.obs ==  [0.0
+    0.0
+  190.869
+    0.5
+    0.5
+    0.5
+    0.5
+    0.5
+    0.5
+    0.5
+    0.5
+    0.5
+ 1000.0
+    0.5
+ 1000.0
+    0.5
+    0.5
+    0.5]
 end
 
 @testset "  kel                                                      " begin
@@ -1216,12 +1295,13 @@ end
     ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
     sort!(ds, :Subject)
     dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint, verbose = 1, io = io)
-
+    show(io, ds[1])
     dt = MetidaNCA.DoseTime(dose = 100, time = 0.25, tau = 9)
     MetidaNCA.setdosetime!(ds, dt)
     dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luld, verbose = 1, io = io)
-
+    show(io, ds[1])
     kr =  MetidaNCA.ElimRange(kelstart = 10, kelend = 16, kelexcl = Int[13,14])
     MetidaNCA.setkelrange!(ds, kr; kelauto = false)
+    show(io, ds[1])
     dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint, verbose = 2, io = io)
 end

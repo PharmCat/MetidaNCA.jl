@@ -147,6 +147,9 @@ function pkplot(subj; ls = false, elim = false, xticksn = 6, yticksn = 5, kwargs
     if !(:xlims in k)
         kwargs[:xlims] = (minimum(subj.time), maximum(subj.time)*1.1)
     end
+    if !(:ylims in k)
+        kwargs[:ylims] = (minimum(subj.obs), maximum(subj.obs)*1.1)
+    end
     if !(:legend in k)
         kwargs[:legend] = true
     end
@@ -316,6 +319,7 @@ function pkplot(data::DataSet{T};
     end
     typelist = uniqueidlist(data, typesort)
     if !isnothing(pagesort)
+        kwargs[:elim] = false
         if isa(pagesort, Symbol) pagesort = [pagesort] end
         p = []
         pagelist = uniqueidlist(data, pagesort)
