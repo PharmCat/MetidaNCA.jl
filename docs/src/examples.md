@@ -86,6 +86,8 @@ dsnca = MetidaNCA.nca!(ds)
 p = MetidaNCA.pkplot(ds[1]; elim = true)
 
 png(p, "plot5.png")
+
+getkeldata(ds[1])
 ```
 
 #### Plot 5

@@ -148,7 +148,7 @@ function pkplot(subj; ls = false, elim = false, xticksn = 6, yticksn = 5, kwargs
         kwargs[:xlims] = (minimum(subj.time), maximum(subj.time)*1.1)
     end
     if !(:ylims in k)
-        kwargs[:ylims] = (minimum(subj.obs), maximum(subj.obs)*1.1)
+        kwargs[:ylims] = (minimum(subj.obs), maximum(subj.obs)*1.15)
     end
     if !(:legend in k)
         kwargs[:legend] = true
@@ -202,6 +202,9 @@ function pkplot!(subj; ls = false, elim = false, xticksn = :auto, yticksn = :aut
     end
     if !(:xlims in k)
         kwargs[:xlims] = (minimum(subj.time), maximum(subj.time)*1.1)
+    end
+    if !(:ylims in k)
+        kwargs[:ylims] = (minimum(subj.obs), maximum(subj.obs)*1.15)
     end
     if !(:legend in k)
         kwargs[:legend] = true
