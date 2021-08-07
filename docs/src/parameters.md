@@ -66,10 +66,9 @@ C_x = exp\left(ln(C_1) + \frac{(t_x-t_1)\times(ln(C_2) - ln(C_1))}{t_2 - t_1}\ri
 
 Area from dose time to last observed concentration (>0).
 
-#### AUCall / AUMCall
+#### AUCall
 
-All values used to calculate AUC/AUMC.
-
+All values used to calculate AUC.
 
 ### 𝝺z - elimination constant
 
@@ -101,6 +100,14 @@ AUMC_\infty =  AUMC_{last} + \frac{t_{last}\times C_{last}}{\lambda_z} + \frac{C
 AUCpct = (AUC_\infty - AUC_{last}) / AUC_\infty * 100 \%
 ```
 
+#### AUCinf_pred: AUC to infinity from predicted concentration
+
+```math
+AUC_{\infty pred} = AUC_{last} + \frac{C_{last pred}}{\lambda_z}
+```
+
+result[:AUCinf_pred]     = result[:AUClast] + result[:Clast_pred] / result[:Kel]
+
 ## If Dose used
 
 ### Clearance
@@ -123,6 +130,10 @@ CL_\infty = Dose / AUC_\infty
 
 Area from dose time to dose time + tau.
 
+### Ctau
+
+Concentration at τ time.
+
 ### Cavg
 
 ```math
@@ -134,6 +145,13 @@ C_{avg} = AUC_\tau / \tau
 ```math
 Fluc = ( C_{max} - C_{\tau min} ) / C_{avg} * 100 \%
 ```
+
+### Fluctau: Fluctuation Tau
+
+```math
+Fluc = ( C_{max} - C_{\tau} ) / C_{avg} * 100 \%
+```
+
 
 ### Accind: Accumulation index
 

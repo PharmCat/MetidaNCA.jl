@@ -6,6 +6,7 @@ path     = dirname(@__FILE__)
 io       = IOBuffer();
 pkdata2  = CSV.File(joinpath(path, "csv", "pkdata2.csv")) |> DataFrame
 missingpk  = CSV.File(joinpath(path, "csv", "missingpk.csv")) |> DataFrame
+aucallpk  = CSV.File(joinpath(path, "csv", "aucalltest.csv")) |> DataFrame
 include("refdicts.jl")
 # Cmax
 # Tmax
@@ -1191,6 +1192,15 @@ end
 
 end
 
+@testset "  Linear trapezoidal, Dose 100, Dosetime 0, no tau AUCall  " begin
+
+    dsnca = MetidaNCA.nca(aucallpk, :Time, :Concentration; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0), adm = :ev, calcm = :lint)
+    @test dsnca[:AUClast] ≈ 9585.4218
+    aucl =  MetidaNCA.linauc(72, 96, 112.846, 0)
+    dsnca[:AUClast] + aucl ≈ dsnca[:AUCall]
+
+end
+
 @testset "  set-get*! tests                                          " begin
 ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
 sort!(ds, :Subject)
@@ -1244,8 +1254,23 @@ end
     sort!(ds, :Subject)
     lr = MetidaNCA.LimitRule(;lloq = 0.5, btmax = 0.0, atmax = NaN, nan = NaN, rm = true)
     MetidaNCA.applylimitrule!(ds[1], lr)
-
     dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luldt)
+
+    lr = MetidaNCA.LimitRule(;lloq = 0.5, btmax = 0.5, atmax = NaN, nan = NaN, rm = true)
+    function af(sbj)
+        sbj.id[:Subject] == 1
+    end
+    MetidaNCA.applylimitrule!(af, ds, lr)
+    @test ds[1].obs[1] ≈ 0.5
+    MetidaNCA.applylimitrule!(ds, lr, 2)
+    @test ds[2].obs[1] ≈ 0.5
+    MetidaNCA.applylimitrule!(ds, lr, 3:4)
+    @test ds[3].obs[1] ≈ 0.5
+    @test ds[4].obs[1] ≈ 0.5
+    MetidaNCA.applylimitrule!(ds, lr, Dict(:Formulation => "R"))
+    @test ds[7].obs[1] ≈ 0.5
+    MetidaNCA.applylimitrule!(ds, lr)
+    @test ds[6].obs[1] ≈ 0.5
 
     ds = MetidaNCA.pkimport(missingpk, :Time, :Concentration)
 

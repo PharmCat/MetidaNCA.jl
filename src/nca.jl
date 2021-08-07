@@ -314,9 +314,9 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
     # STEP 5
     # Dose concentration
     # Dosetime is first point
-    local doseaucpart
-    local doseaumcpart
-    local cdoseins::Int = 0
+    local doseaucpart = zero(Float64)
+    local doseaumcpart = zero(Float64)
+    local cdoseins = zero(Int)
     #time_cp .-= data.dosetime.time
     if  iszero(first(time_cp))
         result[:Cdose] = first(obs_cp)

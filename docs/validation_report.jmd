@@ -161,6 +161,8 @@ include("refdict.jl")
 
 pkdata2  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "pkdata2.csv")) |> DataFrame
 
+header = ["Subject", "Value", "Reference", "Difference"]
+
 list = [:Cmax
 :Tmax
 :Cdose
@@ -184,7 +186,7 @@ ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]
 sort!(ds, :Subject)
 dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
 
-subjects = collect(1:10)
+subjects = MetidaNCA.getid(dsnca, :, :Subject)
 
 for l in list
     println("#### $l")
@@ -193,8 +195,9 @@ for l in list
     refs = round.(refdict[l], sigdigits = 6)
 
     mx = hcat(subjects, vals, refs, vals .- refs)
-    df = DataFrame(mx, ["Subjct", "Value", "Reference", "Difference"])
-    pretty_table(df)
+
+    df = DataFrame(mx, header)
+    pretty_table(df; header = header)
 end
 
 
@@ -239,8 +242,8 @@ for l in list
     refs = round.(refdict2[l], sigdigits = 6)
 
     mx = hcat(subjects, vals, refs, vals .- refs)
-    df = DataFrame(mx, ["Subjct", "Value", "Reference", "Difference"])
-    pretty_table(df)
+    df = DataFrame(mx, header)
+    pretty_table(df; header = header)
 end
 
 ```
