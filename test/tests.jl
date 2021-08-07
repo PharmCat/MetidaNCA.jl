@@ -1202,14 +1202,16 @@ end
 end
 
 @testset "  set-get*! tests                                          " begin
-ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
-sort!(ds, :Subject)
+    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
+    sort!(ds, :Subject)
+    #=
     @testset "  #1 setkelauto!                                            " begin
         ka = MetidaNCA.setkelauto!(ds[1], false)
         @test MetidaNCA.getkelauto(ka) == true
 
         dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luldt)
     end
+    =#
     @testset "  setdosetime!                                             " begin
         dt = MetidaNCA.DoseTime(dose = 110, time = 2.1, tau = 10)
         MetidaNCA.setdosetime!(ds[1], dt)
@@ -1226,13 +1228,16 @@ sort!(ds, :Subject)
         dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luldt)
     end
     @testset "  #2 setkelauto!                                            " begin
+        kr =  MetidaNCA.ElimRange(kelstart = 4, kelend = 12)
+        MetidaNCA.setkelrange!(ds, kr; kelauto = true)
         MetidaNCA.setkelauto!(ds, false, 4)
         MetidaNCA.setkelauto!(ds, false, [1,2,3])
         MetidaNCA.setkelauto!(ds, false, Dict(:Formulation => "R"))
         MetidaNCA.setkelauto!(ds, false)
-
         dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luldt)
     end
+    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
+    sort!(ds, :Subject)
     @testset "  setkelrange!                                             " begin
         kr =  MetidaNCA.ElimRange(kelstart = 4, kelend = 12, kelexcl = Int[5,6])
         MetidaNCA.setkelrange!(ds[1], kr)

@@ -6,8 +6,8 @@ Set `range` for subject `data`. Set `kelauto` if possible.
 """
 function setkelrange!(data::T, range::ElimRange{:point}; kelauto = false) where T <: PKSubject
     if range.kelend > length(data) throw(ArgumentError("Kel endpoint out of range")) end
-    setkelauto!(data, kelauto)
     data.kelrange = range
+    setkelauto!(data, kelauto)
     data
 end
 #DS ind Int
