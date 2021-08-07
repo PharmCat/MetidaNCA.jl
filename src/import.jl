@@ -48,7 +48,11 @@ function pkimport(data, time, conc, sort; kelauto = true,  elimrange = ElimRange
     end
     return DataSet(identity.(sdata))
 end
+"""
+    pkimport(data, time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
 
+Import PK data from tabular data `data`, `time` - time column, `conc` - concentration column.
+"""
 function pkimport(data, time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
     pkimport(copy(Tables.getcolumn(data, time)), copy(Tables.getcolumn(data, conc)); kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime)
 end

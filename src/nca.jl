@@ -215,7 +215,20 @@ function step_3_elim!(result, data::PKSubject{T,O}, adm, obsnum, tmaxn, time_cp,
     keldata, tlastn, excltime
 end
 
+"""
+    nca(args...; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), kwargs...)
 
+    nca(data, time, conc, sort; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), kwargs...)
+
+    nca(data, time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), kwargs...)
+
+    nca(time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), kwargs...)
+
+Syntax simillar to [`pkimport`](@ref)
+
+Applicable `kwargs` see  [`nca!`](@ref).
+
+"""
 function nca(args...; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), kwargs...)
     pki    = pkimport(args...; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime)
     #kwargs = Dict{Symbol, Any}(kwargs)
@@ -379,6 +392,7 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
     #---------------------------------------------------------------------------
     if data.dosetime.dose > 0
         result[:Cllast]           = data.dosetime.dose / result[:AUClast]
+        result[:Dose]             = data.dosetime.dose
     end
     #-----------------------------------------------------------------------
     #-----------------------------------------------------------------------
