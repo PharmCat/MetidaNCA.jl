@@ -551,3 +551,11 @@ function nca!(data::DataSet{Subj}; adm = :ev, calcm = :lint, intpm = nothing, li
     end
     DataSet(result)
 end
+
+
+function maxconc(subj::T) where T <: PKSubject
+    maximum(subj.obs)
+end
+function minconc(subj::T) where T <: PKSubject
+    minimum(subj.obs)
+end

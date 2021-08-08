@@ -48,7 +48,7 @@ function luceil(x)
     ceil(x/10^fl)*10^fl
 end
 
-@recipe function f(subj::PKPlot; lcd = 5, tcd = 6)
+@recipe function f(subj::PKPlot; lcd = :auto, tcd = :auto)
     x, y = subj.args
 
     if isa(lcd, Real)
@@ -118,7 +118,7 @@ end
 
 
 """
-    pkplot(subj; ls = false, elim = false, xticksn = 6, yticksn = 5, kwargs...)
+    pkplot(subj; ls = false, elim = false, xticksn = :auto, yticksn = :auto, kwargs...)
 
 Plot for subject
 
@@ -128,7 +128,7 @@ Plot for subject
 * `yticksn` - number of ticks on y axis/
 
 """
-function pkplot(subj; ls = false, elim = false, xticksn = 6, yticksn = 5, kwargs...)
+function pkplot(subj; ls = false, elim = false, xticksn = :auto, yticksn = :auto, kwargs...)
     time = subj.time
     obs  = subj.obs
     kwargs = Dict{Symbol, Any}(kwargs)
@@ -231,18 +231,27 @@ function pageplot(data, id, ulist; kwargs...)
     if !(:title in k)
         kwargs[:title] = plotlabel(id)
     end
+    #=
     if !(:xticksn in k)
         kwargs[:xticksn] = 6
     end
     if !(:yticksn in k)
         kwargs[:yticksn] = 5
     end
+    =#
     #utypes    = keys(styledict)
     fst       = true
     p         = nothing
     labvec    = Vector{Int}(undef, 0)
-    for subj in data
-        if isnothing(id) || id ⊆ subj.id
+    # Make subdata by ID
+    isnothing(id) ? subdata   = data : subdata   = subset(data, id)
+    # Y lims
+    if !(:ylims in k)
+        kwargs[:ylims] = (findmin(x->minconc(x), getdata(subdata))[1], findmax(x->maxconc(x), getdata(subdata))[1]*1.15)
+    end
+    # Plotting subdata
+    for subj in subdata
+        #if isnothing(id) || id ⊆ subj.id
             num = findfirst(x-> x ⊆ subj.id, ulist)
             style = plotstyle(num)
             if num ∈ labvec
@@ -257,7 +266,7 @@ function pageplot(data, id, ulist; kwargs...)
             else
                 pkplot!(subj; plotstyle = style, kwargs...)
             end
-        end
+        #end
     end
     p
 end
@@ -289,13 +298,14 @@ function pkplot(data::DataSet{T};
     if !(:elim in k)
         kwargs[:elim] = false
     end
+    #=
     if !(:xticksn in k)
-        kwargs[:xticksn] = 6
+        kwargs[:xticksn] = :auto
     end
     if !(:yticksn in k)
-        kwargs[:yticksn] = 6
+        kwargs[:yticksn] = :auto
     end
-
+    =#
     if !isnothing(sort) data = subset(data, sort) end
 
     if isnothing(typesort) && isnothing(pagesort)

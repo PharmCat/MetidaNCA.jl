@@ -29,6 +29,9 @@ keywords:
 
 """
 function pkimport(data, time, conc, sort; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
+    if isa(sort, String) sort = [Symbol(sort)] end
+    if isa(sort, Symbol) sort = [sort] end
+    
     cols   = Tables.columns(data)
     cdata  = Tuple(Tables.getcolumn(cols, y) for y in sort)
     d      = Dict{Tuple{eltype.(cdata)...}, Vector{Int}}()
