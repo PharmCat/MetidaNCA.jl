@@ -110,11 +110,9 @@ function slope(x, y)
     a   = (n * Σxy - Σx * Σy)/(n * Σx2 - Σx^2)
     b   = (Σy * Σx2 - Σx * Σxy)/(n * Σx2 - Σx^2)
     r2  = (n * Σxy - Σx * Σy)^2/((n * Σx2 - Σx^2)*(n * Σy2 - Σy^2))
-    if n > 2
-        ar  = 1 - (1 - r2)*(n - 1)/(n - 2)
-    else
-        ar = NaN
-    end
+
+    n > 2 ? ar  = 1 - (1 - r2)*(n - 1)/(n - 2) : ar = NaN
+
     return a, b, r2, ar
 end #end slope
 
@@ -161,7 +159,7 @@ end
 
 
 function step_3_elim!(result, data::PKSubject{T,O}, adm, obsnum, tmaxn, time_cp, obs_cp, time) where T where O
-    excltime = nothing
+    excltime = time[data.kelrange.kelexcl]
     keldata                = KelData()
     if data.kelauto
         if (adm != :iv && obsnum - tmaxn > 2) || (adm == :iv && obsnum - tmaxn > 1)
@@ -172,7 +170,6 @@ function step_3_elim!(result, data::PKSubject{T,O}, adm, obsnum, tmaxn, time_cp,
             end
             timep = collect(stimep:obsnum)
             if length(data.kelrange.kelexcl) > 0
-                excltime = view(time, data.kelrange.kelexcl)
                 filter!(x-> x ∉ findall(x -> x in excltime, time_cp), timep)
             end
             filter!(x-> x ∉ findall(x -> x <= 0, obs_cp), timep)
@@ -193,7 +190,6 @@ function step_3_elim!(result, data::PKSubject{T,O}, adm, obsnum, tmaxn, time_cp,
         timep = collect(stimep:etimep)
         if length(data.kelrange.kelexcl) > 0
             @inbounds for i in data.kelrange.kelexcl
-                excltime = view(time, data.kelrange.kelexcl)
                 filter!(x-> x ∉ findall(x -> x in excltime, time_cp), timep)
             end
         end
@@ -215,6 +211,31 @@ function step_3_elim!(result, data::PKSubject{T,O}, adm, obsnum, tmaxn, time_cp,
     keldata, tlastn, excltime
 end
 
+
+function step_6_areas(time_cp, obs_cp, obsnum, calcm, tmaxn, tlastn, doseaucpart, doseaumcpart)
+    aucpartl  = Array{Float64, 1}(undef, obsnum - 1)
+    aumcpartl = Array{Float64, 1}(undef, obsnum - 1)
+    #Calculate all AUC/AUMC part based on data
+    for i = 1:(obsnum - 1)
+        aucpartl[i], aumcpartl[i] = aucpart(time_cp[i], time_cp[i + 1], obs_cp[i], obs_cp[i + 1], calcm, i >= tmaxn)
+    end
+
+    #-----------------------------------------------------------------------
+    #-----------------------------------------------------------------------
+    auclast  = doseaucpart
+    aumclast = doseaumcpart
+    @inbounds for i = 1:tlastn-1
+        auclast  += aucpartl[i]
+        aumclast += aumcpartl[i]
+    end
+    aucall  = auclast
+    if tlastn < obsnum
+        @inbounds for i = tlastn:obsnum-1
+            aucall  += aucpartl[i]
+        end
+    end
+    aucpartl, aumcpartl, auclast, aumclast, aucall
+end
 """
     nca(args...; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), kwargs...)
 
@@ -278,11 +299,9 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
     auctype  = promote_type(eltype(data.time), eltype(data.obs))
     fobs     = firstobs(data.time, data.obs, data.dosetime.time)
 
-
     if length(data.obs) - fobs < 2
         return NCAResult(data, calcm, result, data.id)
     end
-
 
     if !isnothing(limitrule)
         time, obs = applylimitrule!(deepcopy(data.time), deepcopy(data.obs), limitrule)
@@ -293,23 +312,18 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
 
     # STEP 1 FILTER ALL BEFORE DOSETIME AND ALL NAN OR MISSING VALUES
     aucinds = filter!(x-> x ∉ findall(isnanormissing, obs), collect(fobs:length(obs)))
-    #println(fobs)
     time_cp = time[aucinds]
     obs_cp  = view(obs, aucinds)
 
     # If TAU set, calculates start and end timepoints for AUCtau
     if  data.dosetime.tau > zero(typeof(data.dosetime.tau))
-        #taulast, taulastp, result[:Ctaumin] = taulastmin(time, obs, fobs, lobs, tautime)
-        #tautime = data.dosetime.time + data.dosetime.tau
 
         taulastp = findlast(x -> x <= data.dosetime.time + data.dosetime.tau, time_cp)
-
         result[:Ctaumin] = ctaumin(time_cp, obs_cp, taulastp)
     else
         taulastp = length(obs_cp)
     end
 
-    #println(length(time_cp))
     result[:Obsnum] = obsnum = length(obs_cp)
     # STEP 2 - CMAX TMAX FOR TAU RANGE
     result[:Cmax], result[:Tmax], tmaxn = ctmax(time_cp, obs_cp, taulastp)
@@ -317,7 +331,6 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
     # STEP 3
     # Elimination
     keldata, tlastn, excltime = step_3_elim!(result, data, adm, obsnum, tmaxn, time_cp, obs_cp, time)
-
 
     # STEP 4
     if  data.dosetime.time > 0
@@ -354,31 +367,10 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
         cdoseins = 1
     end
 
-
-
     # STEP 6
     #Areas
-    aucpartl  = Array{auctype, 1}(undef, obsnum - 1)
-    aumcpartl = Array{auctype, 1}(undef, obsnum - 1)
-    #Calculate all AUC/AUMC part based on data
-    for i = 1:(obsnum - 1)
-        aucpartl[i], aumcpartl[i] = aucpart(time_cp[i], time_cp[i + 1], obs_cp[i], obs_cp[i + 1], calcm, i >= tmaxn)
-    end
+    aucpartl, aumcpartl, auclast, aumclast, aucall = step_6_areas(time_cp, obs_cp, obsnum, calcm, tmaxn, tlastn, doseaucpart, doseaumcpart)
 
-    #-----------------------------------------------------------------------
-    #-----------------------------------------------------------------------
-    auclast  = doseaucpart
-    aumclast = doseaumcpart
-    for i = 1:tlastn-1
-        auclast  += aucpartl[i]
-        aumclast += aumcpartl[i]
-    end
-    aucall  = auclast
-    if tlastn < obsnum
-        for i = tlastn:obsnum-1
-            aucall  += aucpartl[i]
-        end
-    end
     #-----------------------------------------------------------------------
     #-----------------------------------------------------------------------
     result[:AUClast]   = auclast
