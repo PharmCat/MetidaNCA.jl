@@ -1,6 +1,7 @@
 0.1.7
   - better plotting
-  
+  - minor optimization
+
 0.1.6
   - applylimitrule! methods
   - dose to result
