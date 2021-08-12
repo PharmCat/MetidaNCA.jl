@@ -153,7 +153,7 @@ pretty_table(dfn; tf = tf_ascii_rounded)
 
 ## Results
 
-### Linear-trapezoidal rule; Extravascular
+### Linear-trapezoidal rule; Extravascular; Dosetime 0.0; No Tau; Dose 100
 
 ```julia; echo = false
 
@@ -204,7 +204,7 @@ end
 
 ```
 
-### Linear-Up Log-Down; Extravascular; Dosetime 0.25; Tau 9
+### Linear-Up Log-Down; Extravascular; Dosetime 0.25; Tau 9; Dose 100
 
 
 ```julia; echo = false
@@ -248,6 +248,49 @@ end
 
 ```
 
+### Linear-trapezoidal rule; Intravascular; Dosetime 0.0; Tau 12; Dose 120
+
+```julia; echo = false
+
+list = [:Cmax
+:Tmax
+:Cdose
+:Clast
+:AUClast
+:AUCtau
+:AUMCtau
+:AUCall
+:Rsq
+:ARsq
+:Kel
+:HL
+:Clast_pred
+:AUCinf
+:AUCpct
+:MRTtauinf
+:Cltau
+:Vztau]
+
+dt = MetidaNCA.DoseTime(dose = 120, time = 0.0, tau = 12)
+MetidaNCA.setdosetime!(ds, dt)
+
+dsnca = MetidaNCA.nca!(ds, adm = :iv, calcm = :lint)
+
+subjects = MetidaNCA.getid(dsnca, :, :Subject)
+
+for l in list
+    println("#### $l")
+    println("")
+    vals = round.(dsnca[:, l], sigdigits = 6)
+    refs = round.(refdict3[l], sigdigits = 6)
+
+    mx = hcat(subjects, vals, refs, vals .- refs)
+    df = DataFrame(mx, header)
+    pretty_table(df; header = header)
+end
+
+```
+
 # Glossary
 
   * Installation qualification (IQ) - Establishing confidence that process equipment and ancillary systems are compliant with appropriate codes and approved design intentions, and that manufacturer's recommendations are suitably considered.
@@ -265,6 +308,7 @@ end
 
 # Appendix 1
 
+### Testing dataset.
 
 ```julia; echo = false
 
@@ -273,4 +317,10 @@ pretty_table(pkdata2; tf = tf_ascii_rounded)
 
 # Appendix 2
 
-See Appendix2.1.pdf, Appendix2.2.pdf.
+### Reference output.
+
+Avialible at [https://github.com/PharmCat/MetidaNCA.jl/tree/main/docs/src/pdf](https://github.com/PharmCat/MetidaNCA.jl/tree/main/docs/src/pdf).
+
+See [Appendix 2.1.pdf](https://github.com/PharmCat/MetidaNCA.jl/blob/main/docs/src/pdf/Appendix2.1.pdf),
+[Appendix 2.2.pdf](https://github.com/PharmCat/MetidaNCA.jl/blob/main/docs/src/pdf/Appendix2.2.pdf),
+[Appendix 2.3.pdf](https://github.com/PharmCat/MetidaNCA.jl/blob/main/docs/src/pdf/Appendix2.3.pdf).
