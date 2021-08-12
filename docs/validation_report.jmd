@@ -17,7 +17,9 @@ using Dates, DataFrames, CSV, PrettyTables
 
 Non-compartment anlysis software.
 
-See documentation: [https://pharmcat.github.io/MetidaNCA.jl/dev/](https://pharmcat.github.io/MetidaNCA.jl/dev/)
+See documentation:
+  * Dev: [https://pharmcat.github.io/MetidaNCA.jl/dev/](https://pharmcat.github.io/MetidaNCA.jl/dev/)
+  * Stable: [https://pharmcat.github.io/MetidaNCA.jl/stable/](https://pharmcat.github.io/MetidaNCA.jl/stable/)
 
 ## Validation purpose
 
