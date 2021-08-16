@@ -159,7 +159,7 @@ pretty_table(dfn; tf = tf_ascii_rounded)
 
 ## Output example
 
-```julia; echo = false
+```julia; echo = false; wrap = false
 dsnca = MetidaNCA.nca!(ds[1], adm = :ev, calcm = :lint, verbose = 1)
 ```
 
