@@ -80,6 +80,14 @@ Linear regression used for logarithmic transformed concentration data.
 HL = ln(2) / \lambda_z
 ```
 
+### Rsq
+
+R²
+
+### ARsq
+
+Adjusted R²
+
 ## If Kel calculated
 
 ### AUCinf
@@ -134,6 +142,10 @@ Area from dose time to dose time + tau.
 
 Concentration at τ time.
 
+### Ctaumin
+
+Minimum concentration from dose time to τ time.
+
 ### Cavg
 
 ```math
@@ -163,4 +175,16 @@ Accind = \frac{1}{1 - exp(-\lambda_z \tau)}
 
 ```math
 MRT_{\tau\inf} = (AUMC_\tau + \tau * (AUC_\infty - AUC_\tau)) / AUC_\tau
+```
+
+### Swing
+
+```math
+Swing = (C_{max} - C_{\tau min}) / C_{\tau min}
+```
+
+### Swingtau
+
+```math
+Swing_{\tau} = (C_{max} - C_{\tau}) / C_{\tau}
 ```

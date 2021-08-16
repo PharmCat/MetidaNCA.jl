@@ -24,6 +24,13 @@ dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
 dsnca[:, :AUClast]
 ```
 
+## Print output
+
+```@example ncaexample
+dsnca = MetidaNCA.nca!(ds[1], adm = :ev, calcm = :lint, verbose = 2);
+
+```
+
 ## Plotting
 
 ```@example ncaexample

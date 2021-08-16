@@ -272,7 +272,7 @@ end
     - `:luld` - linar up log down;
     - `:luldt` - linear up log down after Tmax;
 * `limitrule` use limitrule for data;
-* `verbose` - print to `io`;
+* `verbose` - print to `io`, 1: partial areas table, 2: 1, and results;
 * `warn` - show warnings;
 * `io` - output stream;
 * `modify!` - function to modify output paramaters, call `modify!(data, result)` if difined.
