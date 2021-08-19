@@ -65,6 +65,9 @@ include("refdicts.jl")
     pl = MetidaNCA.pkplot(ds; typesort = :Subject, pagesort = :Formulation, elim = true, ls = true)
     pl = MetidaNCA.pkplot(ds; typesort = :Formulation, pagesort = :Subject, xticksn = 8, yticksn = 10)
 
+    MetidaNCA.setdosetime!(ds, MetidaNCA.DoseTime(dose = 100, time = 0.25))
+    @test first(MetidaNCA.nca!(ds)[:, :Cdose]) == 0
+
     # Single subject scenario
     tdat = pkdata2[1:16, :Time]
     cdat = pkdata2[1:16, :Concentration]
@@ -84,7 +87,6 @@ include("refdicts.jl")
 
     dsncafromds = MetidaNCA.nca(tdat, cdat)
     @test  sbj[:AUClast]  ≈ dsncafromds[:AUClast]
-
 
     # Missing NaN
 
@@ -1230,6 +1232,7 @@ end
         MetidaNCA.setkelauto!(ds, false, Dict(:Formulation => "R"))
         MetidaNCA.setkelauto!(ds, false)
         dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luldt)
+        @test MetidaNCA.getkelauto(ds[1]) == false
     end
     ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
     sort!(ds, :Subject)

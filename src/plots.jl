@@ -280,9 +280,9 @@ end
 
 PK plot for subject set.
 
-    * `typesort` - sort on page by this id key;
-    * `pagesort` - different pages by this id key;
-    * `sort` - use only subjects if sort ⊆ subject id.
+* `typesort` - sort on page by this id key;
+* `pagesort` - different pages by this id key;
+* `sort` - use only subjects if sort ⊆ subject id.
 """
 function pkplot(data::DataSet{T};
     typesort::Union{Nothing, Symbol, AbstractVector{Symbol}} = nothing,

@@ -12,6 +12,12 @@ MetidaNCA.pkimport
 MetidaNCA.nca!
 ```
 
+### nca
+
+```@docs
+MetidaNCA.nca
+```
+
 ### DoseTime
 
 ```@docs

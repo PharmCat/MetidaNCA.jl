@@ -7,7 +7,19 @@ using RecipesBase
 
 import Base: ht_keyindex, length, length, push!
 
-import MetidaBase: Tables, PrettyTables, AbstractIdData, AbstractSubject, DataSet, AbstractSubjectResult, AbstractResultData, getid, getdata, metida_table, uniqueidlist, subset
+import MetidaBase: Tables,
+PrettyTables,
+AbstractIdData,
+AbstractSubject,
+DataSet,
+AbstractSubjectResult,
+AbstractResultData,
+isnanormissing,
+getid,
+getdata,
+metida_table,
+uniqueidlist,
+subset
 
 export pkimport, nca!, nca, DoseTime, ElimRange, LimitRule, setdosetime!, setkelauto!, setkelrange!, applylimitrule!, pkplot, metida_table
 

@@ -1,10 +1,6 @@
 # Pharmacokinetics
 # Makoid C, Vuchetich J, Banakar V. 1996-1999. Basic Pharmacokinetics.
 
-isnanormissing(x::Number) = isnan(x)
-isnanormissing(x::Missing) = true
-
-
 function firstobs(time::Vector, obs::Vector, dosetime)
     @inbounds for i = 1:length(time)
         if time[i] >= dosetime && !isnanormissing(obs[i]) return i end
@@ -244,6 +240,8 @@ end
     nca(data, time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), kwargs...)
 
     nca(time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), kwargs...)
+
+Import data and perform NCA analysis.
 
 Syntax simillar to [`pkimport`](@ref)
 
