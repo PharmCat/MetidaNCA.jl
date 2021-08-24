@@ -1,6 +1,8 @@
 0.1.9
   - docs
   - test
+  - fix plots
+  - try to parse string values
 
 0.1.8
   - MetidaBase 0.4

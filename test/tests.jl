@@ -54,6 +54,9 @@ include("refdicts.jl")
     @test  MetidaNCA.getid(dsnca, :, :Subject) == collect(1:10)
     show(io, dsnca)
 
+    mtds = MetidaNCA.metida_table(ds)
+    @test size(mtds, 1) == size(pkdata2, 1)
+
     dsncafromds = MetidaNCA.nca(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
     sort!(dsncafromds, :Subject)
     @test dsnca[:, :AUClast] == dsncafromds[:, :AUClast]
@@ -104,6 +107,11 @@ include("refdicts.jl")
     dsncafromds =  MetidaNCA.nca(missingpk, :Time, :Concentration;
     limitrule = MetidaNCA.LimitRule(;lloq = 0, btmax = 0, atmax = NaN, nan = NaN, rm = true), modify! = newparam)
     dsncafromds[:AUChalf] ≈ dsncafromds[:AUClast] / 2
+
+    #redirect_stderr(Base.DevNull())
+    missingpk.ConcentrationStr = string.(missingpk.Concentration)
+    @test_logs (:warn, "Some concentration values not a number, try to fix") pkiw = MetidaNCA.pkimport(missingpk, :Time, :ConcentrationStr)
+    @test length(findall(isnan, pkiw.obs)) == 2
 end
 
 @testset "  #1 Linear trapezoidal, Dose 100, Dosetime 0, no tau      " begin

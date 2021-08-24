@@ -6,7 +6,7 @@ module MetidaNCA
 using RecipesBase
 
 import Base: ht_keyindex, length, length, push!
-
+import MetidaBase
 import MetidaBase: Tables,
 PrettyTables,
 AbstractIdData,
@@ -17,7 +17,7 @@ AbstractResultData,
 isnanormissing,
 getid,
 getdata,
-metida_table,
+metida_table, MetidaTable, 
 uniqueidlist,
 subset
 
@@ -35,5 +35,7 @@ const LOG2 = log(2)
     include("import.jl")
     include("nca.jl")
     include("plots.jl")
+    include("metidatable.jl")
+
 
 end # module

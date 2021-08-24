@@ -252,13 +252,17 @@ function pageplot(data, id, ulist; kwargs...)
     # Plotting subdata
     for subj in subdata
         #if isnothing(id) || id ⊆ subj.id
-            num = findfirst(x-> x ⊆ subj.id, ulist)
-            style = plotstyle(num)
-            if num ∈ labvec
-                kwargs[:label] = nothing
+            if !isnothing(ulist)
+                num = findfirst(x-> x ⊆ subj.id, ulist)
+                style = plotstyle(num)
+                if num ∈ labvec
+                    kwargs[:label] = nothing
+                else
+                    kwargs[:label] = plotlabel(ulist[num])
+                    push!(labvec, num)
+                end
             else
-                kwargs[:label] = plotlabel(ulist[num])
-                push!(labvec, num)
+                style = plotstyle(1)
             end
             if fst
                 p = pkplot(subj; plotstyle = style, kwargs...)
@@ -266,6 +270,7 @@ function pageplot(data, id, ulist; kwargs...)
             else
                 pkplot!(subj; plotstyle = style, kwargs...)
             end
+
         #end
     end
     p
@@ -329,8 +334,14 @@ function pkplot(data::DataSet{T};
 
     if !isnothing(typesort)
         if isa(typesort, Symbol) typesort = [typesort] end
+        typelist = uniqueidlist(data, typesort)
+    else
+        typelist = nothing
+        if !(:legend in k)
+            kwargs[:legend] = false
+        end
     end
-    typelist = uniqueidlist(data, typesort)
+
     if !isnothing(pagesort)
         kwargs[:elim] = false
         if isa(pagesort, Symbol) pagesort = [pagesort] end
@@ -346,6 +357,11 @@ function pkplot(data::DataSet{T};
         end
         return pageplot(data, pagesort, typelist; kwargs...)
     end
+end
+
+
+function uniqueidlist(data::DataSet{T}, ::Nothing) where T <: AbstractIdData
+    nothing
 end
 
 
