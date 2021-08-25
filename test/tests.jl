@@ -111,7 +111,7 @@ include("refdicts.jl")
     #redirect_stderr(Base.DevNull())
     missingpk.ConcentrationStr = string.(missingpk.Concentration)
     @test_logs (:warn, "Some concentration values not a number, try to fix") pkiw = MetidaNCA.pkimport(missingpk, :Time, :ConcentrationStr)
-    
+
 end
 
 @testset "  #1 Linear trapezoidal, Dose 100, Dosetime 0, no tau      " begin
@@ -1323,6 +1323,10 @@ end
     MetidaNCA.setkelrange!(ds, kr1, Dict(:Formulation => "T"))
     MetidaNCA.setkelrange!(ds, kr2, Dict(:Formulation => "R"))
 
+    sub1 = MetidaNCA.subset(ds, Dict(:Formulation => "T"))
+    @test MetidaNCA.getkelrange(sub1[1]) == kr1
+    sub2 = MetidaNCA.subset(ds, Dict(:Formulation => "R"))
+    @test MetidaNCA.getkelrange(sub2[1]) == kr2
     dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luldt)
 end
 
@@ -1330,14 +1334,14 @@ end
     io = IOBuffer();
     ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
     sort!(ds, :Subject)
-    dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint, verbose = 1, io = io)
+    @test_nowarn dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint, verbose = 1, io = io)
     show(io, ds[1])
     dt = MetidaNCA.DoseTime(dose = 100, time = 0.25, tau = 9)
     MetidaNCA.setdosetime!(ds, dt)
-    dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luld, verbose = 1, io = io)
+    @test_nowarn dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luld, verbose = 1, io = io)
     show(io, ds[1])
     kr =  MetidaNCA.ElimRange(kelstart = 10, kelend = 16, kelexcl = Int[13,14])
     MetidaNCA.setkelrange!(ds, kr; kelauto = false)
     show(io, ds[1])
-    dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint, verbose = 2, io = io)
+    @test_nowarn dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint, verbose = 2, io = io)
 end

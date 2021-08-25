@@ -1,4 +1,4 @@
-
+#=
 function Base.append!(t::MetidaTable, t2::MetidaTable)
     if !(names(t) ⊆ names(t2)) error("Names for t not in t2") end
     for n in names(t)
@@ -6,7 +6,7 @@ function Base.append!(t::MetidaTable, t2::MetidaTable)
     end
     t
 end
-
+=#
 function MetidaBase.metida_table(obj::DataSet{T}) where T <: PKSubject
     idset  = Set(keys(first(obj).id))
     if length(obj) > 1
