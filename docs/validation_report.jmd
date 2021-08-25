@@ -159,13 +159,27 @@ pretty_table(dfn; tf = tf_ascii_rounded)
 
 ## Output example
 
-```julia; echo = false; wrap = false
-dsnca = MetidaNCA.nca!(ds[1], adm = :ev, calcm = :lint, verbose = 1)
+Import data:
+
+```julia; eval = false
+pkdata2  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "pkdata2.csv")) |> DataFrame
+ds = pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = DoseTime(dose = 100, time = 0))
+sort!(ds, :Subject)
+```
+
+```julia; echo = true; wrap = false; line_width = 75
+MetidaNCA.nca!(ds[1], adm = :ev, calcm = :lint, verbose = 1)
 ```
 
 ## Results
 
 ### Linear-trapezoidal rule; Extravascular; Dosetime 0.0; No Tau; Dose 100
+
+Code:
+
+```julia; eval = false
+nca!(ds, adm = :ev, calcm = :lint)
+```
 
 ```julia; echo = false
 
@@ -213,6 +227,12 @@ end
 
 ### Linear-Up Log-Down; Extravascular; Dosetime 0.25; Tau 9; Dose 100
 
+Code:
+
+```julia; eval = false
+setdosetime!(ds, DoseTime(dose = 100, time = 0.25, tau = 9))
+nca!(ds, adm = :ev, calcm = :luld)
+```
 
 ```julia; echo = false
 
@@ -256,6 +276,13 @@ end
 ```
 
 ### Linear-trapezoidal rule; Intravascular; Dosetime 0.0; Tau 12; Dose 120
+
+Code:
+
+```julia; eval = false
+setdosetime!(ds, DoseTime(dose = 120, time = 0.0, tau = 12))
+nca!(ds, adm = :iv, calcm = :lint)
+```
 
 ```julia; echo = false
 
