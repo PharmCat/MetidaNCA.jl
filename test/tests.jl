@@ -111,7 +111,7 @@ include("refdicts.jl")
     #redirect_stderr(Base.DevNull())
     missingpk.ConcentrationStr = string.(missingpk.Concentration)
     @test_logs (:warn, "Some concentration values not a number, try to fix") pkiw = MetidaNCA.pkimport(missingpk, :Time, :ConcentrationStr)
-    @test length(findall(isnan, pkiw.obs)) == 2
+    
 end
 
 @testset "  #1 Linear trapezoidal, Dose 100, Dosetime 0, no tau      " begin
