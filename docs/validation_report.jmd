@@ -2,10 +2,6 @@
 title: MetidaNCA validation report
 author: Vladimir Arnautov
 date: `j import Dates; Dates.Date(Dates.now())`
-mainfont: romanuni.ttf
-sansfont: NotoSans-Regular.ttf
-monofont: NotoSansMono-Regular.ttf
-mathfont: texgyredejavu-math.otf
 ---
 
 ```julia; echo = false
