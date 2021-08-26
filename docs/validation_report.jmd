@@ -276,7 +276,6 @@ for l in list
     show(latexify(df))
     #pretty_table(df; header = header, backend = Val(:latex), standalone = true)
 end
-
 ```
 
 \pagebreak
