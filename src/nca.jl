@@ -472,9 +472,9 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
         if  data.dosetime.time > 0
             time_cp .+= data.dosetime.time
         end
-        hnames = ["Time", "Concentrtion", "AUC", "AUC (cumulate)", "AUMC", "AUMC (cumulate)", "Info"]
+        hnames = [:Time, :Concentrtion, :AUC, :AUC_cum, :AUMC, :AUMC_cum, :Info]
         mx = metida_table(collect(time_cp), collect(obs_cp), pushfirst!(aucpartl, 0.0),  pushfirst!(aucpartlsum, 0.0), pushfirst!(aumcpartl, 0.0),  pushfirst!(aumcpartlsum, 0.0), fill("", length(obs_cp));
-        names = Symbol.(hnames))
+        names = hnames)
 
         if cdoseins > 0
             println(io, "    Dose interpolated part AUC $(doseaucpart); AUMC $(doseaumcpart)")
@@ -501,7 +501,8 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
                 end
             end
         end
-
+        hnames = (["Time" "Concentrtion" "AUC"  "AUC" "AUMC" "AUMC" "Info"],
+                  ["" "" "" "(cumulate)" "" "(cumulate)" ""])
         PrettyTables.pretty_table(io, mx; tf = PrettyTables.tf_compact, header = hnames)
         println(io, "")
         println(io, "    Cdose: $(result[:Cdose]), Dose time: $(data.dosetime.time)")
