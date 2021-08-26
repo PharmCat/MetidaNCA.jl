@@ -2,7 +2,6 @@
 title: MetidaNCA validation report
 author: Vladimir Arnautov
 date: `j import Dates; Dates.Date(Dates.now())`
-fontfamily: dejavu
 ---
 
 ```julia; echo = false
