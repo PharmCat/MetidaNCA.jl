@@ -2,6 +2,7 @@
 title: MetidaNCA validation report
 author: Vladimir Arnautov
 date: `j import Dates; Dates.Date(Dates.now())`
+fontfamily: dejavu
 ---
 
 ```julia; echo = false
@@ -14,6 +15,7 @@ using Dates, DataFrames, CSV, PrettyTables, Latexify
 Non-compartment anlysis software.
 
 See documentation:
+
   * Dev: [https://pharmcat.github.io/MetidaNCA.jl/dev/](https://pharmcat.github.io/MetidaNCA.jl/dev/)
   * Stable: [https://pharmcat.github.io/MetidaNCA.jl/stable/](https://pharmcat.github.io/MetidaNCA.jl/stable/)
 
@@ -99,7 +101,7 @@ critical internal methods.
 Code coverage report available on [Codecov.io](https://app.codecov.io/gh/PharmCat/MetidaNCA.jl).
 Test procedures include all  public API methods check.
 
-* Coverage goal: ≥ 90.0%
+* Coverage goal: >= 90.0%
 
 ## Data
 
