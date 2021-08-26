@@ -24,8 +24,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v2
-      - name: Install Pandoc
-        run: sudo apt-get install pandoc
+      - name: Install Pandoc 
+        run: sudo apt-get install pandoc texlive-latex-recommended texlive-xetex texlive-luatex pandoc-citeproc texlive-latex-extr
       - uses: julia-actions/setup-julia@latest
         with:
           version: '1.6'
