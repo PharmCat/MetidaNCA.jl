@@ -25,4 +25,6 @@ sansfont: NotoSans-Regular.ttf
 monofont: NotoSansMono-Regular.ttf
 mathfont: texgyredejavu-math.otf
 
+- name: Install TeXlive and Pandoc
+        run: sudo apt-get install pandoc texlive texlive-publishers texlive-science latexmk texlive-xetex texlive-latex-base texlive-fonts-recommended
 =#
