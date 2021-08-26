@@ -502,7 +502,7 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
             end
         end
 
-        PrettyTables.pretty_table(io, mx; tf = PrettyTables.tf_compact)
+        PrettyTables.pretty_table(io, mx; tf = PrettyTables.tf_compact, header = names)
         println(io, "")
         println(io, "    Cdose: $(result[:Cdose]), Dose time: $(data.dosetime.time)")
         println(io, "    Kel start: $(keldata.s[rsqn]); end: $(keldata.e[rsqn])")

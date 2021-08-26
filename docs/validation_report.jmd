@@ -9,7 +9,7 @@ mathfont: texgyredejavu-math.otf
 ---
 
 ```julia; echo = false
-using Dates, DataFrames, CSV, PrettyTables
+using Dates, DataFrames, CSV, PrettyTables, Latexify
 ```
 
 
@@ -154,6 +154,7 @@ pkdata2  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "p
 ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
 sort!(ds, :Subject)
 
+#show(latexify(dfn; env=:table, latex=false))
 pretty_table(dfn; tf = tf_ascii_rounded)
 ```
 
@@ -162,8 +163,11 @@ pretty_table(dfn; tf = tf_ascii_rounded)
 Import data:
 
 ```julia; eval = false
-pkdata2  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "pkdata2.csv")) |> DataFrame
-ds = pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = DoseTime(dose = 100, time = 0))
+pkdata2  = CSV.File(
+joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "pkdata2.csv")
+) |> DataFrame
+ds = pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation];
+dosetime = DoseTime(dose = 100, time = 0))
 sort!(ds, :Subject)
 ```
 
@@ -181,7 +185,7 @@ Code:
 nca!(ds, adm = :ev, calcm = :lint)
 ```
 
-```julia; echo = false
+```julia; echo = false, results = "tex"
 
 include("refdict.jl")
 
@@ -215,14 +219,12 @@ for l in list
     println("")
     vals = round.(dsnca[:, l], sigdigits = 6)
     refs = round.(refdict[l], sigdigits = 6)
-
     mx = hcat(subjects, vals, refs, vals .- refs)
-
     df = DataFrame(mx, header)
-    pretty_table(df; header = header)
+    df.Subject = string.(Int.(df.Subject))
+    show(latexify(df))
+    #pretty_table(df; header = header)
 end
-
-
 ```
 
 ### Linear-Up Log-Down; Extravascular; Dosetime 0.25; Tau 9; Dose 100
@@ -234,7 +236,7 @@ setdosetime!(ds, DoseTime(dose = 100, time = 0.25, tau = 9))
 nca!(ds, adm = :ev, calcm = :luld)
 ```
 
-```julia; echo = false
+```julia; echo = false, results = "tex"
 
 list = [:Cmax
 :Tmax
@@ -270,7 +272,9 @@ for l in list
 
     mx = hcat(subjects, vals, refs, vals .- refs)
     df = DataFrame(mx, header)
-    pretty_table(df; header = header)
+    df.Subject = string.(Int.(df.Subject))
+    show(latexify(df))
+    #pretty_table(df; header = header, backend = Val(:latex), standalone = true)
 end
 
 ```
@@ -284,7 +288,7 @@ setdosetime!(ds, DoseTime(dose = 120, time = 0.0, tau = 12))
 nca!(ds, adm = :iv, calcm = :lint)
 ```
 
-```julia; echo = false
+```julia; echo = false, results = "tex"
 
 list = [:Cmax
 :Tmax
@@ -320,7 +324,9 @@ for l in list
 
     mx = hcat(subjects, vals, refs, vals .- refs)
     df = DataFrame(mx, header)
-    pretty_table(df; header = header)
+    df.Subject = string.(Int.(df.Subject))
+    show(latexify(df))
+    #pretty_table(df; header = header)
 end
 
 ```
@@ -340,15 +346,16 @@ end
 * [Guidance for Industry Process Validation: General Principles and Practices](https://www.fda.gov/files/drugs/published/Process-Validation--General-Principles-and-Practices.pdf)
 * [Glossary of Computer System Software Development Terminology](https://www.fda.gov/inspections-compliance-enforcement-and-criminal-investigations/inspection-guides/glossary-computer-system-software-development-terminology-895)
 
+\pagebreak
 # Appendix 1
 
 ### Testing dataset.
 
 ```julia; echo = false
 
-pretty_table(pkdata2; tf = tf_ascii_rounded)
+pretty_table(pkdata2; tf = tf_ascii_rounded, header = names(pkdata2))
 ```
-
+\pagebreak
 # Appendix 2
 
 ### Reference output.
