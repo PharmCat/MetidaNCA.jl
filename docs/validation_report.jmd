@@ -45,7 +45,7 @@ implemented through software can be consistently fulfilled.
   * X.Y.# - minor release (may include breaking changes)
   * X.#.# - major release (breaking changes, changes in public API)
   * 0.#.# - no stable public API
-  * ≥1.#.# - stable public API
+  * >= 1.#.# - stable public API
 
 
 ## Build support
