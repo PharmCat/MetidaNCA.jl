@@ -1,10 +1,17 @@
 # Pharmacokinetics
 # Makoid C, Vuchetich J, Banakar V. 1996-1999. Basic Pharmacokinetics.
 
-function firstobs(time::Vector, obs::Vector, dosetime)
+function firstobs(time::Vector{T}, obs::Vector, dosetime) where T <: Number
     @inbounds for i = 1:length(time)
         if time[i] >= dosetime && !isnanormissing(obs[i]) return i end
     end
+    error("Observations not found")
+end
+function firstobs(time::Vector{T}, obs::Vector, dosetime) where T <: Tuple
+    @inbounds for i = 1:length(time)
+        if time[i] >= dosetime && !isnanormissing(obs[i]) return i end
+    end
+    error("Observations not found")
 end
 
 function ctaumin(time::AbstractVector, obs::AbstractVector, taulastp::Int)
@@ -153,7 +160,30 @@ function interpolate(t₁, t₂, tx, c₁::T, c₂::T, intpm, aftertmax) where T
     return c
 end
 
+################################################################################
+# STEPS
+################################################################################
+# 1
+function step_1_filterpksubj(time, obs, dosetime)
+    fobs     = firstobs(time, obs, dosetime)
+    ni = 0
+    @inbounds for i = fobs:length(obs)
+        isnanormissing(obs[i]) || begin ni += 1 end
+    end
+    inds = Vector{Int}(undef, ni)
+    ni = 1
+    @inbounds for i = fobs:length(obs)
+        isnanormissing(obs[i]) || begin
+        inds[ni] = i
+        ni += 1
+        end
+    end
+    time_cp = time[inds]
+    obs_cp  = view(obs, inds)
 
+    time_cp, obs_cp
+end
+# 3
 function step_3_elim!(result, data::PKSubject{T,O}, adm, obsnum, tmaxn, time_cp, obs_cp, time) where T where O
     excltime = time[data.kelrange.kelexcl]
     keldata                = KelData()
@@ -206,8 +236,7 @@ function step_3_elim!(result, data::PKSubject{T,O}, adm, obsnum, tmaxn, time_cp,
     end
     keldata, tlastn, excltime
 end
-
-
+# 6
 function step_6_areas(time_cp, obs_cp, obsnum, calcm, tmaxn, tlastn, doseaucpart, doseaumcpart)
     aucpartl  = Array{Float64, 1}(undef, obsnum - 1)
     aumcpartl = Array{Float64, 1}(undef, obsnum - 1)
@@ -248,7 +277,7 @@ Syntax simillar to [`pkimport`](@ref)
 Applicable `kwargs` see  [`nca!`](@ref).
 
 """
-function nca(args...; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), kwargs...)
+function nca(args...; type = :bps, kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), kwargs...)
     pki    = pkimport(args...; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime)
     #kwargs = Dict{Symbol, Any}(kwargs)
     nca!(pki; kwargs...)
@@ -276,9 +305,11 @@ end
 * `modify!` - function to modify output paramaters, call `modify!(data, result)` if difined.
 
 """
-function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, limitrule = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = nothing) where T where O
+function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, limitrule::LimitRule = LimitRule(), verbose = 0, warn = true, io::IO = stdout, modify! = identity) where T where O
 
     result   = Dict{Symbol, Float64}()
+
+    options =  Dict(:type => :bps, :adm => adm, :calcm => calcm, :intpm => intpm, :limitrule => limitrule, :verbose => verbose, :warn => warn, :modify! => modify!)
 
     if verbose > 0
         println(io, "  Non-compartmental Pharmacokinetic Analysis")
@@ -295,13 +326,8 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
     if isnothing(intpm) intpm = calcm end
 
     auctype  = promote_type(eltype(data.time), eltype(data.obs))
-    fobs     = firstobs(data.time, data.obs, data.dosetime.time)
 
-    if length(data.obs) - fobs < 2
-        return NCAResult(data, calcm, result, data.id)
-    end
-
-    if !isnothing(limitrule)
+    if isapplicable(limitrule)
         time, obs = applylimitrule!(deepcopy(data.time), deepcopy(data.obs), limitrule)
     else
         time             = data.time
@@ -309,9 +335,11 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
     end
 
     # STEP 1 FILTER ALL BEFORE DOSETIME AND ALL NAN OR MISSING VALUES
-    aucinds = filter!(x-> x ∉ findall(isnanormissing, obs), collect(fobs:length(obs)))
-    time_cp = time[aucinds]
-    obs_cp  = view(obs, aucinds)
+
+    time_cp, obs_cp = step_1_filterpksubj(time, obs, data.dosetime.time)
+    if length(obs_cp) < 2
+        return NCAResult(data, options, result)
+    end
 
     # If TAU set, calculates start and end timepoints for AUCtau
     if  data.dosetime.tau > zero(typeof(data.dosetime.tau))
@@ -521,13 +549,11 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
             PrettyTables.pretty_table(io, result; tf = PrettyTables.tf_compact)
         end
     end
-
-    if !isnothing(modify!)
-        modify!(data, result)
-    end
+    ncares = NCAResult(data, options, result)
+    modify!(ncares)
 
     #-----------------------------------------------------------------------
-    return NCAResult(data, calcm, result)
+    return ncares
 end
 
 """
@@ -535,7 +561,7 @@ end
 
 Non-compartmental (NCA) analysis of pharmacokinetic (PK) data.
 """
-function nca!(data::DataSet{Subj}; adm = :ev, calcm = :lint, intpm = nothing, limitrule = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = nothing) where Subj <: PKSubject{T,O,V}  where T  where O where V
+function nca!(data::DataSet{Subj}; adm = :ev, calcm = :lint, intpm = nothing, limitrule::LimitRule = LimitRule(), verbose = 0, warn = true, io::IO = stdout, modify! = identity) where Subj <: PKSubject{T,O,V}  where T  where O where V
     result = Vector{NCAResult{Subj}}(undef, length(data))
     for i = 1:length(data)
         result[i] = nca!(data[i]; adm = adm, calcm = calcm, intpm = intpm, limitrule = limitrule, verbose = verbose, warn = warn, io = io, modify! = modify!)
@@ -549,4 +575,41 @@ function maxconc(subj::T) where T <: PKSubject
 end
 function minconc(subj::T) where T <: PKSubject
     minimum(subj.obs)
+end
+
+
+function nca!(data::UPKSubject{T, O, VOL, V}; adm = :ev, calcm = :lint, intpm = nothing, limitrule::LimitRule = LimitRule(), verbose = 0, warn = true, io::IO = stdout, modify! = identity) where T where O where VOL where V
+
+    result   = Dict{Symbol, Float64}()
+
+    options =  Dict(:type => :urine, :adm => adm, :calcm => calcm, :intpm => intpm, :limitrule => limitrule, :verbose => verbose, :warn => warn, :modify! => modify!)
+
+    if verbose > 0
+        println(io, "  Non-compartmental Pharmacokinetic Analysis")
+        println(io, "  Matrix: urine")
+        if length(data.id) > 0
+            print(io, "    Subject: ")
+            for (k,v) in data.id
+                print(io, "$(k) => $(v); ")
+            end
+            println(io, "")
+        end
+        println(io, "    Settings:")
+        println(io, "    Method: $(calcm); Dode: $(data.dosetime.dose); Dose time: $(data.dosetime.time)")
+    end
+    if isnothing(intpm) intpm = calcm end
+
+    mtime = map(x-> (x[1]+x[2])/2, data.time)
+
+    if isapplicable(limitrule)
+        mtime, obs = applylimitrule!(mtime, deepcopy(data.obs), limitrule)
+    else
+        mtime  = mtime
+        obs    = data.obs
+    end
+
+    ncares = NCAResult(data, options, result)
+    modify!(ncares)
+    #-----------------------------------------------------------------------
+    return ncares
 end

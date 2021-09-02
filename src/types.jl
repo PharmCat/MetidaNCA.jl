@@ -128,10 +128,10 @@ end
 
 struct NCAResult{T} <: AbstractSubjectResult{T}
     data::T
-    method::Symbol
+    options::Dict{Symbol}
     result::Dict{Symbol, Float64}
-    function NCAResult(subject::T, method, result) where T <: AbstractSubject
-        new{T}(subject, method, result)
+    function NCAResult(subject::T, options, result) where T <: AbstractSubject
+        new{T}(subject, options, result)
     end
     #=
     function NCAResult(subject::T, method, result) where T <: AbstractSubject
@@ -169,4 +169,39 @@ struct LimitRule{T<:Real}
     function LimitRule(;lloq = NaN, btmax = NaN, atmax = NaN, nan = NaN, rm::Bool = false)
         LimitRule(lloq, btmax, atmax, nan, rm)
     end
+end
+
+function isapplicable(lr::LimitRule)
+    !isnan(lr.lloq) || !isnan(lr.nan) || lr.rm ? true : false
+end
+
+#Urine PK subject
+mutable struct UPKSubject{T <: Tuple{Number, Number}, O <: Union{Number, Missing}, VOL <: Union{Number, Missing}, V <: Any} <: AbstractSubject
+    time::Vector{T}
+    obs::Vector{O}
+    vol::Vector{VOL}
+    kelauto::Bool
+    kelrange::ElimRange
+    dosetime::DoseTime
+    keldata::KelData
+    id::Dict{Symbol, V}
+    function UPKSubject(time::Vector{T}, conc::Vector{O}, vol::Vector{VOL}, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, keldata::KelData, id::Dict{Symbol, V} = Dict{Symbol, Any}()) where T <: Tuple{Number, Number} where O <: Union{Number, Missing} where VOL <: Union{Number, Missing} where V
+        new{T, O, VOL, V}(time, conc, vol, kelauto, kelrange, dosetime, keldata, id)
+    end
+    function UPKSubject(time::Vector, conc::Vector, vol::Vector, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, id::Dict{Symbol, V}) where V
+        UPKSubject(time, conc, vol, kelauto, kelrange, dosetime, KelData(), id)
+    end
+end
+
+
+
+struct NCAOptions{LR <: Union{Nothing, LimitRule}}
+    adm::Symbol
+    calcm::Symbol
+    intpm::Symbol
+    limitrule::LR
+    verbose::Int
+    warn::Bool
+    io::IO
+    modify!::Function
 end

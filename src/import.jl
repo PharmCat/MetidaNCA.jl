@@ -117,3 +117,54 @@ function pkimport(time, conc; kelauto = true,  elimrange = ElimRange(), dosetime
     timevals_sp, concvals_sp = checkvalues(copy(time), copy(conc))
     PKSubject(timevals_sp, concvals_sp, kelauto, elimrange,  dosetime, Dict{Symbol, Any}())
 end
+
+
+
+function upkimport(data, stime, etime, conc, vol, sort; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
+    if isa(sort, String) sort = [Symbol(sort)] end
+    if isa(sort, Symbol) sort = [sort] end
+
+    cols   = Tables.columns(data)
+    cdata  = Tuple(Tables.getcolumn(cols, y) for y in sort)
+    d      = Dict{Tuple{eltype.(cdata)...}, Vector{Int}}()
+    indsdict!(d, cdata)
+
+    tnames = Symbol.(names(data))
+    isa(stime, Symbol) || stime in tnames || error("column Start Time ($stime) not found")
+    isa(etime, Symbol) || etime in tnames || error("column End Time ($etime) not found")
+    isa(conc, Symbol) || conc in tnames || error("column Concentration ($conc) not found")
+    isa(vol, Symbol) || vol in tnames || error("column Volume ($vol) not found")
+
+    stimec = Tables.getcolumn(data, stime)
+    etimec = Tables.getcolumn(data, etime)
+    concc = Tables.getcolumn(data, conc)
+    volc = Tables.getcolumn(data, vol)
+
+    any(isnanormissing, stimec) && error("Some Start Time values is NaN or Missing!")
+    any(isnanormissing, etimec) && error("Some End Time values is NaN or Missing!")
+
+    sdata = Vector{UPKSubject}(undef, length(d))
+    i = one(Int)
+    @inbounds for (k, v) in d
+        stimevals = stimec[v]
+        etimevals = etimec[v]
+        concvals  = concc[v]
+        volvals   = volc[v]
+
+        timeranges = collect(zip(stimevals, etimevals))
+        sp = sortperm(stimevals)
+
+        timevals_sp = timeranges[sp]
+        concvals_sp = concvals[sp]
+        volvals_sp  = volvals[sp]
+
+        if length(timevals_sp) > 1
+            for c = 2:length(timevals_sp)
+                timevals_sp[c][1] == timevals_sp[c-1][2] || error("Start time ($(timevals_sp[c][1])) for observation $c not equal End time ($(timevals_sp[c-1][2])) for observation $(c-1)!")
+            end
+        end
+        sdata[i] = UPKSubject(timevals_sp, concvals_sp, volvals_sp, kelauto, elimrange,  dosetime, Dict(sort .=> k))
+        i += one(Int)
+    end
+    return DataSet(identity.(sdata))
+end

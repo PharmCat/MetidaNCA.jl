@@ -10,6 +10,10 @@ Non-compartment pharmacokinetic analysis (NCA).
 
 ## NCA
 
+Pharmacokinetics, sometimes abbreviated as PK, is a branch of pharmacology dedicated to determine the fate of substances administered to a living organism.
+
+When analyzing pharmacokinetic data, one generally employs either model fitting using nonlinear regression analysis or non-compartmental analysis techniques (NCA). The method one actually employs depends on what is required from the analysis. If the primary requirement is to determine the degree of exposure following administration of a drug (such as AUC), and perhaps the drug's associated pharmacokinetic parameters, such as clearance, elimination half-life, T (max), C (max), etc., then NCA is generally the preferred methodology to use in that it requires fewer assumptions than model-based approaches.
+
 ## Validation
 
 Validation report: [validation_report.pdf](./validation_report.pdf)
@@ -33,3 +37,4 @@ Depth = 3
 * Gabrielsson and Weiner (1997), Pharmacokinetic and Pharmacodynamic Data Analysis: Concepts and Applications;
 * Gibaldi and Perrier (1982), Pharmacokinetics;
 * Wagner (1975), Fundamentals of Clinical Pharmacokinetics.
+* Gabrielsson J, Weiner D. Non-compartmental analysis. Methods Mol Biol. 2012;929:377-89. doi: 10.1007/978-1-62703-050-2_16. PMID: 23007438.

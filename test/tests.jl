@@ -1,12 +1,14 @@
 #using MetidaNCA
 using Test
 using DataFrames, CSV, Plots
+import TypedTables: Table
 
 path     = dirname(@__FILE__)
 io       = IOBuffer();
 pkdata2  = CSV.File(joinpath(path, "csv", "pkdata2.csv")) |> DataFrame
 missingpk  = CSV.File(joinpath(path, "csv", "missingpk.csv")) |> DataFrame
 aucallpk  = CSV.File(joinpath(path, "csv", "aucalltest.csv")) |> DataFrame
+upkdata  = CSV.File(joinpath(path, "csv", "upkdata.csv")) |> DataFrame
 include("refdicts.jl")
 # Cmax
 # Tmax
@@ -54,7 +56,8 @@ include("refdicts.jl")
     @test  MetidaNCA.getid(dsnca, :, :Subject) == collect(1:10)
     show(io, dsnca)
 
-    mtds = MetidaNCA.metida_table(ds)
+    mtds  = MetidaNCA.metida_table(ds)
+    mtdst = Table(ds)
     @test size(mtds, 1) == size(pkdata2, 1)
 
     dsncafromds = MetidaNCA.nca(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
@@ -100,8 +103,9 @@ include("refdicts.jl")
     limitrule = MetidaNCA.LimitRule(;lloq = 0, btmax = 0, atmax = NaN, nan = NaN, rm = true))
     @test  sbj[:AUClast]  ≈ dsncafromds[:AUClast]
 
-    function newparam(data, result)
-        result[:AUChalf] = result[:AUClast] / 2
+
+    function newparam(data)
+        data.result[:AUChalf] = data.result[:AUClast] / 2
     end
 
     dsncafromds =  MetidaNCA.nca(missingpk, :Time, :Concentration;
@@ -1345,3 +1349,5 @@ end
     show(io, ds[1])
     @test_nowarn dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint, verbose = 2, io = io)
 end
+
+include("upktest.jl")

@@ -8,7 +8,6 @@ date: `j import Dates; Dates.Date(Dates.now())`
 using Dates, DataFrames, CSV, PrettyTables, Latexify
 ```
 
-
 # Introduction and package description
 
 Non-compartment anlysis software.
@@ -42,11 +41,10 @@ implemented through software can be consistently fulfilled.
 ### Versions
 
   * X.Y.Z - patch release (no breaking changes)
-  * X.Y.# - minor release (may include breaking changes)
-  * X.#.# - major release (breaking changes, changes in public API)
+  * X.Y.0 - minor release (may include breaking changes if X = 0)
+  * X.0.0 - major release (breaking changes, changes in public API)
   * 0.#.# - no stable public API
-  * >= 1.#.# - stable public API
-
+  * 1.#.# or higher - stable public API
 
 ## Build support
 
@@ -66,7 +64,7 @@ implemented through software can be consistently fulfilled.
 
 ## Installation method
 
-MetidaNCA.jl can be installed by executing the following command in REPL.
+MetidaNCA.jl can be installed by executing the following command in REPL:
 
 ```julia; eval = false
 import Pkg; Pkg.add("MetidaNCA")

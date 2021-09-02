@@ -2,12 +2,13 @@
 
 ```@setup ncaexample
 ENV["GKSwstype"] = "nul"
+using DataFrames;
 ```
 
 ## Import
 
 ```@example ncaexample
-using MetidaNCA, CSV, DataFrames;
+using MetidaNCA, CSV;
 
 pkdata2 = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv",  "pkdata2.csv")) |> DataFrame
 

@@ -17,13 +17,13 @@ AbstractResultData,
 isnanormissing,
 getid,
 getdata,
-metida_table, MetidaTable,
+metida_table, metida_table_, MetidaTable,
 uniqueidlist,
 subset
 
 export pkimport, nca!, nca, DoseTime, ElimRange, LimitRule,
 setdosetime!, setkelauto!, setkelrange!, applylimitrule!,
-pkplot, metida_table,
+pkplot,
 getkeldata, getkelauto, getkelrange, getdosetime
 
 const LOG2 = log(2)

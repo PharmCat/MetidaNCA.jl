@@ -1,7 +1,14 @@
-0.0.10
+0.2.0
+  - UPKSubject
+  - Full options in results
+  - changes in modify!
+  - minor keyword changes
+  - Options struct
+
+0.1.10
   - minor output changes
   - minor changes in validation report format
-  
+
 0.1.9
   - docs
   - test

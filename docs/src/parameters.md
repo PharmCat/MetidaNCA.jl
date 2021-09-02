@@ -1,18 +1,20 @@
-# Parameters
+# Parameter list
 
 ## Basic parameters
 
-### Cmax: Maximum concentration
+### :Cmax
 
 Maximum concentration from dose time to dose time + tau (if tau > 0). Firs observation used.
 
-### Tmax: Time at maximum concentration
+### :Tmax
 
 Time at maximum concentration from dose time to dose time + tau (if tau > 0). Firs observation used.
 
-### Cdose
+### :Cdose
 
-Concentration at dose time.
+By default dose time is 0. If concentration at dose time present in observation list - this concentration will be used.
+For extravascular setting (:ev) if τ used (τ > 0) Cdose set as minimum concentration from dose time to τ time [:Ctaumin](:Ctaumin), else set equal to zero.
+For IV (:iv) if 1-st observation > 2-nd observation > 0 then logarithmic extrapolation used, else set equal to 1-st observation.
 
 ### AUC / AUMC
 
@@ -62,128 +64,166 @@ C_x = C_1 + \frac{(t_x-t_1)\times(C_2 - C_1)}{t_2 - t_1}
 C_x = exp\left(ln(C_1) + \frac{(t_x-t_1)\times(ln(C_2) - ln(C_1))}{t_2 - t_1}\right)
 ```
 
-#### AUClast / AUMClast
+#### :AUClast
 
-Area from dose time to last observed concentration (>0).
+Area under the curve from dose time to last observed concentration (>0).
 
-#### AUCall
+#### :AUMClast
+
+Area under the Moment Curve from dose time to last observed concentration (>0).
+Dose time is the starting point for this calculation.
+
+#### :AUCall
 
 All values used to calculate AUC.
 
-### 𝝺z - elimination constant
+### :Kel
 
-Linear regression used for logarithmic transformed concentration data.
+𝝺z - elimination constant. Linear regression at the terminal phase used for logarithmic transformed concentration data.
 
-### Half-Life; T1/2
+### :HL
+
+Half-Life; T1/2
 
 ```math
 HL = ln(2) / \lambda_z
 ```
 
-### Rsq
+### :Rsq
 
-R²
+ Coefficient of determination (R²).
 
-### ARsq
+### :ARsq
 
-Adjusted R²
+Adjusted coefficient of determination (R²).
 
-## If Kel calculated
+### :MRTlast
 
-### AUCinf
+Mean residence time (MRT) from the dose time to the time of the last observed concentration.
+
+```math
+MRT_{last} = AUMC_{last} / AUC_{last}
+```
+
+## If :Kel calculated
+
+### :AUCinf
+
+AUC extrapolated from the last observed concentration to infinity.
 
 ```math
 AUC_\infty = AUC_{last} + \frac{C_{last}}{\lambda_z}
 ```
 
-### AUMCinf
+### :AUMCinf
+
+AUMC extrapolated from the last observed concentration to infinity.
 
 ```math
 AUMC_\infty =  AUMC_{last} + \frac{t_{last}\times C_{last}}{\lambda_z} + \frac{C_{last}}{\lambda_z^2}
 ```
 
-### AUCpct
+### :AUCpct
+
+Percentage of AUCinf due to extrapolation from the last observed concentration to infinity.
 
 ```math
 AUCpct = (AUC_\infty - AUC_{last}) / AUC_\infty * 100 \%
 ```
 
-#### AUCinf_pred: AUC to infinity from predicted concentration
+#### :AUCinf_pred
+
+AUC extrapolated to infinity from the predicted concentration.
 
 ```math
 AUC_{\infty pred} = AUC_{last} + \frac{C_{last pred}}{\lambda_z}
 ```
 
-result[:AUCinf_pred]     = result[:AUClast] + result[:Clast_pred] / result[:Kel]
-
 ## If Dose used
 
 ### Clearance
 
-#### Cllast
+#### :Cllast
 
 ```math
 CL_{last} = Dose / AUC_{last}
 ```
 
-#### Clinf
+#### :Clinf
+
+Total body clearance for extravascular administration.
 
 ```math
 CL_\infty = Dose / AUC_\infty
 ```
 
-##  Steady-state parameters (If Tau used)
+#### :Vzinf
 
-### AUCtau / AUMCtau
+Volume of distribution based on the terminal phase.
 
-Area from dose time to dose time + tau.
+##  Steady-state parameters (If τ used)
 
-### Ctau
+`τ-time = dose_time + τ`
 
-Concentration at τ time.
+### :AUCtau
 
-### Ctaumin
+Area under the curve from dose time to τ-time.
 
-Minimum concentration from dose time to τ time.
+### :AUMCtau
 
-### Cavg
+Area under the Moment Curve from the dose time to τ-time.
+
+### :Ctau
+
+Concentration at τ-time.
+
+### :Ctaumin
+
+Minimum concentration from the dose time to τ-time.
+
+### :Cavg
 
 ```math
 C_{avg} = AUC_\tau / \tau
 ```
 
-### Fluc: Fluctuation
+### :Fluc
+
+Fluctuation
 
 ```math
 Fluc = ( C_{max} - C_{\tau min} ) / C_{avg} * 100 \%
 ```
 
-### Fluctau: Fluctuation Tau
+### :Fluctau
+
+Fluctuation Tau
 
 ```math
 Fluc = ( C_{max} - C_{\tau} ) / C_{avg} * 100 \%
 ```
 
+### :Accind
 
-### Accind: Accumulation index
+Accumulation index.
 
 ```math
 Accind = \frac{1}{1 - exp(-\lambda_z \tau)}
 ```
 
-### MRTtauinf
+### :MRTtauinf
 
 ```math
 MRT_{\tau\inf} = (AUMC_\tau + \tau * (AUC_\infty - AUC_\tau)) / AUC_\tau
 ```
 
-### Swing
+### :Swing
 
 ```math
 Swing = (C_{max} - C_{\tau min}) / C_{\tau min}
 ```
 
-### Swingtau
+### :Swingtau
 
 ```math
 Swing_{\tau} = (C_{max} - C_{\tau}) / C_{\tau}
