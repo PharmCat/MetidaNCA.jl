@@ -203,6 +203,3 @@ struct NCAOptions{LR <: Union{Nothing, LimitRule}}
     io::IO
     modify!::Function
 end
-
-struct LinType end
-struct LogType end
