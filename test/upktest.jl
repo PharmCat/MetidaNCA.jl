@@ -1,4 +1,5 @@
 
 @testset "  Urine PK                                                 " begin
-    @test_nowarn upkds = MetidaNCA.upkimport(upkdata, :st, :et, :conc, :vol, :subj)
+    upkds = MetidaNCA.upkimport(upkdata, :st, :et, :conc, :vol, :subj)
+    @test_nowarn MetidaNCA.nca!(upkds)
 end

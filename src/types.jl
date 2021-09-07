@@ -193,8 +193,6 @@ mutable struct UPKSubject{T <: Tuple{Number, Number}, O <: Union{Number, Missing
     end
 end
 
-
-
 struct NCAOptions{LR <: Union{Nothing, LimitRule}}
     adm::Symbol
     calcm::Symbol
@@ -205,3 +203,6 @@ struct NCAOptions{LR <: Union{Nothing, LimitRule}}
     io::IO
     modify!::Function
 end
+
+struct LinType end
+struct LogType end

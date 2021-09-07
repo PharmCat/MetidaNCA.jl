@@ -13,7 +13,7 @@ Time at maximum concentration from dose time to dose time + tau (if tau > 0). Fi
 ### :Cdose
 
 By default dose time is 0. If concentration at dose time present in observation list - this concentration will be used.
-For extravascular setting (:ev) if τ used (τ > 0) Cdose set as minimum concentration from dose time to τ time [:Ctaumin](:Ctaumin), else set equal to zero.
+For extravascular setting (:ev) if τ used (τ > 0) Cdose set as minimum concentration from dose time to τ time [:Ctaumin](#:Ctaumin), else set equal to zero.
 For IV (:iv) if 1-st observation > 2-nd observation > 0 then logarithmic extrapolation used, else set equal to 1-st observation.
 
 ### AUC / AUMC
@@ -200,7 +200,7 @@ Fluc = ( C_{max} - C_{\tau min} ) / C_{avg} * 100 \%
 Fluctuation Tau
 
 ```math
-Fluc = ( C_{max} - C_{\tau} ) / C_{avg} * 100 \%
+Fluc\tau = ( C_{max} - C_{\tau} ) / C_{avg} * 100 \%
 ```
 
 ### :Accind

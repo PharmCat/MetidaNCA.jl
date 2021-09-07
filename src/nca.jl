@@ -27,6 +27,7 @@ function ctmax(time::AbstractVector, obs::AbstractVector{T}, taulastp) where T
     cmax  = obs[1]
     tmaxn = 1
     if length(obs) == 1 return cmax, first(time), tmaxn end
+    taulastp > length(obs) && error("taulastp > length(obs")
     @inbounds for i = 2:taulastp
         if obs[i] > cmax
             cmax  = obs[i]
@@ -120,27 +121,51 @@ function slope(x, y)
 end #end slope
 
 #---------------------------------------------------------------------------
+function partcalcmethod(c₁::T, c₂::T, calcm, aftertmax) where T
+    if calcm == :lint || c₁ <= zero(T) && c₂ <= zero(T)
+        return LinType()
+    elseif calcm == :logt && aftertmax && c₁ > zero(T) && c₂ > zero(T)
+        return LogType()
+    elseif calcm == :luld &&  c₁ > c₂ > zero(T)
+        return LogType()
+    elseif calcm == :luldt && aftertmax && c₁ > c₂ > zero(T)
+        return LogType()
+    #elseif calcm == :log && c₁ > zero(T) && c₂ > zero(T)
+        #return LogType()
+    end
+    LinType()
+end
 function aucpart(t₁, t₂, c₁::T, c₂::T, calcm, aftertmax) where T
     if calcm == :lint || c₁ <= zero(T) && c₂ <= zero(T)
         auc   =  linauc(t₁, t₂, c₁, c₂)
-        aumc  = linaumc(t₁, t₂, c₁, c₂)
     elseif calcm == :logt && aftertmax && c₁ > zero(T) && c₂ > zero(T)
         auc   =  logauc(t₁, t₂, c₁, c₂)
-        aumc  = logaumc(t₁, t₂, c₁, c₂)
     elseif calcm == :luld &&  c₁ > c₂ > zero(T)
         auc   =  logauc(t₁, t₂, c₁, c₂)
-        aumc  = logaumc(t₁, t₂, c₁, c₂)
     elseif calcm == :luldt && aftertmax && c₁ > c₂ > zero(T)
         auc   =  logauc(t₁, t₂, c₁, c₂)
-        aumc  = logaumc(t₁, t₂, c₁, c₂)
     #elseif calcm == :log && c₁ > zero(T) && c₂ > zero(T)
         #auc   =  logauc(t₁, t₂, c₁, c₂)
-        #aumc  = logaumc(t₁, t₂, c₁, c₂)
     else
         auc   =  linauc(t₁, t₂, c₁, c₂)
+    end
+    return auc
+end
+function aumcpart(t₁, t₂, c₁::T, c₂::T, calcm, aftertmax) where T
+    if calcm == :lint || c₁ <= zero(T) && c₂ <= zero(T)
+        aumc  = linaumc(t₁, t₂, c₁, c₂)
+    elseif calcm == :logt && aftertmax && c₁ > zero(T) && c₂ > zero(T)
+        aumc  = logaumc(t₁, t₂, c₁, c₂)
+    elseif calcm == :luld &&  c₁ > c₂ > zero(T)
+        aumc  = logaumc(t₁, t₂, c₁, c₂)
+    elseif calcm == :luldt && aftertmax && c₁ > c₂ > zero(T)
+        aumc  = logaumc(t₁, t₂, c₁, c₂)
+    #elseif calcm == :log && c₁ > zero(T) && c₂ > zero(T)
+        #aumc  = logaumc(t₁, t₂, c₁, c₂)
+    else
         aumc  = linaumc(t₁, t₂, c₁, c₂)
     end
-    return auc, aumc
+    return aumc
 end
 
 function interpolate(t₁, t₂, tx, c₁::T, c₂::T, intpm, aftertmax) where T
@@ -242,7 +267,8 @@ function step_6_areas(time_cp, obs_cp, obsnum, calcm, tmaxn, tlastn, doseaucpart
     aumcpartl = Array{Float64, 1}(undef, obsnum - 1)
     #Calculate all AUC/AUMC part based on data
     for i = 1:(obsnum - 1)
-        aucpartl[i], aumcpartl[i] = aucpart(time_cp[i], time_cp[i + 1], obs_cp[i], obs_cp[i + 1], calcm, i >= tmaxn)
+        aucpartl[i]  = aucpart(time_cp[i], time_cp[i + 1], obs_cp[i], obs_cp[i + 1], calcm, i >= tmaxn)
+        aumcpartl[i] = aumcpart(time_cp[i], time_cp[i + 1], obs_cp[i], obs_cp[i + 1], calcm, i >= tmaxn)
     end
 
     #-----------------------------------------------------------------------
@@ -321,7 +347,7 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
             println(io, "")
         end
         println(io, "    Settings:")
-        println(io, "    Method: $(calcm); Dode: $(data.dosetime.dose); Dose time: $(data.dosetime.time)")
+        println(io, "    Method: $(calcm); Dose: $(data.dosetime.dose); Dose time: $(data.dosetime.time)")
     end
     if isnothing(intpm) intpm = calcm end
 
@@ -381,14 +407,16 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
             else
                 result[:Cdose] = first(obs_cp)
             end
-            doseaucpart, doseaumcpart  = aucpart(0, first(time_cp), result[:Cdose], first(obs_cp), calcm, true)
+            doseaucpart   = aucpart(0, first(time_cp), result[:Cdose], first(obs_cp), calcm, true)
+            doseaumcpart  = aumcpart(0, first(time_cp), result[:Cdose], first(obs_cp), calcm, true)
         else
             if  data.dosetime.tau > zero(typeof(data.dosetime.tau))
                 result[:Cdose] = result[:Ctaumin]
             else
                 result[:Cdose] = zero(O)
             end
-            doseaucpart, doseaumcpart  = aucpart(0, first(time_cp), result[:Cdose], first(obs_cp), calcm, false)
+            doseaucpart   = aucpart(0, first(time_cp), result[:Cdose], first(obs_cp), calcm, false)
+            doseaumcpart  = aumcpart(0, first(time_cp), result[:Cdose], first(obs_cp), calcm, false)
         end
         cdoseins = 1
     end
@@ -429,7 +457,7 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
         result[:HL]              = LOG2 / result[:Kel]
         result[:AUCinf]          = result[:AUClast] + result[:Clast] / result[:Kel]
         result[:AUCinf_pred]     = result[:AUClast] + result[:Clast_pred] / result[:Kel]
-        result[:AUCpct]          = (result[:AUCinf] - result[:AUClast]) / result[:AUCinf] * 100.0
+        result[:AUCpct]          = (result[:AUCinf] - result[:AUClast]) / result[:AUCinf] * 100
         result[:AUMCinf]         = result[:AUMClast] + result[:Tlast] * result[:Clast] / result[:Kel] + result[:Clast] / result[:Kel] ^ 2
         result[:MRTinf]          = result[:AUMCinf] / result[:AUCinf]
         if data.dosetime.dose > 0
@@ -448,12 +476,14 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
         eaucpartl  = eaumcpartl = 0.0
         if time_cp[taulastp] < data.dosetime.tau < time_cp[end]
             result[:Ctau] = interpolate(time_cp[taulastp], time_cp[taulastp + 1], data.dosetime.tau, obs_cp[taulastp], obs_cp[taulastp + 1], intpm, true)
-            eaucpartl, eaumcpartl = aucpart(time_cp[taulastp], data.dosetime.tau, obs_cp[taulastp], result[:Ctau], calcm, true)
+            eaucpartl = aucpart(time_cp[taulastp], data.dosetime.tau, obs_cp[taulastp], result[:Ctau], calcm, true)
+            eaumcpartl = aumcpart(time_cp[taulastp], data.dosetime.tau, obs_cp[taulastp], result[:Ctau], calcm, true)
                 #remoove part after tau
         elseif data.dosetime.tau > time_cp[end] && result[:Kel] !== NaN
                 #extrapolation
             result[:Ctau] = exp(result[:LZint] + result[:LZ] * (data.dosetime.tau + data.dosetime.time))
-            eaucpartl, eaumcpartl = aucpart(time_cp[end], data.dosetime.tau, obs_cp[end], result[:Ctau], calcm, true)
+            eaucpartl = aucpart(time_cp[end], data.dosetime.tau, obs_cp[end], result[:Ctau], calcm, true)
+            eaumcpartl = aumcpart(time_cp[end], data.dosetime.tau, obs_cp[end], result[:Ctau], calcm, true)
         else
             result[:Ctau] = obs_cp[taulastp]
         end
@@ -474,8 +504,8 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
         if result[:Ctau] != 0
             result[:Swingtau] = (result[:Cmax] - result[:Ctau])/result[:Ctau]
         end
-        result[:Fluc]     = (result[:Cmax] - result[:Ctaumin])/result[:Cavg]*100
-        result[:Fluctau]  = (result[:Cmax] - result[:Ctau])/result[:Cavg]*100
+        result[:Fluc]     = (result[:Cmax] - result[:Ctaumin])/result[:Cavg] * 100
+        result[:Fluctau]  = (result[:Cmax] - result[:Ctau])/result[:Cavg] * 100
         #If Kel calculated
         if result[:Kel] !== NaN
             result[:Accind]   = 1 / (1 - (exp(-result[:Kel] * data.dosetime.tau)))
@@ -561,7 +591,7 @@ end
 
 Non-compartmental (NCA) analysis of pharmacokinetic (PK) data.
 """
-function nca!(data::DataSet{Subj}; adm = :ev, calcm = :lint, intpm = nothing, limitrule::LimitRule = LimitRule(), verbose = 0, warn = true, io::IO = stdout, modify! = identity) where Subj <: PKSubject{T,O,V}  where T  where O where V
+function nca!(data::DataSet{Subj}; adm = :ev, calcm = :lint, intpm = nothing, limitrule::LimitRule = LimitRule(), verbose = 0, warn = true, io::IO = stdout, modify! = identity) where Subj <: AbstractSubject
     result = Vector{NCAResult{Subj}}(undef, length(data))
     for i = 1:length(data)
         result[i] = nca!(data[i]; adm = adm, calcm = calcm, intpm = intpm, limitrule = limitrule, verbose = verbose, warn = warn, io = io, modify! = modify!)
@@ -577,7 +607,14 @@ function minconc(subj::T) where T <: PKSubject
     minimum(subj.obs)
 end
 
-
+function exrate(time, conc, vol)
+    length(time) == length(conc) == length(vol) || error("")
+    er = Vector{Float64}(undef, length(time))
+    @inbounds for i = 1:length(time)
+        er[i] = conc[i]*vol[i]/(time[i][2] - time[i][1])
+    end
+    er
+end
 function nca!(data::UPKSubject{T, O, VOL, V}; adm = :ev, calcm = :lint, intpm = nothing, limitrule::LimitRule = LimitRule(), verbose = 0, warn = true, io::IO = stdout, modify! = identity) where T where O where VOL where V
 
     result   = Dict{Symbol, Float64}()
@@ -595,18 +632,47 @@ function nca!(data::UPKSubject{T, O, VOL, V}; adm = :ev, calcm = :lint, intpm = 
             println(io, "")
         end
         println(io, "    Settings:")
-        println(io, "    Method: $(calcm); Dode: $(data.dosetime.dose); Dose time: $(data.dosetime.time)")
+        println(io, "    Method: $(calcm); Dose: $(data.dosetime.dose); Dose time: $(data.dosetime.time)")
     end
     if isnothing(intpm) intpm = calcm end
 
-    mtime = map(x-> (x[1]+x[2])/2, data.time)
-
+    #=
     if isapplicable(limitrule)
         mtime, obs = applylimitrule!(mtime, deepcopy(data.obs), limitrule)
     else
         mtime  = mtime
         obs    = data.obs
     end
+    =#
+
+    mtime  = map(x-> (x[1]+x[2])/2, data.time)
+    obs    = data.obs
+    vol    = data.vol
+    time   = data.time
+
+    obsnum = length(time)
+
+    result[:maxrate], result[:mTmax], tmaxn = ctmax(mtime, obs)
+    result[:ar]      = data.obs' * data.vol
+    result[:volume]  = sum(vol)
+    exr  = exrate(time, obs, vol)
+
+    if data.dosetime.dose > 0
+        100*Amount_Recovered/Dose
+        result[:prec]  = result[:ar]/data.dosetime.dose * 100
+    end
+
+    #result[:AUCrate]
+    #result[:tmaxrate]
+    #result[:arp]
+    #result[:Kel]
+    #result[:HL]
+    aucpartl  = Array{Float64, 1}(undef, obsnum - 1)
+    #Calculate all AUC/AUMC part based on data
+    for i = 1:(obsnum - 1)
+        aucpartl[i] = aucpart(mtime[i], mtime[i + 1], exr[i], exr[i + 1], calcm, i >= tmaxn)
+    end
+
 
     ncares = NCAResult(data, options, result)
     modify!(ncares)

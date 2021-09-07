@@ -13,7 +13,7 @@ makedocs(
             "Home" => "index.md",
             "Examples" => "examples.md",
             "Details" => "details.md",
-            "Parameters" => "parameters.md",
+            "Parameter list" => "parameters.md",
             "API" => "api.md"
             ],
         )
