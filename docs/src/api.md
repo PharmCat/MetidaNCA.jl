@@ -78,7 +78,6 @@ MetidaNCA.LimitRule
 MetidaNCA.applylimitrule!
 ```
 
-
 ### pkplot
 
 ```@docs

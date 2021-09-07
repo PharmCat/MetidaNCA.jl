@@ -7,9 +7,9 @@ function firstobs(time::Vector{T}, obs::Vector, dosetime) where T <: Number
     end
     error("Observations not found")
 end
-function firstobs(time::Vector{T}, obs::Vector, dosetime) where T <: Tuple
+function firstobs(time::Vector{T}, obs, vol, dosetime) where T <: Tuple
     @inbounds for i = 1:length(time)
-        if time[i] >= dosetime && !isnanormissing(obs[i]) return i end
+        if time[i][1] >= dosetime && !isnanormissing(obs[i]) && !isnanormissing(vol[i]) return i end
     end
     error("Observations not found")
 end
@@ -615,6 +615,29 @@ function exrate(time, conc, vol)
     end
     er
 end
+
+function step_1_filterupksubj(time, obs, vol, dosetime)
+    fobs     = firstobs(time, obs, vol, dosetime)
+    ni = 0
+    @inbounds for i = fobs:length(obs)
+        if !isnanormissing(obs[i]) && !isnanormissing(vol[i])
+            ni += 1
+        end
+    end
+    inds = Vector{Int}(undef, ni)
+    ni = 1
+    @inbounds for i = fobs:length(obs)
+        if !isnanormissing(obs[i]) && !isnanormissing(vol[i])
+            inds[ni] = i
+            ni += 1
+        end
+    end
+    time_cp = time[inds]
+    obs_cp  = obs[inds]
+    vol_cp  = vol[inds]
+    time_cp, obs_cp, vol_cp
+end
+
 function nca!(data::UPKSubject{T, O, VOL, V}; adm = :ev, calcm = :lint, intpm = nothing, limitrule::LimitRule = LimitRule(), verbose = 0, warn = true, io::IO = stdout, modify! = identity) where T where O where VOL where V
 
     result   = Dict{Symbol, Float64}()
@@ -645,34 +668,41 @@ function nca!(data::UPKSubject{T, O, VOL, V}; adm = :ev, calcm = :lint, intpm = 
     end
     =#
 
-    mtime  = map(x-> (x[1]+x[2])/2, data.time)
-    obs    = data.obs
-    vol    = data.vol
-    time   = data.time
+    time, obs, vol = step_1_filterupksubj(data.time, data.obs, data.vol, data.dosetime.time)
 
-    obsnum = length(time)
+    mtime  = map(x-> (x[1]+x[2])/2, time)
 
-    result[:maxrate], result[:mTmax], tmaxn = ctmax(mtime, obs)
-    result[:ar]      = data.obs' * data.vol
-    result[:volume]  = sum(vol)
     exr  = exrate(time, obs, vol)
+
+    result[:AR]      = data.obs' * data.vol
+    result[:Vol]  = sum(vol)
+
+    if time[1][1] > data.dosetime.time
+        pushfirst!(mtime, 0)
+    else
+        pushfirst!(mtime, time[1][1])
+    end
+    pushfirst!(obs, 0)
+    pushfirst!(vol, 0)
+    pushfirst!(exr, 0)
+
+    result[:Maxrate], result[:Tmax], tmaxn = ctmax(mtime, exr)
 
     if data.dosetime.dose > 0
         100*Amount_Recovered/Dose
-        result[:prec]  = result[:ar]/data.dosetime.dose * 100
+        result[:prec]  = result[:AR]/data.dosetime.dose * 100
     end
+    obsnum = length(exr)
 
-    #result[:AUCrate]
-    #result[:tmaxrate]
-    #result[:arp]
     #result[:Kel]
     #result[:HL]
     aucpartl  = Array{Float64, 1}(undef, obsnum - 1)
-    #Calculate all AUC/AUMC part based on data
+    #Calculate all AUC part based on data
     for i = 1:(obsnum - 1)
         aucpartl[i] = aucpart(mtime[i], mtime[i + 1], exr[i], exr[i + 1], calcm, i >= tmaxn)
     end
 
+    result[:AUCall]  = sum(aucpartl)
 
     ncares = NCAResult(data, options, result)
     modify!(ncares)

@@ -2,33 +2,38 @@
 
 ```@setup ncaexample
 ENV["GKSwstype"] = "nul"
-using DataFrames;
 ```
 
 ## Import
 
+Use [`pkimport`](@ref) to import PK data from table to subject set.
+
 ```@example ncaexample
-using MetidaNCA, CSV;
+using MetidaNCA, CSV, DataFrames;
 
 pkdata2 = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv",  "pkdata2.csv")) |> DataFrame
 
-ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
+ds = pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = DoseTime(dose = 100, time = 0))
 
 sort!(ds, :Subject)
 ```
 
 ## NCA
 
+Perform NCA analysis with [`nca!`](@ref). Access to result set is similar to DataFrame or any table.
+Find parameter list [here](@ref parameter_list).
+
 ```@example ncaexample
-dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
+dsnca = nca!(ds, adm = :ev, calcm = :lint)
 
 dsnca[:, :AUClast]
 ```
 
+
 ## Print output
 
 ```@example ncaexample
-dsnca = MetidaNCA.nca!(ds[1], adm = :ev, calcm = :lint, verbose = 2);
+dsnca = nca!(ds[1], adm = :ev, calcm = :lint, verbose = 2);
 
 ```
 
@@ -37,19 +42,19 @@ dsnca = MetidaNCA.nca!(ds[1], adm = :ev, calcm = :lint, verbose = 2);
 ```@example ncaexample
 using Plots
 
-p = MetidaNCA.pkplot(ds; typesort = :Subject, pagesort = nothing, sort = Dict(:Formulation => "R"))
+p = pkplot(ds; typesort = :Subject, pagesort = nothing, sort = Dict(:Formulation => "R"))
 
 png(p, "plot1.png")
 
-p = MetidaNCA.pkplot(ds; typesort = :Formulation, pagesort = nothing, legend = true)
+p = pkplot(ds; typesort = :Formulation, pagesort = nothing, legend = true)
 
 png(p, "plot2.png")
 
-p = MetidaNCA.pkplot(ds; elim = true, ls = true)
+p = pkplot(ds; elim = true, ls = true)
 
 png(p[1], "plot3.png")
 
-p = MetidaNCA.pkplot(ds; typesort = :Subject, pagesort = :Formulation)
+p = pkplot(ds; typesort = :Subject, pagesort = :Formulation)
 
 png(p[1], "plot4.png")
 ```
@@ -72,30 +77,36 @@ png(p[1], "plot4.png")
 
 ## Set dose time
 
+You can set dose time with [`setdosetime!`](@ref) for whole subject set or for
+selected subjects.
+
 ```@example ncaexample
-dt = MetidaNCA.DoseTime(dose = 200, time = 0)
+dt = DoseTime(dose = 200, time = 0)
 
-MetidaNCA.setdosetime!(ds, dt, Dict(:Formulation => "R"))
+setdosetime!(ds, dt, Dict(:Formulation => "R"))
 
-dsnca = MetidaNCA.nca!(ds)
+dsnca = nca!(ds)
 
 dsnca[:, :Dose]
 ```
 
 ## Set range for elimination
 
+By default no exclusion or range specified. With [`setkelrange!`](@ref) elimination range and exclusion
+can be specified for whole subject set or for any selected subjects.
+
 ```@example ncaexample
-kr =  MetidaNCA.ElimRange(kelstart = 4, kelend = 12, kelexcl = Int[5,6])
+kr =  ElimRange(kelstart = 4, kelend = 12, kelexcl = Int[5,6])
 
-MetidaNCA.setkelrange!(ds, kr, [1,2,3])
+setkelrange!(ds, kr, [1,2,3])
 
-dsnca = MetidaNCA.nca!(ds)
+dsnca = nca!(ds)
 
-p = MetidaNCA.pkplot(ds[1]; elim = true)
+p = pkplot(ds[1]; elim = true)
 
 png(p, "plot5.png")
 
-MetidaNCA.getkeldata(ds[1])
+getkeldata(ds[1])
 ```
 
 #### Plot 5
@@ -105,9 +116,11 @@ MetidaNCA.getkeldata(ds[1])
 
 ## Without import
 
+You  can use [`nca`](@ref) for NCA analysis directly from tabular data.
+
 ```@example ncaexample
 
-dsnca = MetidaNCA.nca(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
+dsnca = nca(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = DoseTime(dose = 100, time = 0))
 
 sort!(dsnca, :Subject)
 
