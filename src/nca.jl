@@ -724,8 +724,7 @@ function nca!(data::UPKSubject{T, O, VOL, V}; adm = :ev, calcm = :lint, intpm = 
     result[:Maxrate], result[:Tmax], tmaxn = ctmax(mtime, exr)
 
     if data.dosetime.dose > 0
-        100*Amount_Recovered/Dose
-        result[:prec]  = result[:AR]/data.dosetime.dose * 100
+        result[:Prec]  = result[:AR]/data.dosetime.dose * 100
     end
     obsnum = length(exr)
 
