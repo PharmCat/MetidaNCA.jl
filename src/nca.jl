@@ -135,7 +135,7 @@ function logslope(x, y)
         yi = log(y[i])
         Σxy += xi * yi
         Σx  += xi
-        Σy  += y[i]
+        Σy  += yi
         Σx2 += xi^2
         Σy2 += yi^2
     end
@@ -221,6 +221,7 @@ function step_1_filterpksubj!(time, obs, dosetime)
     end
     time, obs
 end
+#=
 function step_1_filterpksubj(time, obs, dosetime)
     fobs     = firstobs(time, obs, dosetime)
     ni = 0
@@ -239,6 +240,7 @@ function step_1_filterpksubj(time, obs, dosetime)
     obs_cp  = obs[inds]
     time_cp, obs_cp
 end
+=#
 # 3
 function step_3_elim!(result, data::PKSubject{T,O}, adm, tmaxn, time_cp, obs_cp, time) where T where O
     obsnum = length(time_cp)
@@ -253,9 +255,11 @@ function step_3_elim!(result, data::PKSubject{T,O}, adm, tmaxn, time_cp, obs_cp,
             end
             timep = collect(stimep:obsnum)
             if length(data.kelrange.kelexcl) > 0
-                filter!(x-> x ∉ findall(x -> x in excltime, time_cp), timep)
+                exclinds = findall(x -> x in excltime, time_cp)
+                filter!(x-> x ∉ exclinds, timep)
             end
-            filter!(x-> x ∉ findall(x -> x <= 0, obs_cp), timep)
+            zcinds = findall(x -> x <= 0, obs_cp)
+            filter!(x-> x ∉ zcinds, timep)
             if length(timep) > 2
                 logconc    = log.(obs_cp)
                 for i = length(timep)-2:-1:1
@@ -276,6 +280,8 @@ function step_3_elim!(result, data::PKSubject{T,O}, adm, tmaxn, time_cp, obs_cp,
                 filter!(x-> x ∉ findall(x -> x in excltime, time_cp), timep)
             end
         end
+        zcinds = findall(x -> x <= 0, obs_cp)
+        filter!(x-> x ∉ zcinds, timep)
         if length(timep) > 1
             sl = logslope(view(time_cp, timep), view(obs_cp, timep))
             push!(keldata, time_cp[stimep], time_cp[etimep], sl[1], sl[2], sl[3], sl[4])

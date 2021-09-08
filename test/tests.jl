@@ -1249,6 +1249,29 @@ end
     ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
     sort!(ds, :Subject)
     @testset "  setkelrange!                                             " begin
+        dsnca1 = deepcopy(MetidaNCA.nca!(ds[1], adm = :ev, calcm = :luldt))
+        kr =  MetidaNCA.ElimRange(kelstart = 12, kelend = 16)
+        MetidaNCA.setkelrange!(ds[1], kr)
+        dsnca2 = deepcopy(MetidaNCA.nca!(ds[1], adm = :ev, calcm = :luldt))
+        @test dsnca1.data.keldata.ar[3] ≈ 0.7147692761075757
+        @test dsnca1.data.keldata.ar[3] ≈ dsnca2.data.keldata.ar[1]
+        @test dsnca1.data.keldata.a[3] ≈ dsnca2.data.keldata.a[1]
+        @test dsnca1.data.keldata.b[3] ≈ dsnca2.data.keldata.b[1]
+
+        kr =  MetidaNCA.ElimRange(kelstart = 12, kelend = 16, kelexcl = Int[5,6])
+        MetidaNCA.setkelrange!(ds[1], kr)
+        dsnca3 = deepcopy(MetidaNCA.nca!(ds[1], adm = :ev, calcm = :luldt))
+        @test dsnca1.data.keldata.ar[3] ≈ dsnca3.data.keldata.ar[1]
+        @test dsnca1.data.keldata.a[3] ≈ dsnca3.data.keldata.a[1]
+        @test dsnca1.data.keldata.b[3] ≈ dsnca3.data.keldata.b[1]
+
+        kr =  MetidaNCA.ElimRange(kelexcl = Int[5,6])
+        MetidaNCA.setkelrange!(ds[1], kr; kelauto = true)
+        dsnca4 = deepcopy(MetidaNCA.nca!(ds[1], adm = :ev, calcm = :luldt))
+        @test dsnca1.data.keldata.ar[3] ≈ dsnca4.data.keldata.ar[3]
+        @test dsnca1.data.keldata.a[3] ≈ dsnca4.data.keldata.a[3]
+        @test dsnca1.data.keldata.b[3] ≈ dsnca4.data.keldata.b[3]
+
         kr =  MetidaNCA.ElimRange(kelstart = 4, kelend = 12, kelexcl = Int[5,6])
         MetidaNCA.setkelrange!(ds[1], kr)
         krs = MetidaNCA.getkelrange(ds[1])
