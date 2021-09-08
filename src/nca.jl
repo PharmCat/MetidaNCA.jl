@@ -105,11 +105,39 @@ function slope(x, y)
     Σx2::Float64 = zero(Float64)
     Σy2::Float64 = zero(Float64)
     @inbounds for i = 1:n
-        Σxy += x[i] * y[i]
-        Σx  += x[i]
+        xi = x[i]
+        yi = y[i]
+        Σxy += xi  * yi
+        Σx  += xi
+        Σy  += yi
+        Σx2 += xi^2
+        Σy2 += yi^2
+    end
+    a   = (n * Σxy - Σx * Σy)/(n * Σx2 - Σx^2)
+    b   = (Σy * Σx2 - Σx * Σxy)/(n * Σx2 - Σx^2)
+    r2  = (n * Σxy - Σx * Σy)^2/((n * Σx2 - Σx^2)*(n * Σy2 - Σy^2))
+
+    n > 2 ? ar  = 1 - (1 - r2)*(n - 1)/(n - 2) : ar = NaN
+
+    return a, b, r2, ar
+end
+function logslope(x, y)
+    if length(x) != length(y) throw(ArgumentError("Unequal vector length!")) end
+    n   = length(x)
+    if n < 2 throw(ArgumentError("n < 2!")) end
+    Σxy::Float64 = zero(Float64)
+    Σx::Float64  = zero(Float64)
+    Σy::Float64  = zero(Float64)
+    Σx2::Float64 = zero(Float64)
+    Σy2::Float64 = zero(Float64)
+    @inbounds for i = 1:n
+        xi = x[i]
+        yi = log(y[i])
+        Σxy += xi * yi
+        Σx  += xi
         Σy  += y[i]
-        Σx2 += x[i]^2
-        Σy2 += y[i]^2
+        Σx2 += xi^2
+        Σy2 += yi^2
     end
     a   = (n * Σxy - Σx * Σy)/(n * Σx2 - Σx^2)
     b   = (Σy * Σx2 - Σx * Σxy)/(n * Σx2 - Σx^2)
@@ -249,11 +277,10 @@ function step_3_elim!(result, data::PKSubject{T,O}, adm, tmaxn, time_cp, obs_cp,
             end
         end
         if length(timep) > 1
-            sl = slope(view(time_cp, timep), log.(view(obs_cp, timep)))
+            sl = logslope(view(time_cp, timep), view(obs_cp, timep))
             push!(keldata, time_cp[stimep], time_cp[etimep], sl[1], sl[2], sl[3], sl[4])
         end
     end
-
     keldata, excltime
 end
 # 6
