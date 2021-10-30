@@ -709,7 +709,7 @@ function nca!(data::UPKSubject{T, O, VOL, V}; adm = :ev, calcm = :lint, intpm = 
 
     exr  = exrate(time, obs, vol)
 
-    result[:AR]      = data.obs' * data.vol
+    result[:AR]   = data.obs' * data.vol
     result[:Vol]  = sum(vol)
 
     if time[1][1] > data.dosetime.time
