@@ -241,11 +241,20 @@ function step_1_filterpksubj(time, obs, dosetime)
     time_cp, obs_cp
 end
 =#
+function dropkeldata!(keldata::KelData)
+    if length(keldata.s) > 0 resize!(keldata.s, 0) end
+    if length(keldata.e) > 0 resize!(keldata.e, 0) end
+    if length(keldata.a) > 0 resize!(keldata.a, 0) end
+    if length(keldata.b) > 0 resize!(keldata.b, 0) end
+    if length(keldata.r) > 0 resize!(keldata.r, 0) end
+    if length(keldata.ar) > 0 resize!(keldata.ar, 0) end
+end
 # 3
-function step_3_elim!(result, data::PKSubject{T,O}, adm, tmaxn, time_cp, obs_cp, time) where T where O
+function step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, time, keldata)
+    dropkeldata!(keldata)
     obsnum = length(time_cp)
     excltime = time[data.kelrange.kelexcl]
-    keldata                = KelData()
+    #keldata                = KelData()
     if data.kelauto
         if (adm != :iv && obsnum - tmaxn > 2) || (adm == :iv && obsnum - tmaxn > 1)
             if adm == :iv
@@ -421,7 +430,7 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
 ################################################################################
     # STEP 3
     # Elimination
-    keldata, excltime = step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, data.time)
+    keldata, excltime = step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, data.time, data.keldata)
 ################################################################################
     # STEP 4
     if  data.dosetime.time > 0
@@ -431,8 +440,6 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
     # STEP 5
     # Dose concentration
     # Dosetime is first point
-    #local doseaucpart = zero(Float64)
-    #local doseaumcpart = zero(Float64)
     cdoseins = zero(Int)
     if  iszero(first(time_cp))
         result[:Cdose] = first(obs_cp)
@@ -481,8 +488,8 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
     tlagn = findfirst(!iszero, obs_cp)
     if tlagn > 1 result[:Tlag] = time_cp[tlagn-1] else result[:Tlag] = zero(Float64) end
 
-    if  length(keldata) > 0
-        data.keldata             = keldata
+    if  length(data.keldata) > 0
+        #data.keldata             = keldata
         result[:ARsq], rsqn      = findmax(keldata.ar)
         result[:Rsq]             = keldata.r[rsqn]
         result[:Kel]             = abs(keldata.a[rsqn])
@@ -543,13 +550,15 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
         result[:Fluc]     = (result[:Cmax] - result[:Ctaumin])/result[:Cavg] * 100
         result[:Fluctau]  = (result[:Cmax] - result[:Ctau])/result[:Cavg] * 100
         #If Kel calculated
+        result[:Cltau]           = data.dosetime.dose / result[:AUCtau]
         if result[:Kel] !== NaN
             result[:Accind]   = 1 / (1 - (exp(-result[:Kel] * data.dosetime.tau)))
+            result[:MRTtauinf]       = (result[:AUMCtau] + data.dosetime.tau * (result[:AUCinf] - result[:AUCtau])) / result[:AUCtau]
+            result[:Vztau]           = data.dosetime.dose / result[:AUCtau] / result[:Kel]
+            result[:Vsstau]          = result[:Cltau] * result[:MRTtauinf]
         end
-        result[:MRTtauinf]       = (result[:AUMCtau] + data.dosetime.tau * (result[:AUCinf] - result[:AUCtau])) / result[:AUCtau]
-        result[:Vztau]           = data.dosetime.dose / result[:AUCtau] / result[:Kel]
-        result[:Cltau]           = data.dosetime.dose / result[:AUCtau]
-        result[:Vsstau]          = result[:Cltau] * result[:MRTtauinf]
+
+
     end
 ################################################################################
     # Verbose output
@@ -560,8 +569,6 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
             aucpartlsum[i]  = sum(view(aucpartl, 1:i))
             aumcpartlsum[i] = sum(view(aumcpartl, 1:i))
         end
-        #aucpartlsum  .+= doseaucpart
-        #aumcpartlsum .+= doseaumcpart
         if  data.dosetime.time > 0
             time_cp .+= data.dosetime.time
         end
@@ -569,11 +576,6 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
         mx = metida_table(collect(time_cp), collect(obs_cp), pushfirst!(aucpartl, 0.0),  pushfirst!(aucpartlsum, 0.0), pushfirst!(aumcpartl, 0.0),  pushfirst!(aumcpartlsum, 0.0), fill("", length(obs_cp));
         names = hnames)
         if cdoseins > 0
-            #println(io, "    Dose interpolated part AUC $(doseaucpart); AUMC $(doseaumcpart)")
-            #mx[1,3] = mx[1,4] = doseaucpart
-            #mx[1,5] = mx[1,6] = doseaumcpart
-            #pushfirst!(mx, [data.dosetime.time, result[:Cdose], 0.0, 0.0, 0.0, 0.0,"D*"])
-            #ins = 1
             mx[1, 7] = "D*"
         else
             mx[1, 7] = "D"
@@ -673,6 +675,7 @@ function step_1_filterupksubj(time, obs, vol, dosetime)
     time_cp, obs_cp, vol_cp
 end
 
+
 function nca!(data::UPKSubject{T, O, VOL, V}; adm = :ev, calcm = :lint, intpm = nothing, limitrule::LimitRule = LimitRule(), verbose = 0, warn = true, io::IO = stdout, modify! = identity) where T where O where VOL where V
 
     result   = Dict{Symbol, Float64}()
@@ -694,14 +697,6 @@ function nca!(data::UPKSubject{T, O, VOL, V}; adm = :ev, calcm = :lint, intpm = 
     end
     if isnothing(intpm) intpm = calcm end
 
-    #=
-    if isapplicable(limitrule)
-        mtime, obs = applylimitrule!(mtime, deepcopy(data.obs), limitrule)
-    else
-        mtime  = mtime
-        obs    = data.obs
-    end
-    =#
 
     time, obs, vol = step_1_filterupksubj(data.time, data.obs, data.vol, data.dosetime.time)
 
@@ -728,6 +723,19 @@ function nca!(data::UPKSubject{T, O, VOL, V}; adm = :ev, calcm = :lint, intpm = 
     end
     obsnum = length(exr)
 
+    lastobs = length(exr)
+    for i = length(exr):-1:1
+        if exr[i] > 0
+            break
+        else
+            lastobs = i
+        end
+    end
+
+    # STEP 3
+    # Elimination
+    keldata, excltime = step_3_elim!(result, data, adm, tmaxn, mtime, exr, data.time, data.keldata)
+
     #result[:Kel]
     #result[:HL]
     aucpartl  = Array{Float64, 1}(undef, obsnum - 1)
@@ -737,6 +745,8 @@ function nca!(data::UPKSubject{T, O, VOL, V}; adm = :ev, calcm = :lint, intpm = 
     end
 
     result[:AUCall]  = sum(aucpartl)
+    result[:AUClast] = sum(aucpartl[1:lastobs-1])
+    result[:Rlast]  = exr[end]
 
     ncares = NCAResult(data, options, result)
     modify!(ncares)

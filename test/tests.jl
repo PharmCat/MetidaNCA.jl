@@ -6,6 +6,7 @@ import TypedTables: Table
 path     = dirname(@__FILE__)
 io       = IOBuffer();
 pkdata2  = CSV.File(joinpath(path, "csv", "pkdata2.csv")) |> DataFrame
+multtimepk  = CSV.File(joinpath(path, "csv", "multtime.csv")) |> DataFrame
 missingpk  = CSV.File(joinpath(path, "csv", "missingpk.csv")) |> DataFrame
 aucallpk  = CSV.File(joinpath(path, "csv", "aucalltest.csv")) |> DataFrame
 upkdata  = CSV.File(joinpath(path, "csv", "upkdata.csv")) |> DataFrame
@@ -114,7 +115,7 @@ include("refdicts.jl")
 
     #redirect_stderr(Base.DevNull())
     missingpk.ConcentrationStr = string.(missingpk.Concentration)
-    @test_logs (:warn, "Some concentration values not a number, try to fix") pkiw = MetidaNCA.pkimport(missingpk, :Time, :ConcentrationStr)
+    @test_logs (:warn, "Some concentration values not a number, try to fix.") pkiw = MetidaNCA.pkimport(missingpk, :Time, :ConcentrationStr)
 
 end
 
@@ -1371,6 +1372,13 @@ end
     MetidaNCA.setkelrange!(ds, kr; kelauto = false)
     show(io, ds[1])
     @test_nowarn dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint, verbose = 2, io = io)
+end
+
+@testset "  Multiple time                                            " begin
+    io = IOBuffer();
+    @test_logs (:warn,"Not all time values is unique, last observation used! ((1,))") ds = MetidaNCA.pkimport(multtimepk, :Time, :Concentration, :Subject)
+    @test ds[1].obs[6] == 129.59
+
 end
 
 include("upktest.jl")

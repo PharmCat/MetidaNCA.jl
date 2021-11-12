@@ -203,3 +203,14 @@ struct NCAOptions{LR <: Union{Nothing, LimitRule}}
     io::IO
     modify!::Function
 end
+
+#=
+function gettime(subj::PKSubject)
+end
+function getobs(subj::PKSubject)
+end
+function gettime(subj::UPKSubject)
+end
+function getobs(subj::UPKSubject)
+end
+=#

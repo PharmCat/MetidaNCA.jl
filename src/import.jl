@@ -1,4 +1,5 @@
-
+# Заполняет словарь d индексами индивидуальных значений
+#=
 function indsdict!(d::Dict{T}, cdata::Tuple) where T
     @inbounds for (i, element) in enumerate(zip(cdata...))
         ind = ht_keyindex(d, element)
@@ -12,6 +13,8 @@ function indsdict!(d::Dict{T}, cdata::Tuple) where T
     end
     d
 end
+=#
+nonunique(v) = [k for (k, v) in StatsBase.countmap(v) if v > 1]
 
 function floatparse(data)
     v = Vector{Float64}(undef, length(data))
@@ -47,7 +50,7 @@ function checkvalues(timevals_sp, concvals_sp)
     if !(eltype(concvals_sp) <: Union{Number, Missing})
         concvals_sp = identity.(concvals_sp)
         if !(eltype(concvals_sp) <: Union{Number, Missing})
-            @warn "Some concentration values not a number, try to fix"
+            @warn "Some concentration values not a number, try to fix."
             concvals_sp = floatparse(concvals_sp)
         end
     end
@@ -69,10 +72,16 @@ keywords:
 * `elimrange` - set elimination range settings;
 * `dosetime` - set dose and dose time, by default dosetime = 0, dose is `NaN`.
 
+!!! note
+
+    If time column have non-unique values - last pair time-concentration will be used.
+
 """
 function pkimport(data, time, conc, sort; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
     if isa(sort, String) sort = [Symbol(sort)] end
     if isa(sort, Symbol) sort = [sort] end
+
+    Tables.istable(data) || error("Data not a table!")
 
     cols   = Tables.columns(data)
     cdata  = Tuple(Tables.getcolumn(cols, y) for y in sort)
@@ -89,7 +98,19 @@ function pkimport(data, time, conc, sort; kelauto = true,  elimrange = ElimRange
     @inbounds for (k, v) in d
         timevals = timec[v]
         concvals = concc[v]
-        if !allunique(timevals) @warn "Not all time values is unique!" end
+        if !allunique(timevals)
+            @warn "Not all time values is unique, last observation used! ($k)"
+            nuv = nonunique(timevals)
+            nuvinds = findall(x -> x == first(nuv), timevals)[1:end-1]
+            if length(nuv) > 1
+                for cnt = 2:length(nuv)
+                    append!(nuvinds, findall(x -> x == nuv[cnt], timevals)[1:end-1])
+                end
+            end
+            sort!(nuvinds)
+            deleteat!(timevals, nuvinds)
+            deleteat!(concvals, nuvinds)
+        end
         sp = sortperm(timevals)
         timevals_sp = timevals[sp]
         concvals_sp = concvals[sp]
@@ -119,7 +140,11 @@ function pkimport(time, conc; kelauto = true,  elimrange = ElimRange(), dosetime
 end
 
 
+"""
+    upkimport(data, stime, etime, conc, vol, sort; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
 
+Urine PK import.
+"""
 function upkimport(data, stime, etime, conc, vol, sort; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
     if isa(sort, String) sort = [Symbol(sort)] end
     if isa(sort, Symbol) sort = [sort] end

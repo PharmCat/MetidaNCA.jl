@@ -163,7 +163,7 @@ Volume of distribution based on the terminal phase.
 
 ##  Steady-state parameters (If τ used)
 
-`τ-time = dose_time + τ`
+τ-time = dose_time + τ
 
 ### :AUCtau
 

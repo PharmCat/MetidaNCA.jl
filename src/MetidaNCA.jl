@@ -7,7 +7,7 @@ using RecipesBase
 
 import Base: ht_keyindex, length, length, push!
 import MetidaBase
-import MetidaBase: Tables,
+import MetidaBase: Tables, StatsBase,
 PrettyTables,
 AbstractIdData,
 AbstractSubject,
@@ -19,12 +19,13 @@ getid,
 getdata,
 metida_table, metida_table_, MetidaTable,
 uniqueidlist,
+indsdict!,
 subset
 
 export pkimport, nca!, nca, DoseTime, ElimRange, LimitRule,
 setdosetime!, setkelauto!, setkelrange!, applylimitrule!,
 pkplot,
-getkeldata, getkelauto, getkelrange, getdosetime
+getkeldata, getkelauto, getkelrange, getdosetime, subset
 
 const LOG2 = log(2)
 

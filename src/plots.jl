@@ -128,7 +128,7 @@ Plot for subject
 * `yticksn` - number of ticks on y axis/
 
 """
-function pkplot(subj; ls = false, elim = false, xticksn = :auto, yticksn = :auto, kwargs...)
+function pkplot(subj::AbstractSubject; ls = false, elim = false, xticksn = :auto, yticksn = :auto, kwargs...)
     time = subj.time
     obs  = subj.obs
     kwargs = Dict{Symbol, Any}(kwargs)
