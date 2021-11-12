@@ -1377,7 +1377,7 @@ end
 @testset "  Multiple time                                            " begin
     io = IOBuffer();
     @test_logs (:warn,"Not all time values is unique, last observation used! ((1,))") ds = MetidaNCA.pkimport(multtimepk, :Time, :Concentration, :Subject)
-    @test ds[1].obs[6] == 129.59
+    #@test ds[1].obs[6] == 129.59
 
 end
 
