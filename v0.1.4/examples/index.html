@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Examples · MetidaNCA.jl</title><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.039/juliamono-regular.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.11/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">MetidaNCA.jl</a></span></div><form class="docs-search" action="../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li class="is-active"><a class="tocitem" href>Examples</a><ul class="internal"><li><a class="tocitem" href="#Import"><span>Import</span></a></li><li><a class="tocitem" href="#NCA"><span>NCA</span></a></li><li><a class="tocitem" href="#Plotting"><span>Plotting</span></a></li></ul></li><li><a class="tocitem" href="../details/">Details</a></li><li><a class="tocitem" href="../parameters/">Parameters</a></li><li><a class="tocitem" href="../api/">API</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Examples</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Examples</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/PharmCat/MetidaNCA.jl/blob/master/docs/src/examples.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Examples"><a class="docs-heading-anchor" href="#Examples">Examples</a><a id="Examples-1"></a><a class="docs-heading-anchor-permalink" href="#Examples" title="Permalink"></a></h1><h2 id="Import"><a class="docs-heading-anchor" href="#Import">Import</a><a id="Import-1"></a><a class="docs-heading-anchor-permalink" href="#Import" title="Permalink"></a></h2><pre><code class="language-julia">using MetidaNCA, CSV, DataFrames;
+
+pkdata2 = CSV.File(joinpath(dirname(pathof(MetidaNCA)), &quot;..&quot;, &quot;test&quot;, &quot;csv&quot;,  &quot;pkdata2.csv&quot;)) |&gt; DataFrame
+
+ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
+
+sort!(ds, :Subject)</code></pre><pre class="documenter-example-output">DataSet: Pharmacokinetic subject
+Length: 10
+Subject 1: Dict{Symbol,Any}(:Subject =&gt; 1,:Formulation =&gt; &quot;T&quot;)
+Subject 2: Dict{Symbol,Any}(:Subject =&gt; 2,:Formulation =&gt; &quot;R&quot;)
+Subject 3: Dict{Symbol,Any}(:Subject =&gt; 3,:Formulation =&gt; &quot;R&quot;)
+Subject 4: Dict{Symbol,Any}(:Subject =&gt; 4,:Formulation =&gt; &quot;R&quot;)
+Subject 5: Dict{Symbol,Any}(:Subject =&gt; 5,:Formulation =&gt; &quot;T&quot;)
+Subject 6: Dict{Symbol,Any}(:Subject =&gt; 6,:Formulation =&gt; &quot;T&quot;)
+Subject 7: Dict{Symbol,Any}(:Subject =&gt; 7,:Formulation =&gt; &quot;R&quot;)
+Subject 8: Dict{Symbol,Any}(:Subject =&gt; 8,:Formulation =&gt; &quot;R&quot;)
+Subject 9: Dict{Symbol,Any}(:Subject =&gt; 9,:Formulation =&gt; &quot;T&quot;)
+Subject 10: Dict{Symbol,Any}(:Subject =&gt; 10,:Formulation =&gt; &quot;R&quot;)
+</pre><h2 id="NCA"><a class="docs-heading-anchor" href="#NCA">NCA</a><a id="NCA-1"></a><a class="docs-heading-anchor-permalink" href="#NCA" title="Permalink"></a></h2><pre><code class="language-julia">dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
+
+dsnca[:, :AUClast]</code></pre><pre class="documenter-example-output">10-element Array{Float64,1}:
+  9585.42175
+ 10112.175500000001
+  5396.549749999999
+  9317.83575
+  9561.26
+  6966.598000000001
+  7029.5735
+  7110.674499999999
+  8315.080249999999
+  5620.8945</pre><h2 id="Plotting"><a class="docs-heading-anchor" href="#Plotting">Plotting</a><a id="Plotting-1"></a><a class="docs-heading-anchor-permalink" href="#Plotting" title="Permalink"></a></h2><pre><code class="language-julia">using Plots
+
+p = MetidaNCA.pkplot(ds; typesort = :Subject, pagesort = nothing, sort = Dict(:Formulation =&gt; &quot;R&quot;))
+
+png(p, &quot;plot1.png&quot;)
+
+p = MetidaNCA.pkplot(ds; typesort = :Formulation, pagesort = nothing, legend = true)
+
+png(p, &quot;plot2.png&quot;)
+
+p = MetidaNCA.pkplot(ds; elim = true, ls = true)
+
+png(p[1], &quot;plot3.png&quot;)
+
+p = MetidaNCA.pkplot(ds; typesort = :Subject, pagesort = :Formulation)
+
+png(p[1], &quot;plot4.png&quot;)</code></pre><h3 id="Plot-1"><a class="docs-heading-anchor" href="#Plot-1">Plot 1</a><a id="Plot-1-1"></a><a class="docs-heading-anchor-permalink" href="#Plot-1" title="Permalink"></a></h3><p><img src="../plot1.png" alt/></p><h3 id="Plot-2"><a class="docs-heading-anchor" href="#Plot-2">Plot 2</a><a id="Plot-2-1"></a><a class="docs-heading-anchor-permalink" href="#Plot-2" title="Permalink"></a></h3><p><img src="../plot2.png" alt/></p><h3 id="Plot-3"><a class="docs-heading-anchor" href="#Plot-3">Plot 3</a><a id="Plot-3-1"></a><a class="docs-heading-anchor-permalink" href="#Plot-3" title="Permalink"></a></h3><p><img src="../plot3.png" alt/></p><h3 id="Plot-4"><a class="docs-heading-anchor" href="#Plot-4">Plot 4</a><a id="Plot-4-1"></a><a class="docs-heading-anchor-permalink" href="#Plot-4" title="Permalink"></a></h3><p><img src="../plot4.png" alt/></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../details/">Details »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.3 on <span class="colophon-date" title="Friday 16 July 2021 16:30">Friday 16 July 2021</span>. Using Julia version 1.4.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
