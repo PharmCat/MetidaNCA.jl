@@ -25,7 +25,7 @@ implemented through software can be consistently fulfilled.
 
 ## Requirements
 
-  * Julia 1.5.* (or higher) installed
+  * Julia 1.6.* (or higher) installed
   * Julia packages from dependence list installed (see [Project.toml](https://github.com/PharmCat/MetidaNCA.jl/blob/main/Project.toml))
 
 ## Developer software life cycle
@@ -50,7 +50,7 @@ implemented through software can be consistently fulfilled.
 
 ### Tier 1
 
-  * julia-version: 1.5, 1.6
+  * julia-version: 1.6, 1.7
   * julia-arch: x64
   * os: ubuntu-18.04, macos-10.15, windows-2019
 

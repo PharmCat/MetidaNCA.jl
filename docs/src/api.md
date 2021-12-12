@@ -6,6 +6,12 @@
 MetidaNCA.pkimport
 ```
 
+### upkimport
+
+```@docs
+MetidaNCA.upkimport
+```
+
 ### nca!
 
 ```@docs
