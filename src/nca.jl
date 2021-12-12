@@ -340,6 +340,51 @@ Syntax simillar to [`pkimport`](@ref)
 
 Applicable `kwargs` see  [`nca!`](@ref).
 
+Results:
+
+* Cmax
+* Tmax
+* Cdose
+* Tlag
+* Clast
+* AUClast
+* AUMClast
+* AUCall
+* Rsq
+* ARsq
+* Kel
+* HL
+* LZint
+* Clast_pred
+* AUCinf
+* AUCinf_pred
+* AUMCinf
+* AUMCinf_pred
+* AUCpct
+* MRTlast
+* MRTinf
+* MRTinf_pred
+* Cllast
+* Clinf
+* Vzlast
+* Vzinf
+* Vssinf
+
+Stable state (tau used):
+
+* AUCtau
+* AUMCtau
+* Ctau
+* Cavg
+* Ctaumin
+* Accind
+* Fluc
+* Fluctau
+* Swing
+* Swingtau
+* MRTtauinf
+* Cltau
+* Vztau
 """
 function nca(args...; type = :bps, kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), kwargs...)
     pki    = pkimport(args...; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime)
@@ -675,7 +720,30 @@ function step_1_filterupksubj(time, obs, vol, dosetime)
     time_cp, obs_cp, vol_cp
 end
 
+"""
+    nca!(data::UPKSubject{T, O, VOL, V}; adm = :ev, calcm = :lint, intpm = nothing, limitrule::LimitRule = LimitRule(), verbose = 0, warn = true, io::IO = stdout, modify! = identity) where T where O where VOL where V
 
+Non-compartmental (NCA) analysis of pharmacokinetic for urine data.
+
+Results:
+
+* AUCall
+* AUClast
+* Rlast
+* Maxrate
+* Tmax
+* AR
+* Vol
+* Prec
+* ARsq
+* Rsq
+* Kel
+* LZ
+* LZint
+* Rsqn
+* HL
+* AUCinf
+"""
 function nca!(data::UPKSubject{T, O, VOL, V}; adm = :ev, calcm = :lint, intpm = nothing, limitrule::LimitRule = LimitRule(), verbose = 0, warn = true, io::IO = stdout, modify! = identity) where T where O where VOL where V
 
     result   = Dict{Symbol, Float64}()
@@ -747,6 +815,18 @@ function nca!(data::UPKSubject{T, O, VOL, V}; adm = :ev, calcm = :lint, intpm = 
     result[:AUCall]  = sum(aucpartl)
     result[:AUClast] = sum(aucpartl[1:lastobs-1])
     result[:Rlast]  = exr[end]
+
+    if  length(data.keldata) > 0
+        result[:ARsq], rsqn      = findmax(keldata.ar)
+        result[:Rsq]             = keldata.r[rsqn]
+        result[:Kel]             = abs(keldata.a[rsqn])
+        result[:LZ]              = keldata.a[rsqn]
+        result[:LZint]           = keldata.b[rsqn]
+        result[:Rsqn]            = rsqn
+        result[:HL]              = LOG2 / result[:Kel]
+
+        result[:AUCinf]          = result[:AUClast] + result[:Rlast] / result[:Kel]
+    end
 
     ncares = NCAResult(data, options, result)
     modify!(ncares)
