@@ -379,6 +379,231 @@ end
 
 end
 
+@testset "  #4 Log trapezoidal ATM, Dose 120, Dosetime 0, tau 12     " begin
+    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 120, time = 0, tau = 12))
+    sort!(ds, :Subject)
+    dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :logt)
+
+    # Cmax
+    @test dsnca[:, :Cmax] == refdict4[:Cmax]
+
+    # Tmax
+    @test dsnca[:, :Tmax] == refdict4[:Tmax]
+
+    # Cdose
+    @test round.(dsnca[:, :Cdose], sigdigits = 4) == round.(refdict4[:Cdose], sigdigits = 4)
+
+    # Tlag
+
+    # Clast
+    @test dsnca[:, :Clast] == refdict4[:Clast]
+
+    # AUClast
+    @test round.(dsnca[:, :AUClast], digits = 4) == round.(refdict4[:AUClast], digits = 4)
+    # AUMClast / AUMCtau
+
+    @test round.(dsnca[:, :AUMCtau], digits = 3) ==  round.(refdict4[:AUMCtau], digits = 3)
+
+# AUCall
+    @test round.(dsnca[:, :AUCall], digits = 4) == round.(refdict4[:AUCall], digits = 4)
+# Rsq
+# Adjusted Rsq
+    # LZint
+    @test round.(dsnca[:, :LZint], digits = 6) == round.(refdict4[:LZint], digits = 6)
+# Kel
+    @test round.(dsnca[:, :Kel], digits = 6) == round.(refdict4[:Kel], digits = 6)
+# HL
+    @test round.(dsnca[:, :HL], digits = 3) == round.(refdict4[:HL], digits = 3)
+# Clast_pred
+    @test round.(dsnca[:, :Clast_pred], digits = 4) == round.(refdict4[:Clast_pred], digits = 4)
+# AUCinf
+    @test round.(dsnca[:, :AUCinf], digits = 3) == round.(refdict4[:AUCinf], digits = 3)
+# AUCinf_pred
+# AUMCinf
+# AUMCinf_pred
+# AUCpct
+    @test round.(dsnca[:, :AUCpct], digits = 4) == round.(refdict4[:AUCpct], digits = 4)
+# MRTlast
+
+# MRTinf / MRTtauinf
+    @test round.(dsnca[:, :MRTtauinf], digits = 4) == round.(refdict4[:MRTtauinf], digits = 4)
+# MRTinf_pred
+# Cllast
+# Clinf / Cltau
+    @test round.(dsnca[:, :Cltau], digits = 6) == round.(refdict4[:Cltau], digits = 6)
+# Vzlast
+# Vzinf / Vztau
+    @test round.(dsnca[:, :Vztau], digits = 6) == round.(refdict4[:Vztau], digits = 6)
+# Vssinf
+
+    # AUCtau
+    @test round.(dsnca[:, :AUCtau], digits = 4) == round.(refdict4[:AUCtau], digits = 4)
+    #=
+    @test dsnca[:, :Cmax] == [190.869
+    261.177
+    105.345
+    208.542
+    169.334
+    154.648
+    153.254
+    138.327
+    167.347
+    125.482]
+
+    # Tmax
+    @test dsnca[:, :Tmax] == [1
+    1
+    1.5
+    1
+    4
+    2.5
+    2.5
+    4
+    3
+    2]
+
+    # Cdose
+    @test round.(dsnca[:, :Cdose], sigdigits = 6) == round.([0.0
+    0.0
+    0.0
+    0.0
+    0.0
+    0.0
+    0.0
+    0.0
+    0.0
+    0.0], sigdigits = 6)
+
+    # Tlag
+    #=
+    @test round.(dsnca[:, :Tlag], sigdigits = 6) == round.([0
+    0
+    0
+    0
+    0.5
+    0
+    0
+    0
+    0
+    0], sigdigits = 6)
+    =#
+
+    # Clast
+    @test dsnca[:, :Clast] == [112.846
+    85.241
+    67.901
+    97.625
+    110.778
+    69.501
+    58.051
+    74.437
+    93.44
+    42.191]
+
+    # AUClast
+    @test round.(dsnca[:, :AUClast], sigdigits = 6) == round.([9572.8582
+    10054.0370
+    5391.5322
+    9296.2179
+    9518.6531
+    6948.5757
+    6987.0645
+    7064.7816
+    8298.9634
+    5485.6538], sigdigits = 6)
+    =#
+end
+
+@testset "  Linear up Log down ATM, Dose 120, Dosetime 0, tau 12     " begin
+    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 120, time = 0, tau = 12))
+    sort!(ds, :Subject)
+    dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luldt)
+
+    # Cmax
+    @test dsnca[:, :Cmax] == [190.869
+    261.177
+    105.345
+    208.542
+    169.334
+    154.648
+    153.254
+    138.327
+    167.347
+    125.482]
+
+    # Tmax
+    @test dsnca[:, :Tmax] == [1
+    1
+    1.5
+    1
+    4
+    2.5
+    2.5
+    4
+    3
+    2]
+
+    # Cdose
+    @test round.(dsnca[:, :Cdose], sigdigits = 6) == round.([0.0
+    0.0
+    0.0
+    0.0
+    0.0
+    0.0
+    0.0
+    0.0
+    0.0
+    0.0], sigdigits = 6)
+
+    # Tlag
+    #=
+    @test round.(dsnca[:, :Tlag], sigdigits = 6) == round.([0
+    0
+    0
+    0
+    0.5
+    0
+    0
+    0
+    0
+    0], sigdigits = 6)
+    =#
+
+    # Clast
+    @test dsnca[:, :Clast] == [112.846
+    85.241
+    67.901
+    97.625
+    110.778
+    69.501
+    58.051
+    74.437
+    93.44
+    42.191]
+
+    @test round.(dsnca[:, :AUClast], sigdigits = 6) == round.([9573.810558691312
+ 10054.286478059563
+  5392.457219413793
+  9297.096334450325
+  9519.181808199797
+  6948.985621117448
+  6988.960344867885
+  7073.306755718137
+  8303.373085532965
+  5486.838889441992], sigdigits = 6)
+
+  @test round.(dsnca[:, :AUCinf], sigdigits = 6) == round.([42913.407881300096
+ 16097.04111262767
+ 26022.090028134975
+ 21983.33845321829
+ 25778.19670343543
+ 15984.14736468632
+ 11648.33951823218
+ 15408.84256127436
+ 24853.53879891218
+ 7941.268553852982], sigdigits = 6)
+
+end
 
 
 @testset "  Linear up Log down, Dose 120, Dosetime 0, tau 12         " begin
@@ -630,155 +855,6 @@ end
 5.398547], sigdigits = 6)
 
     # Vssinf
-end
-
-
-@testset "  Log trapezoidal ATM, Dose 120, Dosetime 0, tau 12        " begin
-    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 120, time = 0, tau = 12))
-    sort!(ds, :Subject)
-    dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :logt)
-    @test dsnca[:, :Cmax] == [190.869
-    261.177
-    105.345
-    208.542
-    169.334
-    154.648
-    153.254
-    138.327
-    167.347
-    125.482]
-
-    # Tmax
-    @test dsnca[:, :Tmax] == [1
-    1
-    1.5
-    1
-    4
-    2.5
-    2.5
-    4
-    3
-    2]
-
-    # Cdose
-    @test round.(dsnca[:, :Cdose], sigdigits = 6) == round.([0.0
-    0.0
-    0.0
-    0.0
-    0.0
-    0.0
-    0.0
-    0.0
-    0.0
-    0.0], sigdigits = 6)
-
-    # Tlag
-    #=
-    @test round.(dsnca[:, :Tlag], sigdigits = 6) == round.([0
-    0
-    0
-    0
-    0.5
-    0
-    0
-    0
-    0
-    0], sigdigits = 6)
-    =#
-
-    # Clast
-    @test dsnca[:, :Clast] == [112.846
-    85.241
-    67.901
-    97.625
-    110.778
-    69.501
-    58.051
-    74.437
-    93.44
-    42.191]
-
-    # AUClast
-    @test round.(dsnca[:, :AUClast], sigdigits = 6) == round.([9572.8582
-    10054.0370
-    5391.5322
-    9296.2179
-    9518.6531
-    6948.5757
-    6987.0645
-    7064.7816
-    8298.9634
-    5485.6538], sigdigits = 6)
-
-end
-
-
-@testset "  Linear up Log down ATM, Dose 120, Dosetime 0, tau 12     " begin
-    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 120, time = 0, tau = 12))
-    sort!(ds, :Subject)
-    dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luldt)
-    # Cmax
-    @test dsnca[:, :Cmax] == [190.869
-    261.177
-    105.345
-    208.542
-    169.334
-    154.648
-    153.254
-    138.327
-    167.347
-    125.482]
-
-    # Tmax
-    @test dsnca[:, :Tmax] == [1
-    1
-    1.5
-    1
-    4
-    2.5
-    2.5
-    4
-    3
-    2]
-
-    # Cdose
-    @test round.(dsnca[:, :Cdose], sigdigits = 6) == round.([0.0
-    0.0
-    0.0
-    0.0
-    0.0
-    0.0
-    0.0
-    0.0
-    0.0
-    0.0], sigdigits = 6)
-
-    # Tlag
-    #=
-    @test round.(dsnca[:, :Tlag], sigdigits = 6) == round.([0
-    0
-    0
-    0
-    0.5
-    0
-    0
-    0
-    0
-    0], sigdigits = 6)
-    =#
-
-    # Clast
-    @test dsnca[:, :Clast] == [112.846
-    85.241
-    67.901
-    97.625
-    110.778
-    69.501
-    58.051
-    74.437
-    93.44
-    42.191]
-
 end
 
 

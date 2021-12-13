@@ -339,6 +339,33 @@ Import data and perform NCA analysis.
 Syntax simillar to [`pkimport`](@ref)
 
 Applicable `kwargs` see  [`nca!`](@ref).
+"""
+function nca(args...; type = :bps, kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), kwargs...)
+    pki    = pkimport(args...; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime)
+    #kwargs = Dict{Symbol, Any}(kwargs)
+    nca!(pki; kwargs...)
+end
+"""
+    nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, limitrule = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = nothing) where T where O
+
+* `adm` - administration:
+    - `:ev` - extra vascular;
+    - `:iv` - intravascular bolus;
+* `calcm` - AUC/AUMC calculation method:
+    - `:lint` - linear trapezoidal;
+    - `:logt` - log-trapezoidal after Tmax;
+    - `:luld` - linar up log down;
+    - `:luldt` - linear up log down after Tmax;
+* `intpm` - interpolation method:
+    - `:lint` - linear trapezoidal;
+    - `:logt` - log-trapezoidal after Tmax;
+    - `:luld` - linar up log down;
+    - `:luldt` - linear up log down after Tmax;
+* `limitrule` use limitrule for data;
+* `verbose` - print to `io`, 1: partial areas table, 2: 1, and results;
+* `warn` - show warnings;
+* `io` - output stream;
+* `modify!` - function to modify output paramaters, call `modify!(data, result)` if difined.
 
 Results:
 
@@ -385,34 +412,6 @@ Stable state (tau used):
 * MRTtauinf
 * Cltau
 * Vztau
-"""
-function nca(args...; type = :bps, kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), kwargs...)
-    pki    = pkimport(args...; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime)
-    #kwargs = Dict{Symbol, Any}(kwargs)
-    nca!(pki; kwargs...)
-end
-"""
-    nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, limitrule = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = nothing) where T where O
-
-* `adm` - administration:
-    - `:ev` - extra vascular;
-    - `:iv` - intravascular bolus;
-* `calcm` - AUC/AUMC calculation method:
-    - `:lint` - linear trapezoidal;
-    - `:logt` - log-trapezoidal after Tmax;
-    - `:luld` - linar up log down;
-    - `:luldt` - linear up log down after Tmax;
-* `intpm` - interpolation method:
-    - `:lint` - linear trapezoidal;
-    - `:logt` - log-trapezoidal after Tmax;
-    - `:luld` - linar up log down;
-    - `:luldt` - linear up log down after Tmax;
-* `limitrule` use limitrule for data;
-* `verbose` - print to `io`, 1: partial areas table, 2: 1, and results;
-* `warn` - show warnings;
-* `io` - output stream;
-* `modify!` - function to modify output paramaters, call `modify!(data, result)` if difined.
-
 """
 function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, limitrule::LimitRule = LimitRule(), verbose = 0, warn = true, io::IO = stdout, modify! = identity) where T where O
 
@@ -826,6 +825,7 @@ function nca!(data::UPKSubject{T, O, VOL, V}; adm = :ev, calcm = :lint, intpm = 
         result[:HL]              = LOG2 / result[:Kel]
 
         result[:AUCinf]          = result[:AUClast] + result[:Rlast] / result[:Kel]
+        result[:AUCpct]          = (result[:AUCinf] - result[:AUClast]) / result[:AUCinf] * 100
     end
 
     ncares = NCAResult(data, options, result)

@@ -16,8 +16,9 @@ When analyzing pharmacokinetic data, one generally employs either model fitting 
 
 ## Validation
 
-Validation report: [validation_report.pdf](./validation_report.pdf)
-Appendix 2: [Appendix2.1.pdf](./pdf/Appendix2.1.pdf), [Appendix2.2.pdf](./pdf/Appendix2.2.pdf), [Appendix2.3.pdf](./pdf/Appendix2.3.pdf)
+Validation report: [validation_report.pdf](./validation_report.pdf).
+
+Appendix 2: [Appendix2.1.pdf](./pdf/Appendix2.1.pdf), [Appendix2.2.pdf](./pdf/Appendix2.2.pdf), [Appendix2.3.pdf](./pdf/Appendix2.3.pdf), [Appendix2.4.pdf](./pdf/Appendix2.4.pdf), [Appendix2.5.pdf](./pdf/Appendix2.5.pdf).
 
 ## Contents
 

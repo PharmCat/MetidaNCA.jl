@@ -147,6 +147,7 @@ dfn = DataFrame(
 "Vztau" "Volume of distribution in Tau range"], ["Name", "Description"])
 
 pkdata2  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "pkdata2.csv")) |> DataFrame
+upkdata  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "upkdata.csv")) |> DataFrame
 ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
 sort!(ds, :Subject)
 
@@ -329,6 +330,88 @@ end
 
 ```
 \pagebreak
+
+### Linear/Log Trapezoidal rule; Extravascular; Dosetime 0.0; Tau 12; Dose 120
+
+Code:
+
+```julia; eval = false
+setdosetime!(ds, DoseTime(dose = 120, time = 0.0, tau = 12))
+nca!(ds, adm = :ev, calcm = :logt)
+```
+
+```julia; echo = false, results = "tex"
+
+list = [:Cmax
+:Tmax
+:Cdose
+:Clast
+:AUClast
+:AUCtau
+:AUMCtau
+:AUCall
+:Rsq
+:ARsq
+:Kel
+:HL
+:Clast_pred
+:AUCinf
+:AUCpct
+:MRTtauinf
+:Cltau
+:Vztau]
+
+dt = MetidaNCA.DoseTime(dose = 120, time = 0.0, tau = 12)
+MetidaNCA.setdosetime!(ds, dt)
+
+dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :logt)
+
+subjects = MetidaNCA.getid(dsnca, :, :Subject)
+
+for l in list
+    println("#### $l")
+    println("")
+    vals = round.(dsnca[:, l], sigdigits = 6)
+    refs = round.(refdict4[l], sigdigits = 6)
+
+    mx = hcat(subjects, vals, refs, vals .- refs)
+    df = DataFrame(mx, header)
+    df.Subject = string.(Int.(df.Subject))
+    show(latexify(df))
+    #pretty_table(df; header = header)
+end
+
+```
+\pagebreak
+
+### Urine data; Linear-trapezoidal rule; Extravascular; Dosetime 0.0; Dose 100
+
+Code:
+
+```julia; eval = false
+upkds = upkimport(upkdata, :st, :et, :conc, :vol, :subj; dosetime =  MetidaNCA.DoseTime(dose = 100))
+MetidaNCA.nca!(upkds)
+```
+
+```julia; echo = false, results = "tex"
+
+list = collect(keys(upkdata))
+
+upkds = MetidaNCA.upkimport(upkdata, :st, :et, :conc, :vol, :subj; dosetime =  MetidaNCA.DoseTime(dose = 100))
+dsnca  = MetidaNCA.nca!(upkds)
+pname = string.(list)
+vals = zeros(Float64, length(list))
+refs = zeros(Float64, length(list))
+for i = 1: length(list)
+    vals = round(dsnca[1, list[i], sigdigits = 6)
+    refs = round(urefdict[list[i]], sigdigits = 6)
+end
+
+  mx = hcat(pname, vals, refs, vals .- refs)
+  df = DataFrame(mx, ["Parameter", "Value", "Reference", "Difference"])
+  show(latexify(df))
+```
+\pagebreak
 # Glossary
 
   * Installation qualification (IQ) - Establishing confidence that process equipment and ancillary systems are compliant with appropriate codes and approved design intentions, and that manufacturer's recommendations are suitably considered.
@@ -347,11 +430,18 @@ end
 \pagebreak
 # Appendix 1
 
-### Testing dataset.
+### Testing PK  dataset.
 
 ```julia; echo = false
 
 pretty_table(pkdata2; tf = tf_ascii_rounded, header = names(pkdata2))
+```
+\pagebreak
+
+### Testing urine PK  dataset.
+```julia; echo = false
+
+pretty_table(upkdata; tf = tf_ascii_rounded, header = names(upkdata))
 ```
 \pagebreak
 # Appendix 2
@@ -361,5 +451,11 @@ pretty_table(pkdata2; tf = tf_ascii_rounded, header = names(pkdata2))
 Avialible at [https://github.com/PharmCat/MetidaNCA.jl/tree/main/docs/src/pdf](https://github.com/PharmCat/MetidaNCA.jl/tree/main/docs/src/pdf).
 
 See [Appendix 2.1.pdf](https://github.com/PharmCat/MetidaNCA.jl/blob/main/docs/src/pdf/Appendix2.1.pdf),
+
 [Appendix 2.2.pdf](https://github.com/PharmCat/MetidaNCA.jl/blob/main/docs/src/pdf/Appendix2.2.pdf),
-[Appendix 2.3.pdf](https://github.com/PharmCat/MetidaNCA.jl/blob/main/docs/src/pdf/Appendix2.3.pdf).
+
+[Appendix 2.3.pdf](https://github.com/PharmCat/MetidaNCA.jl/blob/main/docs/src/pdf/Appendix2.3.pdf),
+
+[Appendix 2.4.pdf](https://github.com/PharmCat/MetidaNCA.jl/blob/main/docs/src/pdf/Appendix2.4.pdf),
+
+[Appendix 2.5.pdf](https://github.com/PharmCat/MetidaNCA.jl/blob/main/docs/src/pdf/Appendix2.5.pdf).
