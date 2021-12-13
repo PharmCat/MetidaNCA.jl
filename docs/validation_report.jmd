@@ -395,7 +395,7 @@ MetidaNCA.nca!(upkds)
 
 ```julia; echo = false, results = "tex"
 
-list = collect(keys(upkdata))
+list = collect(keys(urefdict))
 
 upkds = MetidaNCA.upkimport(upkdata, :st, :et, :conc, :vol, :subj; dosetime =  MetidaNCA.DoseTime(dose = 100))
 dsnca  = MetidaNCA.nca!(upkds)
