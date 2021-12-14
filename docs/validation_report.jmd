@@ -403,7 +403,7 @@ pname = string.(list)
 vals = zeros(Float64, length(list))
 refs = zeros(Float64, length(list))
 for i = 1: length(list)
-    vals[i] = round(dsnca[1, list[i], sigdigits = 6)
+    vals[i] = round(dsnca[1, list[i]], sigdigits = 6)
     refs[i] = round(urefdict[list[i]], sigdigits = 6)
 end
 
