@@ -374,7 +374,7 @@ for l in list
     vals = round.(dsnca[:, l], sigdigits = 6)
     refs = round.(refdict4[l], sigdigits = 6)
 
-    mx = hcat(subjects, vals, refs, vals .- refs)
+    mx = hcat(subjects, vals, refs, round.(vals .- refs, sigdigits = 6))
     df = DataFrame(mx, header)
     df.Subject = string.(Int.(df.Subject))
     show(latexify(df))
@@ -403,8 +403,8 @@ pname = string.(list)
 vals = zeros(Float64, length(list))
 refs = zeros(Float64, length(list))
 for i = 1: length(list)
-    vals = round(dsnca[1, list[i], sigdigits = 6)
-    refs = round(urefdict[list[i]], sigdigits = 6)
+    vals[i] = round(dsnca[1, list[i], sigdigits = 6)
+    refs[i] = round(urefdict[list[i]], sigdigits = 6)
 end
 
   mx = hcat(pname, vals, refs, vals .- refs)
