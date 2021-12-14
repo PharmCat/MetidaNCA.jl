@@ -340,8 +340,15 @@ Syntax simillar to [`pkimport`](@ref)
 
 Applicable `kwargs` see  [`nca!`](@ref).
 """
-function nca(args...; type = :bps, kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), kwargs...)
-    pki    = pkimport(args...; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime)
+function nca(args...; type::Symbol = :bps, th = NaN, bl = 0, kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), kwargs...)
+    if !(type in (:bps, :ur, :eff)) error("Unknown type") end
+    if type == :bps
+        pki    = pkimport(args...; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime)
+    elseif type == :ur
+        pki    = upkimport(args...; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime)
+    elseif type == :eff
+        pki    = pdimport(args...; th = th, bl = bl)
+    end
     #kwargs = Dict{Symbol, Any}(kwargs)
     nca!(pki; kwargs...)
 end

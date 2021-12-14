@@ -58,6 +58,7 @@ include("refdicts.jl")
     @test  MetidaNCA.getid(dsnca, :, :Subject) == collect(1:10)
     show(io, dsnca)
 
+    # Export to tables
     mtds  = MetidaNCA.metida_table(ds)
     mtdst = Table(ds)
     @test size(mtds, 1) == size(pkdata2, 1)
@@ -67,12 +68,16 @@ include("refdicts.jl")
     @test dsnca[:, :AUClast] == dsncafromds[:, :AUClast]
 
     # Plotting
-    MetidaNCA.pkplot(ds; typesort = :Subject, pagesort = nothing, sort = Dict(:Formulation => "R"))
-    MetidaNCA.pkplot(ds; typesort = :Formulation, pagesort = nothing, legend = true)
-    pl = MetidaNCA.pkplot(ds; elim = true, ls = true)
-    pl = MetidaNCA.pkplot(ds; typesort = :Subject, pagesort = :Formulation, elim = true, ls = true)
-    pl = MetidaNCA.pkplot(ds; typesort = :Formulation, pagesort = :Subject, xticksn = 8, yticksn = 10)
+    @test_nowarn MetidaNCA.pkplot(ds; typesort = :Subject, pagesort = nothing, sort = Dict(:Formulation => "R"))
+    @test_nowarn MetidaNCA.pkplot(ds; typesort = :Formulation, pagesort = nothing, legend = true)
+    @test_nowarn pl = MetidaNCA.pkplot(ds; elim = true, ls = true)
+    @test_nowarn pl = MetidaNCA.pkplot(ds; typesort = :Subject, pagesort = :Formulation, elim = true, ls = true, title = "Plots")
+    @test_nowarn pl = MetidaNCA.pkplot(ds; typesort = :Formulation, pagesort = :Subject, xticksn = 8, yticksn = 10)
+    @test_nowarn pl = MetidaNCA.pkplot(ds; pagesort = [:Subject, :Formulation], legend = false)
+    @test_nowarn pl = MetidaNCA.pkplot(ds[1]; ylims = (0, 10), yscale = :log10, legend = false)
+    @test_nowarn MetidaNCA.plotstyle(40)
 
+    # setdosetime!
     MetidaNCA.setdosetime!(ds, MetidaNCA.DoseTime(dose = 100, time = 0.25))
     @test first(MetidaNCA.nca!(ds)[:, :Cdose]) == 0
 
@@ -97,7 +102,6 @@ include("refdicts.jl")
     @test  sbj[:AUClast]  ≈ dsncafromds[:AUClast]
 
     # Missing NaN
-
     dsncafromds =  MetidaNCA.nca(missingpk, :Time, :Concentration)
     @test  sbj[:AUClast]  ≈ dsncafromds[:AUClast]
 
@@ -105,7 +109,7 @@ include("refdicts.jl")
     limitrule = MetidaNCA.LimitRule(;lloq = 0, btmax = 0, atmax = NaN, nan = NaN, rm = true))
     @test  sbj[:AUClast]  ≈ dsncafromds[:AUClast]
 
-
+    # Apply modify! function
     function newparam(data)
         data.result[:AUChalf] = data.result[:AUClast] / 2
     end

@@ -22,9 +22,26 @@
     @test unca[1, :AUCinf]  ≈ 19.60415499341648 atol=1E-6
     =#
     io = IOBuffer();
-
     @test_nowarn dsnca = MetidaNCA.nca!(upkds, verbose = 2, io = io)
 
     upkds = MetidaNCA.upkimport(upkdata, :st, :et, :conc, :vol; dosetime =  MetidaNCA.DoseTime(dose = 100))
     upkds = MetidaNCA.upkimport(upkdata[!, :st], upkdata[!, :et], upkdata[!, :conc], upkdata[!, :vol]; dosetime =  MetidaNCA.DoseTime(dose = 100))
+    unca  = MetidaNCA.nca!(upkds)
+    @test_nowarn show(io, upkds)
+    @test_nowarn show(io, unca)
+
+    upkdatac = deepcopy(upkdata)
+    upkdatac.st = float.(upkdatac.st)
+    upkdatac[1, :st] = NaN
+    @test_throws ErrorException MetidaNCA.upkimport(upkdatac, :st, :et, :conc, :vol, :subj; dosetime =  MetidaNCA.DoseTime(dose = 100))
+
+    upkdatac = deepcopy(upkdata)
+    upkdatac.et = float.(upkdatac.et)
+    upkdatac[1, :et] = NaN
+    @test_throws ErrorException MetidaNCA.upkimport(upkdatac, :st, :et, :conc, :vol, :subj; dosetime =  MetidaNCA.DoseTime(dose = 100))
+
+    upkdatac = deepcopy(upkdata)
+    upkdatac.et = float.(upkdatac.et)
+    upkdatac[1, :et] = 1.5
+    @test_throws ErrorException MetidaNCA.upkimport(upkdatac, :st, :et, :conc, :vol, :subj; dosetime =  MetidaNCA.DoseTime(dose = 100))
 end
