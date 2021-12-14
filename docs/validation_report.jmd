@@ -397,7 +397,8 @@ MetidaNCA.nca!(upkds)
 
 list = collect(keys(urefdict))
 
-upkds = MetidaNCA.upkimport(upkdata, :st, :et, :conc, :vol, :subj; dosetime =  MetidaNCA.DoseTime(dose = 100))
+upkds = MetidaNCA.upkimport(upkdata, :st, :et, :conc, :vol, :subj;
+dosetime =  MetidaNCA.DoseTime(dose = 100))
 dsnca  = MetidaNCA.nca!(upkds)
 pname = string.(list)
 vals = zeros(Float64, length(list))

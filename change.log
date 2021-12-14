@@ -1,3 +1,8 @@
+0.2.2
+  - add methods for upkimport
+  - add pdimport
+  - 'show' for UPKSubject
+
 0.2.1
   - Multiple time - last used
   - urine pk

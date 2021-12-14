@@ -130,13 +130,13 @@ function pkimport(data, time, conc; kelauto = true,  elimrange = ElimRange(), do
     pkimport(timevals_sp, concvals_sp; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime)
 end
 """
-    pkimport(time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
+    pkimport(time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), id = Dict{Symbol, Any}())
 
 Import PK data from time vector `time` and concentration vector `conc`.
 """
-function pkimport(time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
+function pkimport(time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), id = Dict{Symbol, Any}())
     timevals_sp, concvals_sp = checkvalues(copy(time), copy(conc))
-    PKSubject(timevals_sp, concvals_sp, kelauto, elimrange,  dosetime, Dict{Symbol, Any}())
+    PKSubject(timevals_sp, concvals_sp, kelauto, elimrange,  dosetime, id)
 end
 
 
@@ -181,7 +181,7 @@ function upkimport(data, stime, etime, conc, vol, sort; kelauto = true,  elimran
         etimevals = etimec[v]
         concvals  = concc[v]
         volvals   = volc[v]
-
+        #=
         timeranges = collect(zip(stimevals, etimevals))
         sp = sortperm(stimevals)
 
@@ -195,6 +195,91 @@ function upkimport(data, stime, etime, conc, vol, sort; kelauto = true,  elimran
             end
         end
         sdata[i] = UPKSubject(timevals_sp, concvals_sp, volvals_sp, kelauto, elimrange,  dosetime, Dict(sort .=> k))
+        =#
+        sdata[i] = upkimport(stimevals, etimevals, concvals, volvals; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime, id = Dict(sort .=> k))
+        i += one(Int)
+    end
+    return DataSet(identity.(sdata))
+end
+"""
+    upkimport(data, stime, etime, conc, vol; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
+
+Import single urine PK data from table `data`.
+
+* `stime` - start time column;
+* `etime` - end time column;
+* `conc` - concentration column;
+* `vol` - volume column.
+"""
+function upkimport(data, stime, etime, conc, vol; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
+    upkimport(Tables.getcolumn(data, stime), Tables.getcolumn(data, etime), Tables.getcolumn(data, conc), Tables.getcolumn(data, vol); kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime)
+end
+"""
+    upkimport(stime, etime, conc, vol; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
+
+Import urine PK data from time vectors:
+* `stime` - start times;
+* `etime` - end times;
+* `conc` - concentrations;
+* `vol` - volumes.
+"""
+function upkimport(stime, etime, conc, vol; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), id = Dict{Symbol, Any}())
+    any(isnanormissing, stime) && error("Some Start Time values is NaN or Missing!")
+    any(isnanormissing, etime) && error("Some End Time values is NaN or Missing!")
+    timeranges = collect(zip(stime, etime))
+    sp = sortperm(stime)
+    timevals_sp = timeranges[sp]
+    concvals_sp = conc[sp]
+    volvals_sp  = vol[sp]
+    if length(timevals_sp) > 1
+        for c = 2:length(timevals_sp)
+            timevals_sp[c][1] == timevals_sp[c-1][2] || error("Start time ($(timevals_sp[c][1])) for observation $c not equal End time ($(timevals_sp[c-1][2])) for observation $(c-1)!")
+        end
+    end
+    UPKSubject(timevals_sp, concvals_sp, volvals_sp, kelauto, elimrange,  dosetime, id)
+end
+
+
+function pdimport(data, time, obs, sort; bl = 0, th = NaN)
+    if isa(sort, String) sort = [Symbol(sort)] end
+    if isa(sort, Symbol) sort = [sort] end
+
+    Tables.istable(data) || error("Data not a table!")
+
+    cols   = Tables.columns(data)
+    cdata  = Tuple(Tables.getcolumn(cols, y) for y in sort)
+    d      = Dict{Tuple{eltype.(cdata)...}, Vector{Int}}()
+    indsdict!(d, cdata)
+
+    timec = Tables.getcolumn(data, time)
+    obsc  = Tables.getcolumn(data, obs)
+
+    any(isnanormissing, timec) && error("Some time values is NaN or Missing!")
+
+    sdata = Vector{PDSubject}(undef, length(d))
+    i = one(Int)
+    @inbounds for (k, v) in d
+        timevals = timec[v]
+        obsvals  = obsc[v]
+
+        if !allunique(timevals)
+            @warn "Not all time values is unique, last observation used! ($k)"
+            nuv = nonunique(timevals)
+            nuvinds = findall(x -> x == first(nuv), timevals)[1:end-1]
+            if length(nuv) > 1
+                for cnt = 2:length(nuv)
+                    append!(nuvinds, findall(x -> x == nuv[cnt], timevals)[1:end-1])
+                end
+            end
+            sort!(nuvinds)
+            deleteat!(timevals, nuvinds)
+            deleteat!(obsvals, nuvinds)
+        end
+        sp = sortperm(timevals)
+        timevals_sp = timevals[sp]
+        obsvals_sp = obsvals[sp]
+        timevals_sp, obsvals_sp = checkvalues(timevals_sp, obsvals_sp)
+        sdata[i] = PDSubject(timevals_sp, obsvals_sp, bl, th, Dict(sort .=> k))
         i += one(Int)
     end
     return DataSet(identity.(sdata))

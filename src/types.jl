@@ -201,7 +201,7 @@ mutable struct PDSubject{T <: Number, O <: Union{Number, Missing}, V <: Any} <: 
     th::Float64
     id::Dict{Symbol, V}
     function PDSubject(time::Vector{T}, conc::Vector{O}, bl, th, sort::Dict{Symbol, V} = Dict{Symbol, Any}()) where T <: Number where O <: Union{Number, Missing} where V
-        new{T, O, V}(time, conc, bl, th, sort)::PKSubject
+        new{T, O, V}(time, conc, bl, th, sort)::PDSubject
     end
     function PDSubject(time::Vector, conc::Vector, bl, th, sort::Dict{Symbol, V}) where V
         PDSubject(time, conc, bl, th, sort)

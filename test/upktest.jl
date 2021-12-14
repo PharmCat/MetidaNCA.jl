@@ -24,4 +24,7 @@
     io = IOBuffer();
 
     @test_nowarn dsnca = MetidaNCA.nca!(upkds, verbose = 2, io = io)
+
+    upkds = MetidaNCA.upkimport(upkdata, :st, :et, :conc, :vol; dosetime =  MetidaNCA.DoseTime(dose = 100))
+    upkds = MetidaNCA.upkimport(upkdata[!, :st], upkdata[!, :et], upkdata[!, :conc], upkdata[!, :vol]; dosetime =  MetidaNCA.DoseTime(dose = 100))
 end
