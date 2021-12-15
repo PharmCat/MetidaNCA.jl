@@ -29,6 +29,7 @@
     unca  = MetidaNCA.nca!(upkds)
     @test_nowarn show(io, upkds)
     @test_nowarn show(io, unca)
+    @test_nowarn MetidaNCA.nca(upkdata, :st, :et, :conc, :vol; type = :ur, dosetime =  MetidaNCA.DoseTime(dose = 100))
 
     upkdatac = deepcopy(upkdata)
     upkdatac.st = float.(upkdatac.st)

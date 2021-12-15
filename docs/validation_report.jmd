@@ -1,8 +1,10 @@
+
 ---
 title: MetidaNCA validation report
 author: Vladimir Arnautov
 date: `j import Dates; Dates.Date(Dates.now())`
 ---
+
 
 ```julia; echo = false
 using Dates, DataFrames, CSV, PrettyTables, Latexify
@@ -55,6 +57,7 @@ implemented through software can be consistently fulfilled.
   * os: ubuntu-18.04, macos-10.15, windows-2019
 
 \pagebreak
+
 # Installation
 
 ## System information
@@ -111,6 +114,8 @@ Validation data available in the repository and included in the package. See App
 Pkg.test("MetidaNCA")
 ```
 
+\pagebreak
+
 # Performance qualification
 
 Purpose of this testing procedures to demonstrate performance for some critical tasks.
@@ -118,7 +123,7 @@ Results from MetidaNCA compared with Phoenix WinNonlin 8.0 results, see Appendix
 
 ## Parameter's names description
 
-```julia; echo = false
+```julia; echo = false, results = "tex"
 
 dfn = DataFrame(
 ["Cmax" "Maximum concentration"
@@ -150,14 +155,16 @@ pkdata2  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "p
 upkdata  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "upkdata.csv")) |> DataFrame
 ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
 sort!(ds, :Subject)
-
-#show(latexify(dfn; env=:table, latex=false))
-pretty_table(dfn; tf = tf_ascii_rounded)
+#pretty_table(dfn; tf = tf_ascii_rounded)
+show(latexify(dfn; latex=false))
 ```
+Table: Parameter description
+
+\pagebreak
 
 ## Output example
 
-Import data:
+**Import data:**
 
 ```julia; eval = false
 pkdata2  = CSV.File(
@@ -168,16 +175,19 @@ dosetime = DoseTime(dose = 100, time = 0))
 sort!(ds, :Subject)
 ```
 
+**Execute NCA:**
+
 ```julia; echo = true; wrap = false; line_width = 75
 MetidaNCA.nca!(ds[1], adm = :ev, calcm = :lint, verbose = 1)
 ```
 
 \pagebreak
+
 ## Results
 
 ### Linear-trapezoidal rule; Extravascular; Dosetime 0.0; No Tau; Dose 100
 
-Code:
+**Code:**
 
 ```julia; eval = false
 nca!(ds, adm = :ev, calcm = :lint)
@@ -187,7 +197,7 @@ nca!(ds, adm = :ev, calcm = :lint)
 
 include("refdict.jl")
 
-header = ["Subject", "Value", "Reference", "Difference"]
+header = ["Parameter", "Subject", "Value", "Reference", "Difference"]
 
 list = [:Cmax
 :Tmax
@@ -211,24 +221,24 @@ list = [:Cmax
 dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
 
 subjects = MetidaNCA.getid(dsnca, :, :Subject)
-
+dft = DataFrame("Parameter"=>[], "Subject"=>[], "Value"=>[], "Reference"=>[], "Difference"=>[])
 for l in list
-    println("#### $l")
-    println("")
     vals = round.(dsnca[:, l], sigdigits = 6)
     refs = round.(refdict[l], sigdigits = 6)
-    mx = hcat(subjects, vals, refs, vals .- refs)
+    mx = hcat(fill(l, length(vals)), subjects, vals, refs, vals .- refs)
     df = DataFrame(mx, header)
     df.Subject = string.(Int.(df.Subject))
-    show(latexify(df))
-    #pretty_table(df; header = header)
+    append!(dft, df)
 end
+show(latexify(dft))
 ```
+Table: Plasma data results, Linear-trapezoidal rule, Extravascular
 
 \pagebreak
+
 ### Linear-Up Log-Down; Extravascular; Dosetime 0.25; Tau 9; Dose 100
 
-Code:
+**Code:**
 
 ```julia; eval = false
 setdosetime!(ds, DoseTime(dose = 100, time = 0.25, tau = 9))
@@ -258,29 +268,27 @@ list = [:Cmax
 
 dt = MetidaNCA.DoseTime(dose = 100, time = 0.25, tau = 9)
 MetidaNCA.setdosetime!(ds, dt)
-
 dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luld)
 
 subjects = MetidaNCA.getid(dsnca, :, :Subject)
-
+dft = DataFrame("Parameter"=>[], "Subject"=>[], "Value"=>[], "Reference"=>[], "Difference"=>[])
 for l in list
-    println("#### $l")
-    println("")
     vals = round.(dsnca[:, l], sigdigits = 6)
     refs = round.(refdict2[l], sigdigits = 6)
-
-    mx = hcat(subjects, vals, refs, vals .- refs)
+    mx = hcat(fill(l, length(vals)), subjects, vals, refs, vals .- refs)
     df = DataFrame(mx, header)
     df.Subject = string.(Int.(df.Subject))
-    show(latexify(df))
-    #pretty_table(df; header = header, backend = Val(:latex), standalone = true)
+    append!(dft, df)
 end
+show(latexify(dft))
 ```
+Table: Plasma data results, Linear-Up Log-Down, Extravascular
 
 \pagebreak
+
 ### Linear-trapezoidal rule; Intravascular; Dosetime 0.0; Tau 12; Dose 120
 
-Code:
+**Code:**
 
 ```julia; eval = false
 setdosetime!(ds, DoseTime(dose = 120, time = 0.0, tau = 12))
@@ -310,30 +318,27 @@ list = [:Cmax
 
 dt = MetidaNCA.DoseTime(dose = 120, time = 0.0, tau = 12)
 MetidaNCA.setdosetime!(ds, dt)
-
 dsnca = MetidaNCA.nca!(ds, adm = :iv, calcm = :lint)
 
 subjects = MetidaNCA.getid(dsnca, :, :Subject)
-
+dft = DataFrame("Parameter"=>[], "Subject"=>[], "Value"=>[], "Reference"=>[], "Difference"=>[])
 for l in list
-    println("#### $l")
-    println("")
     vals = round.(dsnca[:, l], sigdigits = 6)
     refs = round.(refdict3[l], sigdigits = 6)
-
-    mx = hcat(subjects, vals, refs, vals .- refs)
+    mx = hcat(fill(l, length(vals)), subjects, vals, refs, vals .- refs)
     df = DataFrame(mx, header)
     df.Subject = string.(Int.(df.Subject))
-    show(latexify(df))
-    #pretty_table(df; header = header)
+    append!(dft, df)
 end
-
+show(latexify(dft))
 ```
+Table: Plasma data results, Linear-trapezoidal rule, Intravascular
+
 \pagebreak
 
 ### Linear/Log Trapezoidal rule; Extravascular; Dosetime 0.0; Tau 12; Dose 120
 
-Code:
+**Code:**
 
 ```julia; eval = false
 setdosetime!(ds, DoseTime(dose = 120, time = 0.0, tau = 12))
@@ -367,29 +372,28 @@ MetidaNCA.setdosetime!(ds, dt)
 dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :logt)
 
 subjects = MetidaNCA.getid(dsnca, :, :Subject)
-
+dft = DataFrame("Parameter"=>[], "Subject"=>[], "Value"=>[], "Reference"=>[], "Difference"=>[])
 for l in list
-    println("#### $l")
-    println("")
     vals = round.(dsnca[:, l], sigdigits = 6)
     refs = round.(refdict4[l], sigdigits = 6)
-
-    mx = hcat(subjects, vals, refs, round.(vals .- refs, sigdigits = 6))
+    mx = hcat(fill(l, length(vals)), subjects, vals, refs, vals .- refs)
     df = DataFrame(mx, header)
     df.Subject = string.(Int.(df.Subject))
-    show(latexify(df))
-    #pretty_table(df; header = header)
+    append!(dft, df)
 end
-
+show(latexify(dft))
 ```
+Table: Plasma data results, Linear/Log Trapezoidal rule, Extravascular
+
 \pagebreak
 
 ### Urine data; Linear-trapezoidal rule; Extravascular; Dosetime 0.0; Dose 100
 
-Code:
+**Code:**
 
 ```julia; eval = false
-upkds = upkimport(upkdata, :st, :et, :conc, :vol, :subj; dosetime =  MetidaNCA.DoseTime(dose = 100))
+upkds = upkimport(upkdata, :st, :et, :conc, :vol, :subj;
+dosetime =  MetidaNCA.DoseTime(dose = 100))
 MetidaNCA.nca!(upkds)
 ```
 
@@ -412,7 +416,10 @@ end
   df = DataFrame(mx, ["Parameter", "Value", "Reference", "Difference"])
   show(latexify(df))
 ```
+Table: Urine data results
+
 \pagebreak
+
 # Glossary
 
   * Installation qualification (IQ) - Establishing confidence that process equipment and ancillary systems are compliant with appropriate codes and approved design intentions, and that manufacturer's recommendations are suitably considered.
@@ -429,6 +436,7 @@ end
 * [Glossary of Computer System Software Development Terminology](https://www.fda.gov/inspections-compliance-enforcement-and-criminal-investigations/inspection-guides/glossary-computer-system-software-development-terminology-895)
 
 \pagebreak
+
 # Appendix 1
 
 ### Testing PK  dataset.
@@ -437,6 +445,7 @@ end
 
 pretty_table(pkdata2; tf = tf_ascii_rounded, header = names(pkdata2))
 ```
+
 \pagebreak
 
 ### Testing urine PK  dataset.
@@ -444,7 +453,9 @@ pretty_table(pkdata2; tf = tf_ascii_rounded, header = names(pkdata2))
 
 pretty_table(upkdata; tf = tf_ascii_rounded, header = names(upkdata))
 ```
+
 \pagebreak
+
 # Appendix 2
 
 ### Reference output.

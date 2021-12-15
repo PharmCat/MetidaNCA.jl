@@ -1,4 +1,5 @@
-using Documenter, MetidaNCA, Weave, PrettyTables, CSV, DataFrames
+using MetidaNCA
+using Documenter, Weave, PrettyTables, CSV, DataFrames
 #using DocumenterLaTeX
 
 include("validation.jl")
