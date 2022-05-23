@@ -145,10 +145,10 @@ function pkplot(subj::AbstractSubject; ls = false, elim = false, xticksn = :auto
         kwargs[:title] = plotlabel(subj.id)
     end
     if !(:xlims in k)
-        kwargs[:xlims] = (minimum(subj.time), maximum(subj.time)*1.1)
+        kwargs[:xlims] = (minimum(subj.time) < 0 ? minimum(subj.time) : 0, maximum(subj.time)*1.1)
     end
     if !(:ylims in k)
-        kwargs[:ylims] = (minimum(subj.obs), maximum(subj.obs)*1.15)
+        kwargs[:ylims] = (minimum(subj.obs) < 0 ? minimum(subj.obs) : 0, maximum(subj.obs)*1.15)
     end
     if !(:legend in k)
         kwargs[:legend] = true
