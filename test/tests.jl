@@ -75,6 +75,7 @@ include("refdicts.jl")
     @test_nowarn pl = MetidaNCA.pkplot(ds; typesort = :Formulation, pagesort = :Subject, xticksn = 8, yticksn = 10)
     @test_nowarn pl = MetidaNCA.pkplot(ds; pagesort = [:Subject, :Formulation], legend = false)
     @test_nowarn pl = MetidaNCA.pkplot(ds[1]; ylims = (0, 10), yscale = :log10, legend = false)
+    @test_nowarn pl = MetidaNCA.pkplot(ds[1]; elim = true, ls = false)
     @test_nowarn MetidaNCA.plotstyle(40)
 
     # setdosetime!
@@ -1458,6 +1459,7 @@ end
 @testset "  Multiple time                                            " begin
     io = IOBuffer();
     @test_logs (:warn,"Not all time values is unique, last observation used! ((1,))") ds = MetidaNCA.pkimport(multtimepk, :Time, :Concentration, :Subject)
+    @test_logs (:warn,"Not all time values is unique, last observation used! ((1,))") ds = MetidaNCA.pdimport(multtimepk, :Time, :Concentration, :Subject)
     #@test ds[1].obs[6] == 129.59
 
 end

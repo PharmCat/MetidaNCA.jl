@@ -7,7 +7,7 @@ Set range for elimination parameters calculation for subject.
 * `data`     - PK subject;
 * `kelauto`  - value.
 """
-function setkelauto!(data::T, kelauto::Bool) where T <: PKSubject
+function setkelauto!(data::PKSubject, kelauto::Bool)
     if !kelauto
         if !(data.kelrange.kelend > data.kelrange.kelstart > 0) error("Start point: $(data.kelrange.kelstart) end point: $(data.kelrange.kelend), check that data.kelrange.kelend > data.kelrange.kelstart > 0") end
     end
@@ -19,7 +19,7 @@ end
 """
     setkelauto!(data::DataSet{T}, kelauto::Bool, ind::Int) where T <: PKSubject
 """
-function setkelauto!(data::DataSet{T}, kelauto::Bool, ind::Int) where T <: PKSubject
+function setkelauto!(data::DataSet{<: PKSubject}, kelauto::Bool, ind::Int)
     setkelauto!(data[ind], kelauto)
     data
 end
@@ -27,7 +27,7 @@ end
 """
     setkelauto!(data::DataSet{T}, kelauto::Bool, inds::Union{Vector{Int}, UnitRange{Int}, Tuple{Vararg{Int}}}) where T <: PKSubject
 """
-function setkelauto!(data::DataSet{T}, kelauto::Bool, inds::Union{Vector{Int}, UnitRange{Int}, Tuple{Vararg{Int}}}) where T <: PKSubject
+function setkelauto!(data::DataSet{<: PKSubject}, kelauto::Bool, inds::Union{Vector{Int}, UnitRange{Int}, Tuple{Vararg{Int}}})
     for i in inds
         setkelauto!(data[i], kelauto)
     end
@@ -37,7 +37,7 @@ end
 """
     setkelauto!(data::DataSet{T}, kelauto::Bool) where T <: PKSubject
 """
-function setkelauto!(data::DataSet{T}, kelauto::Bool) where T <: PKSubject
+function setkelauto!(data::DataSet{<: PKSubject}, kelauto::Bool)
     for i = 1:length(data)
         setkelauto!(data[i], kelauto)
     end
@@ -47,7 +47,7 @@ end
 """
     setkelauto!(data::DataSet{T}, kelauto::Bool, sort::Dict) where T <: PKSubject
 """
-function setkelauto!(data::DataSet{T}, kelauto::Bool, sort::Dict) where T <: PKSubject
+function setkelauto!(data::DataSet{<: PKSubject}, kelauto::Bool, sort::Dict)
     for i = 1:length(data)
         if sort ⊆ data[i].id setkelauto!(data[i], kelauto) end
     end
@@ -58,6 +58,6 @@ end
 """
     getkelauto!(data::T) where T <: PKSubject
 """
-function getkelauto(data::T) where T <: PKSubject
+function getkelauto(data::PKSubject) 
     data.kelauto
 end

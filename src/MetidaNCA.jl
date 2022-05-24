@@ -25,7 +25,7 @@ subset
 export pkimport, nca!, nca, DoseTime, ElimRange, LimitRule,
 setdosetime!, setkelauto!, setkelrange!, applylimitrule!,
 pkplot,
-getkeldata, getkelauto, getkelrange, getdosetime, subset
+getkeldata, getkelauto, getkelrange, getdosetime#, subset
 
 const LOG2 = log(2)
 
