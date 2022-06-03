@@ -24,6 +24,13 @@ end
 
 function Base.show(io::IO, obj::PKSubject)
     println(io, "  Pharmacokinetic subject")
+    if length(obj.id) > 0
+        print(io, "ID: ")
+        for (k, v) in obj.id
+            print(io, "$k => $v;")
+        end
+        println(io, "")
+    end
     println(io, "Observations: $(length(obj)); ", obj.dosetime)
     println(io,  obj.kelrange)
     PrettyTables.pretty_table(io, metida_table(obj.time, obj.obs; names = (:Time, :Concentration)); tf = PrettyTables.tf_compact)

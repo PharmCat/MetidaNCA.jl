@@ -15,6 +15,19 @@ struct KelData{S<:Number,E<:Number}
     end
 end
 
+function resize!(keldata::KelData)
+    resize!(keldata, 0)
+end
+function resize!(keldata::KelData, i::Int)
+    resize!(keldata.s, i)
+    resize!(keldata.e, i)
+    resize!(keldata.a, i)
+    resize!(keldata.b, i)
+    resize!(keldata.r, i)
+    resize!(keldata.ar, i)
+    keldata
+end
+
 function Base.push!(keldata::KelData, s, e, a, b, r, ar)
     push!(keldata.s, s)
     push!(keldata.e, e)

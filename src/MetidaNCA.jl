@@ -5,7 +5,7 @@ module MetidaNCA
 
 using RecipesBase
 
-import Base: ht_keyindex, length, length, push!
+import Base: ht_keyindex, length, length, push!, resize!
 import MetidaBase
 import MetidaBase: Tables, StatsBase,
 PrettyTables,
@@ -40,6 +40,7 @@ const LOG2 = log(2)
     include("nca.jl")
     include("plots.jl")
     include("metidatable.jl")
+    include("timefilter.jl")
 
 
 end # module

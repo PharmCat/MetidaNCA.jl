@@ -1,13 +1,22 @@
 # Pharmacokinetics
 # Makoid C, Vuchetich J, Banakar V. 1996-1999. Basic Pharmacokinetics.
 
-function firstobs(time::Vector{T}, obs::Vector, dosetime) where T <: Number
+function validobsn(time::Vector{<:Number}, obs::Vector)
+    if length(time) != length(obs) error("Vector length `time` not equal `obs`") end
+    n = 0
+    @inbounds for i = 1:length(time)
+        if !isnanormissing(time[i]) && !isnanormissing(obs[i]) n+=1 end
+    end
+    n
+end
+
+function firstobs(time::Vector{<:Number}, obs::Vector, dosetime)
     @inbounds for i = 1:length(time)
         if time[i] >= dosetime && !isnanormissing(obs[i]) return i end
     end
     error("Observations not found")
 end
-function firstobs(time::Vector{T}, obs, vol, dosetime) where T <: Tuple
+function firstobs(time::Vector{<:Tuple}, obs, vol, dosetime)
     @inbounds for i = 1:length(time)
         if time[i][1] >= dosetime && !isnanormissing(obs[i]) && !isnanormissing(vol[i]) return i end
     end
@@ -240,7 +249,7 @@ function step_1_filterpksubj(time, obs, dosetime)
     obs_cp  = obs[inds]
     time_cp, obs_cp
 end
-=#
+=##=
 function dropkeldata!(keldata::KelData)
     if length(keldata.s) > 0 resize!(keldata.s, 0) end
     if length(keldata.e) > 0 resize!(keldata.e, 0) end
@@ -249,9 +258,10 @@ function dropkeldata!(keldata::KelData)
     if length(keldata.r) > 0 resize!(keldata.r, 0) end
     if length(keldata.ar) > 0 resize!(keldata.ar, 0) end
 end
+=#
 # 3
 function step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, time, keldata)
-    dropkeldata!(keldata)
+    resize!(keldata)
     obsnum = length(time_cp)
     excltime = time[data.kelrange.kelexcl]
     #keldata                = KelData()
@@ -453,6 +463,7 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
     end
 ################################################################################
     # STEP 1 FILTER ALL BEFORE DOSETIME AND ALL NAN OR MISSING VALUES
+    if validobsn(time, obs) == 0 return NCAResult(data, options, result) end
     time_cp, obs_cp = step_1_filterpksubj!(time, obs, data.dosetime.time)
     if length(obs_cp) < 2
         return NCAResult(data, options, result)
@@ -537,7 +548,14 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
     #-----------------------------------------------------------------------
     #-----------------------------------------------------------------------
     tlagn = findfirst(!iszero, obs_cp)
-    if tlagn > 1 result[:Tlag] = time_cp[tlagn-1] else result[:Tlag] = zero(Float64) end
+
+    if isnothing(tlagn)
+        result[:Tlag] = NaN
+    elseif tlagn > 1
+        result[:Tlag] = time_cp[tlagn-1]
+    else
+        result[:Tlag] = 0.0
+    end
 
     if  length(data.keldata) > 0
         #data.keldata             = keldata
@@ -646,9 +664,9 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
                 end
             end
         end
-        hnames = (["Time" "Concentrtion" "AUC"  "AUC" "AUMC" "AUMC" "Info"],
-                  ["" "" "" "(cumulate)" "" "(cumulate)" ""])
-        PrettyTables.pretty_table(io, mx; tf = PrettyTables.tf_compact, header = hnames)
+        hnames = (["Time" "Conc." "AUC"  "AUC" "AUMC" "AUMC" "Info"],
+                  ["" "" "" "(cum.)" "" "(cum.)" ""])
+        PrettyTables.pretty_table(io, mx; tf = PrettyTables.tf_compact, header = hnames, formatters = PrettyTables.ft_printf("%3.4g"))
         println(io, "")
         println(io, "    Cdose: $(result[:Cdose]), Dose time: $(data.dosetime.time)")
         println(io, "    Kel start: $(keldata.s[rsqn]); end: $(keldata.e[rsqn])")
@@ -662,7 +680,7 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
         end
         if verbose > 1
             println(io, "    Results:")
-            PrettyTables.pretty_table(io, result; tf = PrettyTables.tf_compact)
+            PrettyTables.pretty_table(io, result; tf = PrettyTables.tf_compact, formatters = PrettyTables.ft_printf("%4.6g"))
         end
     end
 ################################################################################

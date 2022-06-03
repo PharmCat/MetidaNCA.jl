@@ -1464,5 +1464,13 @@ end
 
 end
 
+@testset "  timefilter                                               " begin
+    io = IOBuffer();
+    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
+    ds2 = MetidaNCA.timefilter(ds, (0.75, 24))
+    @test minimum(ds2[1].time) >= 0.75
+    @test maximum(ds2[1].time) <= 24
+end
+
 include("upktest.jl")
 include("pdtest.jl")
