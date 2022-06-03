@@ -10,7 +10,7 @@ RecipesBase = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
 
 [compat]
 
-MetidaBase = "0.5.1"
+MetidaBase = "0.5.1, 0.5.2"
 RecipesBase = "1"
 julia = "1"
 
