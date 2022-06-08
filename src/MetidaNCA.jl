@@ -5,7 +5,7 @@ module MetidaNCA
 
 using RecipesBase
 
-import Base: ht_keyindex, length, length, push!, resize!
+import Base: length, length, push!, resize!
 import MetidaBase
 import MetidaBase: Tables, StatsBase,
 PrettyTables,

@@ -179,7 +179,7 @@ struct LimitRule{T<:Real}
     function LimitRule(lloq::T, btmax, atmax, nan, rm::Bool) where T <: Real
         new{T}(lloq, btmax, atmax, nan, rm)::LimitRule
     end
-    function LimitRule(;lloq = NaN, btmax = NaN, atmax = NaN, nan = NaN, rm::Bool = false)
+    function LimitRule(;nan = NaN, lloq = NaN, btmax = NaN, atmax = NaN,  rm::Bool = false)
         LimitRule(lloq, btmax, atmax, nan, rm)
     end
 end

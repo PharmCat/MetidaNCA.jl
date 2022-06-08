@@ -321,12 +321,14 @@ function step_6_areas(time_cp, obs_cp, calcm, tmaxn, tlastn)
 
     #-----------------------------------------------------------------------
     #-----------------------------------------------------------------------
-    auclast  = 0
-    aumclast = 0
+    auclast  = 0.0
+    aumclast = 0.0
     @inbounds for i = 1:tlastn-1
         auclast  += aucpartl[i]
         aumclast += aumcpartl[i]
     end
+    if auclast == 0.0 auclast = NaN end
+    if aumclast == 0.0 aumclast = NaN end    
     aucall  = auclast
     if tlastn < length(time_cp)
         @inbounds for i = tlastn:obsnum-1

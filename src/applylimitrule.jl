@@ -63,6 +63,7 @@ end
     applylimitrule!(time, obs, rule::LimitRule)
 """
 function applylimitrule!(time, obs, rule::LimitRule)
+    if validobsn(time, obs) == 0 return Float64[], Float64[] end
     cmax, tmax, tmaxn = ctmax(time, obs)
     #NaN Rule
     obsn = length(obs)
