@@ -63,7 +63,7 @@ keywords:
     If time column have non-unique values - last pair time-concentration will be used.
 
 """
-function pkimport(data, time, conc, sort; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
+function pkimport(data, time, conc, sort; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), limitrule::Union{Nothing, LimitRule} = nothing)
     if isa(sort, String) sort = [Symbol(sort)] end
     if isa(sort, Symbol) sort = [sort] end
 
@@ -104,25 +104,33 @@ function pkimport(data, time, conc, sort; kelauto = true,  elimrange = ElimRange
         sdata[i] = PKSubject(timevals_sp, concvals_sp, kelauto, elimrange,  dosetime, Dict(sort .=> k))
         i += one(Int)
     end
-    return DataSet(identity.(sdata))
+    ds = DataSet(identity.(sdata))
+    if !isnothing(limitrule)
+        applylimitrule!(ds, limitrule)
+    end
+    ds
 end
 """
     pkimport(data, time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
 
 Import PK data from tabular data `data`, `time` - time column, `conc` - concentration column.
 """
-function pkimport(data, time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
+function pkimport(data, time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), limitrule::Union{Nothing, LimitRule} = nothing)
     timevals_sp, concvals_sp = checkvalues(copy(Tables.getcolumn(data, time)), copy(Tables.getcolumn(data, conc)))
-    pkimport(timevals_sp, concvals_sp; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime)
+    pkimport(timevals_sp, concvals_sp; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime, limitrule = limitrule)
 end
 """
     pkimport(time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), id = Dict{Symbol, Any}())
 
 Import PK data from time vector `time` and concentration vector `conc`.
 """
-function pkimport(time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), id = Dict{Symbol, Any}())
+function pkimport(time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing)
     timevals_sp, concvals_sp = checkvalues(copy(time), copy(conc))
-    PKSubject(timevals_sp, concvals_sp, kelauto, elimrange,  dosetime, id)
+    pks = PKSubject(timevals_sp, concvals_sp, kelauto, elimrange,  dosetime, id)
+    if !isnothing(limitrule)
+        applylimitrule!(pks, limitrule)
+    end
+    pks
 end
 
 

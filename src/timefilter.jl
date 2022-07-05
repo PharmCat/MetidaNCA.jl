@@ -1,19 +1,41 @@
 
 """
-    timefilter(data_::DataSet{<: PKSubject}, time::Tuple{<:Number, <:Number})
-
-Make copy of the data_ and remove all observations < time[1] or > time[2]. Then resize keldata to 0.
+    timefilter(subj::PKSubject, time::AbstractRange)
 """
-function timefilter(data_::DataSet{<: PKSubject}, time::Tuple{<:Number, <:Number})
-    data = deepcopy(data_)
-    for subj in data
-        inds = Int[]
-        for n = 1:length(subj)
-            if subj.time[n] < time[1] || subj.time[n] > time[2] push!(inds, n) end
-        end
-        deleteat!(subj.time, inds)
-        deleteat!(subj.obs, inds)
-        resize!(subj.keldata, 0)
+function timefilter(subj::PKSubject, time::AbstractRange)
+    subj_ = deepcopy(subj)
+    inds = Int[]
+    for n = 1:length(subj_)
+        if !(subj_.time[n] in time) push!(inds, n) end
     end
-    data
+    deleteat!(subj_.time, inds)
+    deleteat!(subj_.obs, inds)
+    resize!(subj_.keldata, 0)
+    if !(subj_.kelrange.kelstart in time) || !(subj_.kelrange.kelend in time) || any(x-> !(x in time), subj_.kelrange.kelexcl)
+        subj_.kelrange = ElimRange()
+        subj_.kelauto = true
+    end
+    subj_
+end
+
+"""
+    timefilter(subj::PKSubject, time::Tuple{<:Number, <:Number})
+
+Make deepcopy of subj and remove all observations < time[1] or > time[2]. Then resize keldata to 0.
+
+If any of points in elimination rage not in min/max time, then elimination settings reset.
+"""
+function timefilter(subj::PKSubject, time::Tuple{<:Number, <:Number})
+    timefilter(subj, range(time[1], time[2]))
+end
+"""
+    timefilter(data::DataSet{<: PKSubject}, time)
+"""
+function timefilter(data::DataSet{<: PKSubject}, time)
+    subj  = getdata(data)
+    data_ = similar(subj)
+    for i in 1:length(subj)
+        data_[i] = timefilter(subj[i], time)
+    end
+    DataSet(data_)
 end
