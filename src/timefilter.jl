@@ -1,6 +1,8 @@
 
 """
     timefilter(subj::PKSubject, time::AbstractRange)
+
+Exclude all observation than not in time range.
 """
 function timefilter(subj::PKSubject, time::AbstractRange)
     subj_ = deepcopy(subj)
@@ -26,10 +28,12 @@ Make deepcopy of subj and remove all observations < time[1] or > time[2]. Then r
 If any of points in elimination rage not in min/max time, then elimination settings reset.
 """
 function timefilter(subj::PKSubject, time::Tuple{<:Number, <:Number})
-    timefilter(subj, range(time[1], time[2]))
+    timefilter(subj, LinRange(time[1], time[2], 2))
 end
 """
     timefilter(data::DataSet{<: PKSubject}, time)
+
+Make new DataSet with new filtered subjects.
 """
 function timefilter(data::DataSet{<: PKSubject}, time)
     subj  = getdata(data)

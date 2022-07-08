@@ -1,16 +1,6 @@
 # API
 
-### pkimport
-
-```@docs
-MetidaNCA.pkimport
-```
-
-### upkimport
-
-```@docs
-MetidaNCA.upkimport
-```
+## Main
 
 ### nca!
 
@@ -24,22 +14,24 @@ MetidaNCA.nca!
 MetidaNCA.nca
 ```
 
+### pkimport
+
+```@docs
+MetidaNCA.pkimport
+```
+
+### upkimport
+
+```@docs
+MetidaNCA.upkimport
+```
+
+## Types
+
 ### DoseTime
 
 ```@docs
 MetidaNCA.DoseTime
-```
-
-### setdosetime!
-
-```@docs
-MetidaNCA.setdosetime!
-```
-
-### setkelauto!
-
-```@docs
-MetidaNCA.setkelauto!
 ```
 
 ### ElimRange
@@ -48,10 +40,18 @@ MetidaNCA.setkelauto!
 MetidaNCA.ElimRange
 ```
 
-### setkelrange!
+### LimitRule
 
 ```@docs
-MetidaNCA.setkelrange!
+MetidaNCA.LimitRule
+```
+
+## Functions
+
+### applylimitrule!
+
+```@docs
+MetidaNCA.applylimitrule!
 ```
 
 ### getdosetime
@@ -72,20 +72,32 @@ MetidaNCA.getkelauto
 MetidaNCA.getkelrange
 ```
 
-### LimitRule
-
-```@docs
-MetidaNCA.LimitRule
-```
-
-### applylimitrule!
-
-```@docs
-MetidaNCA.applylimitrule!
-```
-
 ### pkplot
 
 ```@docs
 MetidaNCA.pkplot
+```
+
+### setdosetime!
+
+```@docs
+MetidaNCA.setdosetime!
+```
+
+### setkelauto!
+
+```@docs
+MetidaNCA.setkelauto!
+```
+
+### setkelrange!
+
+```@docs
+MetidaNCA.setkelrange!
+```
+
+### timefilter
+
+```@docs
+MetidaNCA.timefilter
 ```

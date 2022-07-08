@@ -1470,6 +1470,10 @@ end
     ds2 = MetidaNCA.timefilter(ds, (0.75, 24))
     @test minimum(ds2[1].time) >= 0.75
     @test maximum(ds2[1].time) <= 24
+
+    ds2 = MetidaNCA.timefilter(ds, LinRange(0.75, 24, 2))
+    @test minimum(ds2[1].time) >= 0.75
+    @test maximum(ds2[1].time) <= 24
 end
 
 include("upktest.jl")

@@ -328,7 +328,7 @@ function step_6_areas(time_cp, obs_cp, calcm, tmaxn, tlastn)
         aumclast += aumcpartl[i]
     end
     if auclast == 0.0 auclast = NaN end
-    if aumclast == 0.0 aumclast = NaN end    
+    if aumclast == 0.0 aumclast = NaN end
     aucall  = auclast
     if tlastn < length(time_cp)
         @inbounds for i = tlastn:obsnum-1
@@ -671,7 +671,11 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
         PrettyTables.pretty_table(io, mx; tf = PrettyTables.tf_compact, header = hnames, formatters = PrettyTables.ft_printf("%3.4g"))
         println(io, "")
         println(io, "    Cdose: $(result[:Cdose]), Dose time: $(data.dosetime.time)")
-        println(io, "    Kel start: $(keldata.s[rsqn]); end: $(keldata.e[rsqn])")
+        if isnan(result[:Kel])
+            println(io, "    Elimination not calculated")
+        else
+            println(io, "    Kel start: $(keldata.s[rsqn]); end: $(keldata.e[rsqn])")
+        end
         println(io, "")
         if data.dosetime.tau < time_cp[end] && data.dosetime.tau > 0
             println(io, "    Tau + dosetime is less then end time. Interpolation used.")
