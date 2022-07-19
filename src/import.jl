@@ -44,7 +44,11 @@ function checkvalues(timevals_sp, concvals_sp)
 end
 
 """
-    pkimport(data, time, conc, sort; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
+    pkimport(data, time, conc, sort;
+    kelauto = true,
+    elimrange = ElimRange(),
+    dosetime = DoseTime(),
+    limitrule::Union{Nothing, LimitRule} = nothing)
 
 Import PK data from table `data`.
 
@@ -56,7 +60,8 @@ keywords:
 
 * `kelauto` - if `true` auto range settings, if `false` used `kelstart`/`kelend` from `elimrange`;
 * `elimrange` - set elimination range settings;
-* `dosetime` - set dose and dose time, by default dosetime = 0, dose is `NaN`.
+* `dosetime` - set dose and dose time, by default dosetime = 0, dose is `NaN`;
+* `limitrule` - apply limitrule to subject.
 
 !!! note
 
@@ -111,7 +116,11 @@ function pkimport(data, time, conc, sort; kelauto = true,  elimrange = ElimRange
     ds
 end
 """
-    pkimport(data, time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
+    pkimport(data, time, conc;
+    kelauto = true,
+    elimrange = ElimRange(),
+    dosetime = DoseTime(),
+    limitrule::Union{Nothing, LimitRule} = nothing)
 
 Import PK data from tabular data `data`, `time` - time column, `conc` - concentration column.
 """
