@@ -134,8 +134,6 @@ function pkplot(subj::AbstractSubject; ls = false, elim = false, xticksn = :auto
     kwargs = Dict{Symbol, Any}(kwargs)
     k = keys(kwargs)
 
-
-
     if !(:plotstyle in k)
         kwargs[:linestyle], kwargs[:linecolor], kwargs[:markershape],  kwargs[:markercolor]  = PKPLOTSTYLE[1]
     else
@@ -144,23 +142,48 @@ function pkplot(subj::AbstractSubject; ls = false, elim = false, xticksn = :auto
     if !(:title in k)
         kwargs[:title] = plotlabel(subj.id)
     end
-    if !(:xlims in k)
-        kwargs[:xlims] = (minimum(subj.time) < 0 ? minimum(subj.time) : 0, maximum(subj.time)*1.1)
-    end
-    if !(:ylims in k)
-        kwargs[:ylims] = (minimum(subj.obs) < 0 ? minimum(subj.obs) : 0, maximum(subj.obs)*1.15)
-    end
     if !(:legend in k)
         kwargs[:legend] = true
     end
     if !(:ylabel in k)
         kwargs[:ylabel] = "Concentration"
     end
-    if :yscale in k
-        if kwargs[:yscale] in [:ln, :log, :log2, :log10] ls = true end
+    if !(:xlims in k)
+        kwargs[:xlims] = (minimum(subj.time), maximum(subj.time)*1.1)
     end
+    if :yscale in k
+        if kwargs[:yscale] in [:ln, :log, :log2, :log10]
+            ls = false
+            if !(:minorticks in k) kwargs[:minorticks] = true end
+
+            inds = findall(x-> x > 0, subj.obs)
+            time = subj.time[inds]
+            obs  = subj.obs[inds]
+            if !(:yticks in k)
+                if kwargs[:yscale] == :log10
+                    b = 10
+                elseif kwargs[:yscale] == :log2
+                    b = 2
+                elseif kwargs[:yscale] == :ln || kwargs[:yscale] == :log
+                    b = ℯ
+                end
+                t = collect(floor(log(b, minimum(obs))):ceil(log(b, maximum(obs))))
+                pushfirst!(t, first(t) - 1)
+                kwargs[:yticks] = b .^ t
+
+            end
+            if !(:ylims in k)
+                kwargs[:ylims] = (b ^ floor(log(b, minimum(obs)*0.8)), maximum(obs)*1.3)
+            end
+        end
+    else
+        if !(:ylims in k)
+            kwargs[:ylims] = (minimum(subj.obs), maximum(subj.obs)*1.15)
+        end
+    end
+
     if ls == true
-        inds = findall(x->x>0, subj.obs)
+        inds = findall(x-> x > 0, subj.obs)
         time = subj.time[inds]
         obs = log.(subj.obs[inds])
         if (:ylims in k)
@@ -176,7 +199,6 @@ function pkplot(subj::AbstractSubject; ls = false, elim = false, xticksn = :auto
             lzint     = subj.keldata.b[rsqn]
             ts        = subj.keldata.s[rsqn]
             te        = subj.keldata.e[rsqn]
-
             if ls true
                 x = [ts, te]
                 y = [lzint + lz * x[1], lzint + lz * x[2]]
@@ -200,24 +222,49 @@ function pkplot!(subj; ls = false, elim = false, xticksn = :auto, yticksn = :aut
     else
         kwargs[:linestyle], kwargs[:linecolor], kwargs[:markershape],  kwargs[:markercolor]  = kwargs[:plotstyle]
     end
-    if !(:xlims in k)
-        kwargs[:xlims] = (minimum(subj.time), maximum(subj.time)*1.1)
-    end
-    if !(:ylims in k)
-        kwargs[:ylims] = (minimum(subj.obs), maximum(subj.obs)*1.15)
-    end
+
     if !(:legend in k)
         kwargs[:legend] = true
     end
-    if :yscale in k
-        if kwargs[:yscale] in [:ln, :log, :log2, :log10] ls = true end
+    if !(:xlims in k)
+        kwargs[:xlims] = (minimum(subj.time), maximum(subj.time)*1.1)
     end
+    if :yscale in k
+        if kwargs[:yscale] in [:ln, :log, :log2, :log10]
+            ls = false
+            if !(:minorticks in k) kwargs[:minorticks] = true end
+            inds = findall(x-> x > 0, subj.obs)
+            time = subj.time[inds]
+            obs  = subj.obs[inds]
+            if !(:yticks in k)
+                if kwargs[:yscale] == :log10
+                    b = 10
+                elseif kwargs[:yscale] == :log2
+                    b = 2
+                elseif kwargs[:yscale] == :ln || kwargs[:yscale] == :log
+                    b = ℯ
+                end
+                t = collect(floor(log(b, minimum(obs))):ceil(log(b, maximum(obs))))
+                pushfirst!(t, first(t) - 1)
+                kwargs[:yticks] = b .^ t
+
+            end
+            if !(:ylims in k)
+                kwargs[:ylims] = (b ^ floor(log(b, minimum(obs)*0.8)), maximum(obs)*1.3)
+            end
+        end
+    else
+        if !(:ylims in k)
+            kwargs[:ylims] = (minimum(subj.obs), maximum(subj.obs)*1.15)
+        end
+    end
+
     if ls == true
-        inds = findall(x->x>0, subj.obs)
+        inds = findall(x-> x > 0, subj.obs)
         time = subj.time[inds]
         obs = log.(subj.obs[inds])
         if (:ylims in k)
-            kwargs[:ylims] = (0,log(kwargs[:ylims][2]))
+            kwargs[:ylims] = (0, log(kwargs[:ylims][2]))
         end
     end
 
@@ -231,27 +278,20 @@ function pageplot(data, id, ulist; kwargs...)
     if !(:title in k)
         kwargs[:title] = plotlabel(id)
     end
-    #=
-    if !(:xticksn in k)
-        kwargs[:xticksn] = 6
-    end
-    if !(:yticksn in k)
-        kwargs[:yticksn] = 5
-    end
-    =#
-    #utypes    = keys(styledict)
+
     fst       = true
     p         = nothing
     labvec    = Vector{Int}(undef, 0)
     # Make subdata by ID
     isnothing(id) ? subdata   = data : subdata   = subset(data, id)
     # Y lims
-    if !(:ylims in k)
+
+    if !(:ylims in k) && length(subdata) > 1
         kwargs[:ylims] = (findmin(x->minconc(x), getdata(subdata))[1], findmax(x->maxconc(x), getdata(subdata))[1]*1.15)
     end
     # Plotting subdata
+    if length(subdata) > 1 kwargs[:elim] = false end
     for subj in subdata
-        #if isnothing(id) || id ⊆ subj.id
             if !isnothing(ulist)
                 num = findfirst(x-> x ⊆ subj.id, ulist)
                 style = plotstyle(num)
@@ -270,8 +310,6 @@ function pageplot(data, id, ulist; kwargs...)
             else
                 pkplot!(subj; plotstyle = style, kwargs...)
             end
-
-        #end
     end
     p
 end
@@ -281,18 +319,21 @@ end
     typesort::Union{Nothing, Symbol, AbstractVector{Symbol}} = nothing,
     pagesort::Union{Nothing, Symbol, AbstractVector{Symbol}} = nothing,
     sort::Union{Nothing, Dict{Symbol}} = nothing,
+    uylims::Bool = false,
     kwargs...) where T <: AbstractSubject
 
 PK plot for subject set.
 
 * `typesort` - sort on page by this id key;
 * `pagesort` - different pages by this id key;
-* `sort` - use only subjects if sort ⊆ subject id.
+* `sort` - use only subjects if sort ⊆ subject id;
+* `uylims` - same ylims for all dataset.
 """
 function pkplot(data::DataSet{T};
     typesort::Union{Nothing, Symbol, AbstractVector{Symbol}} = nothing,
     pagesort::Union{Nothing, Symbol, AbstractVector{Symbol}} = nothing,
     sort::Union{Nothing, Dict{Symbol}} = nothing,
+    uylims::Bool = false,
     kwargs...) where T <: AbstractSubject
 
     kwargs = Dict{Symbol, Any}(kwargs)
@@ -303,14 +344,9 @@ function pkplot(data::DataSet{T};
     if !(:elim in k)
         kwargs[:elim] = false
     end
-    #=
-    if !(:xticksn in k)
-        kwargs[:xticksn] = :auto
+    if uylims && !(:ylims in k)
+        kwargs[:ylims] = (findmin(x -> minconc(x), getdata(data))[1], findmax(x -> maxconc(x), getdata(data))[1]*1.15)
     end
-    if !(:yticksn in k)
-        kwargs[:yticksn] = :auto
-    end
-    =#
     if !isnothing(sort) data = subset(data, sort) end
 
     if isnothing(typesort) && isnothing(pagesort)
@@ -343,7 +379,6 @@ function pkplot(data::DataSet{T};
     end
 
     if !isnothing(pagesort)
-        kwargs[:elim] = false
         if isa(pagesort, Symbol) pagesort = [pagesort] end
         p = []
         pagelist = uniqueidlist(data, pagesort)
