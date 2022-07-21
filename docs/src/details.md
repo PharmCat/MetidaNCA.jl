@@ -2,18 +2,18 @@
 
 ## Step 1
 
-Filter all values before dose time and `NaN` or `missing` values. If TAU set, calculate start and end timepoints for AUCtau.
+Filter all values before dose time and `NaN` or `missing` values after last measurable concentration. If TAU set, calculate start and end timepoints for AUCtau.
 
 ## Step 2
 
-Cmax, Tmax calculation.
+Cmax, Tmax calculation. Interpolate `NaN` and `missing` values.
 
 !!! note
     If more than one maximum - only first observation used for define Tmax.
 
 ## Step 3
 
-Elimination parameters calculation.
+Exclude interpolated points from calculation (add to excltime). Elimination parameters calculation. 
 
 !!! note
     If `kelauto` is `true` than range of observations for elimination will start from Tmax if administration set as `iv`, and from next observation after Tmax in other cases.

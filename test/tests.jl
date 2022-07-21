@@ -103,8 +103,12 @@ include("refdicts.jl")
     @test  sbj[:AUClast]  ≈ dsncafromds[:AUClast]
 
     # Missing NaN
-    dsncafromds =  MetidaNCA.nca(missingpk, :Time, :Concentration)
+    dsncafromds =  MetidaNCA.nca(missingpk, :Time, :Concentration, io = io, verbose = 2)
     @test  sbj[:AUClast]  ≈ dsncafromds[:AUClast]
+
+    dsncafromds =  MetidaNCA.nca(missingpk, :Time, :Concentration, intpm = :luld, io = io, verbose = 2)
+    @test dsncafromds[:AUClast] ≈ 9585.189297075749
+
 
     dsncafromds =  MetidaNCA.nca(missingpk, :Time, :Concentration;
     limitrule = MetidaNCA.LimitRule(;lloq = 0, btmax = 0, atmax = NaN, nan = NaN, rm = true))

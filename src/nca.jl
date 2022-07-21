@@ -38,7 +38,7 @@ function ctmax(time::AbstractVector, obs::AbstractVector{T}, taulastp) where T
     if length(obs) == 1 return cmax, first(time), tmaxn end
     taulastp > length(obs) && error("taulastp > length(obs")
     @inbounds for i = 2:taulastp
-        if obs[i] > cmax
+        if !isnanormissing(obs[i]) && obs[i] > cmax
             cmax  = obs[i]
             tmaxn = i
         end
@@ -219,16 +219,44 @@ function step_1_filterpksubj!(time, obs, dosetime)
     else
         inds = Vector{Int}(undef, 0)
     end
+    if length(inds) > 0
+        deleteat!(time, inds)
+        deleteat!(obs, inds)
+    end
+    inds = findall(isnanormissing, obs)
+    #=
     @inbounds for i = fobs:length(obs)
         if isnanormissing(obs[i])
             push!(inds, i)
         end
     end
+    =#
     if length(inds) > 0
-        deleteat!(time, inds)
-        deleteat!(obs, inds)
+        li   = findlast(!isnanormissing, obs)
+        excl = findall(x -> x > li, inds)
+        if length(excl) > 0
+            deleteat!(time, inds[excl])
+            deleteat!(obs, inds[excl])
+            deleteat!(inds, excl)
+        end
     end
-    time, obs
+    time, obs, inds
+end
+#2
+
+function step_2_interpolate!(time, obs::AbstractVector{T}, inds, tmaxn, intpm) where T
+    if length(inds) > 0
+        vals = Vector{T}(undef, length(inds))
+        for i = 1:length(inds)
+            aftertmax = inds[i] > tmaxn
+            i₁ = findlast(!isnanormissing, obs[1:inds[i] - 1])
+            i₂ = findfirst(!isnanormissing, obs[inds[i] + 1:end]) + inds[i]
+            vals[i] = interpolate(time[i₁], time[i₂], time[inds[i]], obs[i₁], obs[i₂], intpm, aftertmax)
+        end
+        for i = 1:length(inds)
+            obs[inds[i]] = vals[i]
+        end
+    end
 end
 #=
 function step_1_filterpksubj(time, obs, dosetime)
@@ -436,6 +464,8 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
 
     result   = Dict{Symbol, Float64}()
 
+    if isnothing(intpm) intpm = calcm end
+
     options =  Dict(:type => :bps, :adm => adm, :calcm => calcm, :intpm => intpm, :limitrule => limitrule, :verbose => verbose, :warn => warn, :modify! => modify!)
 
     if verbose > 0
@@ -453,7 +483,6 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
             println(io, "    Tau: $(data.dosetime.tau)")
         end
     end
-    if isnothing(intpm) intpm = calcm end
 
     auctype  = promote_type(eltype(data.time), eltype(data.obs))
 
@@ -466,12 +495,12 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
 ################################################################################
     # STEP 1 FILTER ALL BEFORE DOSETIME AND ALL NAN OR MISSING VALUES
     if validobsn(time, obs) == 0 return NCAResult(data, options, result) end
-    time_cp, obs_cp = step_1_filterpksubj!(time, obs, data.dosetime.time)
+    time_cp, obs_cp, einds = step_1_filterpksubj!(time, obs, data.dosetime.time)
     if length(obs_cp) < 2
         return NCAResult(data, options, result)
     end
 ################################################################################
-    # STEP 2 - CMAX TMAX FOR TAU RANGE Clast Tlast
+    # STEP 2 - CMAX TMAX FOR TAU RANGE Clast Tlast; interpolate NaN and missings
     result[:Obsnum] = obsnum = length(obs_cp)
     # If TAU set, calculates start and end timepoints for AUCtau
     if  data.dosetime.tau > zero(typeof(data.dosetime.tau))
@@ -481,6 +510,9 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
         taulastp = length(obs_cp)
     end
     result[:Cmax], result[:Tmax], tmaxn = ctmax(time_cp, obs_cp, taulastp)
+
+    step_2_interpolate!(time_cp, obs_cp, einds, tmaxn, intpm)
+
     # C last and T last
     tlastn = 0
     @inbounds for i = length(obs_cp):-1:1
@@ -493,7 +525,15 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
     end
 ################################################################################
     # STEP 3
-    # Elimination
+    # Elimination, add interpolated inds to elimination exclusion
+
+    if length(einds) > 0
+        for ei in einds
+            if time_cp[ei] ∉ data.kelrange.kelexcl push!(data.kelrange.kelexcl, time_cp[ei]) end
+        end
+        sort!(data.kelrange.kelexcl)
+    end
+
     keldata, excltime = step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, data.time, data.keldata)
 ################################################################################
     # STEP 4
@@ -664,6 +704,9 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
                         mx[i, 7] = "E"
                     end
                 end
+                if i in einds
+                    mx[i, 7] *= "@"
+                end
             end
         end
         hnames = (["Time" "Conc." "AUC"  "AUC" "AUMC" "AUMC" "Info"],
@@ -675,6 +718,9 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
             println(io, "    Elimination not calculated")
         else
             println(io, "    Kel start: $(keldata.s[rsqn]); end: $(keldata.e[rsqn])")
+        end
+        if length(einds) > 0
+            println(io, "    @ - Interpolated points ($(length(einds)))")
         end
         println(io, "")
         if data.dosetime.tau < time_cp[end] && data.dosetime.tau > 0

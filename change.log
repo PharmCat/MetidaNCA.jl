@@ -1,3 +1,8 @@
+0.3.0
+  - interpolate NaN and Missing when possible.
+  - better plotting log10
+  - docs update
+
 0.2.3
   - timefilter
   - changes in plotting
