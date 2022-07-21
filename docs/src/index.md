@@ -8,6 +8,8 @@ Non-compartment pharmacokinetic analysis (NCA).
 
 *This program comes with absolutely no warranty. No liability is accepted for any loss and risk to public health resulting from use of this software.
 
+*Always validate software with known results before use.
+
 ## NCA
 
 Pharmacokinetics, sometimes abbreviated as PK, is a branch of pharmacology dedicated to determine the fate of substances administered to a living organism.
