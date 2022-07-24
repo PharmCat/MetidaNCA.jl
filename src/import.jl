@@ -243,7 +243,7 @@ function upkimport(stime, etime, conc, vol; kelauto = true,  elimrange = ElimRan
 end
 
 
-function pdimport(data, time, obs, sort; bl = 0, th = NaN)
+function pdimport(data, time, obs, sort; bl = 0, th = 0)
     if isa(sort, String) sort = [Symbol(sort)] end
     if isa(sort, Symbol) sort = [sort] end
 

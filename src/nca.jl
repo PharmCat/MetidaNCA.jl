@@ -77,6 +77,9 @@ function ctmax(data::PKSubject)
     return cmax, data.time[tmaxn], tmaxn
 end
 
+function logtpredict(c₁, c₂, cx, t₁, t₂)
+    return log(cx/c₁)/log(c₂/c₁)*(t₂-t₁)+t₁
+end
 
 function logcpredict(t₁, t₂, tx, c₁, c₂)
     return exp(log(c₁) + (tx-t₁)/(t₂-t₁)*(log(c₂) - log(c₁)))
@@ -158,14 +161,14 @@ function logslope(x, y)
 end #end slope
 
 #---------------------------------------------------------------------------
-function aucpart(t₁, t₂, c₁::T, c₂::T, calcm, aftertmax) where T
-    if calcm == :lint || c₁ <= zero(T) && c₂ <= zero(T)
+function aucpart(t₁, t₂, c₁, c₂, calcm, aftertmax)
+    if calcm == :lint || c₁ <= 0 && c₂ <= 0
         auc   =  linauc(t₁, t₂, c₁, c₂)
-    elseif calcm == :logt && aftertmax && c₁ > zero(T) && c₂ > zero(T)
+    elseif calcm == :logt && aftertmax && c₁ > 0 && c₂ > 0
         auc   =  logauc(t₁, t₂, c₁, c₂)
-    elseif calcm == :luld &&  c₁ > c₂ > zero(T)
+    elseif calcm == :luld &&  c₁ > c₂ > 0
         auc   =  logauc(t₁, t₂, c₁, c₂)
-    elseif calcm == :luldt && aftertmax && c₁ > c₂ > zero(T)
+    elseif calcm == :luldt && aftertmax && c₁ > c₂ > 0
         auc   =  logauc(t₁, t₂, c₁, c₂)
     #elseif calcm == :log && c₁ > zero(T) && c₂ > zero(T)
         #auc   =  logauc(t₁, t₂, c₁, c₂)
@@ -174,14 +177,14 @@ function aucpart(t₁, t₂, c₁::T, c₂::T, calcm, aftertmax) where T
     end
     return auc
 end
-function aumcpart(t₁, t₂, c₁::T, c₂::T, calcm, aftertmax) where T
-    if calcm == :lint || c₁ <= zero(T) && c₂ <= zero(T)
+function aumcpart(t₁, t₂, c₁, c₂, calcm, aftertmax)
+    if calcm == :lint || c₁ <= 0 && c₂ <= 0
         aumc  = linaumc(t₁, t₂, c₁, c₂)
-    elseif calcm == :logt && aftertmax && c₁ > zero(T) && c₂ > zero(T)
+    elseif calcm == :logt && aftertmax && c₁ > 0 && c₂ > 0
         aumc  = logaumc(t₁, t₂, c₁, c₂)
-    elseif calcm == :luld &&  c₁ > c₂ > zero(T)
+    elseif calcm == :luld &&  c₁ > c₂ > 0
         aumc  = logaumc(t₁, t₂, c₁, c₂)
-    elseif calcm == :luldt && aftertmax && c₁ > c₂ > zero(T)
+    elseif calcm == :luldt && aftertmax && c₁ > c₂ > 0
         aumc  = logaumc(t₁, t₂, c₁, c₂)
     #elseif calcm == :log && c₁ > zero(T) && c₂ > zero(T)
         #aumc  = logaumc(t₁, t₂, c₁, c₂)
@@ -191,14 +194,14 @@ function aumcpart(t₁, t₂, c₁::T, c₂::T, calcm, aftertmax) where T
     return aumc
 end
 #---------------------------------------------------------------------------
-function interpolate(t₁, t₂, tx, c₁::T, c₂::T, intpm, aftertmax) where T
-    if intpm == :lint || c₁ <= zero(T) || c₂ <= zero(T)
+function interpolate(t₁, t₂, tx, c₁, c₂, intpm, aftertmax)
+    if intpm == :lint || c₁ <= 0 || c₂ <= 0
         c = linpredict(t₁, t₂, tx, c₁, c₂)
-    elseif intpm == :logt && aftertmax && c₁ > zero(T) && c₂ > zero(T)
+    elseif intpm == :logt && aftertmax && c₁ > 0 && c₂ > 0
         c = logcpredict(t₁, t₂, tx, c₁, c₂)
-    elseif intpm == :luld && c₁ > c₂ > zero(T)
+    elseif intpm == :luld && c₁ > c₂ > 0
         c = logcpredict(t₁, t₂, tx, c₁, c₂)
-    elseif intpm == :luldt && aftertmax && c₁ > c₂ > zero(T)
+    elseif intpm == :luldt && aftertmax && c₁ > c₂ > 0
         c = logcpredict(t₁, t₂, tx, c₁, c₂)
     #elseif intpm == :log && c₁ > zero(T) && c₂ > zero(T)
         #c = logcpredict(t₁, t₂, tx, c₁, c₂)
@@ -206,6 +209,24 @@ function interpolate(t₁, t₂, tx, c₁::T, c₂::T, intpm, aftertmax) where T
         c = linpredict(t₁, t₂, tx, c₁, c₂)
     end
     return c
+end
+
+# Time interpolation
+function tinterpolate(c₁, c₂, cx, t₁, t₂, intpm, aftertmax)
+    if intpm == :lint || c₁ <= 0 || c₂ <= 0
+        t = linpredict(c₁, c₂, cx, t₁, t₂)
+    elseif intpm == :logt && aftertmax && c₁ > 0 && c₂ > 0
+        t = logtpredict(c₁, c₂, cx, t₁, t₂)
+    elseif intpm == :luld && c₁ > c₂ > 0
+        t = logtpredict(c₁, c₂, cx, t₁, t₂)
+    elseif intpm == :luldt && aftertmax && c₁ > c₂ > 0
+        t = logtpredict(c₁, c₂, cx, t₁, t₂)
+    #elseif intpm == :log && c₁ > zero(T) && c₂ > zero(T)
+        #t = logtpredict(c₁, c₂, cx, t₁, t₂)
+    else
+        t = linpredict(c₁, c₂, cx, t₁, t₂)
+    end
+    return t
 end
 
 ################################################################################
@@ -224,13 +245,6 @@ function step_1_filterpksubj!(time, obs, dosetime)
         deleteat!(obs, inds)
     end
     inds = findall(isnanormissing, obs)
-    #=
-    @inbounds for i = fobs:length(obs)
-        if isnanormissing(obs[i])
-            push!(inds, i)
-        end
-    end
-    =#
     if length(inds) > 0
         li   = findlast(!isnanormissing, obs)
         excl = findall(x -> x > li, inds)
@@ -258,35 +272,7 @@ function step_2_interpolate!(time, obs::AbstractVector{T}, inds, tmaxn, intpm) w
         end
     end
 end
-#=
-function step_1_filterpksubj(time, obs, dosetime)
-    fobs     = firstobs(time, obs, dosetime)
-    ni = 0
-    @inbounds for i = fobs:length(obs)
-        isnanormissing(obs[i]) || begin ni += 1 end
-    end
-    inds = Vector{Int}(undef, ni)
-    ni = 1
-    @inbounds for i = fobs:length(obs)
-        isnanormissing(obs[i]) || begin
-        inds[ni] = i
-        ni += 1
-        end
-    end
-    time_cp = time[inds]
-    obs_cp  = obs[inds]
-    time_cp, obs_cp
-end
-=##=
-function dropkeldata!(keldata::KelData)
-    if length(keldata.s) > 0 resize!(keldata.s, 0) end
-    if length(keldata.e) > 0 resize!(keldata.e, 0) end
-    if length(keldata.a) > 0 resize!(keldata.a, 0) end
-    if length(keldata.b) > 0 resize!(keldata.b, 0) end
-    if length(keldata.r) > 0 resize!(keldata.r, 0) end
-    if length(keldata.ar) > 0 resize!(keldata.ar, 0) end
-end
-=#
+
 # 3
 function step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, time, keldata)
     resize!(keldata)
@@ -380,13 +366,13 @@ Syntax simillar to [`pkimport`](@ref)
 
 Applicable `kwargs` see  [`nca!`](@ref).
 """
-function nca(args...; type::Symbol = :bps, th = NaN, bl = 0, kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), kwargs...)
-    if !(type in (:bps, :ur, :eff)) error("Unknown type") end
+function nca(args...; type::Symbol = :bps, bl = 0, th = 0, kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), kwargs...)
+    if !(type in (:bps, :ur, :pd)) error("Unknown type") end
     if type == :bps
         pki    = pkimport(args...; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime)
     elseif type == :ur
         pki    = upkimport(args...; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime)
-    elseif type == :eff
+    elseif type == :pd
         pki    = pdimport(args...; th = th, bl = bl)
     end
     #kwargs = Dict{Symbol, Any}(kwargs)
@@ -745,9 +731,9 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
 end
 
 """
-    nca!(data::DataSet{T1}; adm = :ev, calcm = :lint, intpm = nothing, verbose = 0, warn = true, io::IO = stdout) where T1 <: PKSubject{T,O}  where T  where O
+    nca!(data::DataSet{Subj}; adm = :ev, calcm = :lint, intpm = nothing, limitrule::LimitRule = LimitRule(), verbose = 0, warn = true, io::IO = stdout, modify! = identity) where Subj <: AbstractSubject
 
-Non-compartmental (NCA) analysis of pharmacokinetic (PK) data.
+Non-compartmental (NCA) analysis of PK/PD data.
 """
 function nca!(data::DataSet{Subj}; adm = :ev, calcm = :lint, intpm = nothing, limitrule::LimitRule = LimitRule(), verbose = 0, warn = true, io::IO = stdout, modify! = identity) where Subj <: AbstractSubject
     result = Vector{NCAResult{Subj}}(undef, length(data))
@@ -904,6 +890,130 @@ function nca!(data::UPKSubject{T, O, VOL, V}; adm = :ev, calcm = :lint, intpm = 
         result[:AUCinf]          = result[:AUClast] + result[:Rlast] / result[:Kel]
         result[:AUCpct]          = (result[:AUCinf] - result[:AUClast]) / result[:AUCinf] * 100
     end
+
+    ncares = NCAResult(data, options, result)
+    modify!(ncares)
+    #-----------------------------------------------------------------------
+    return ncares
+end
+
+
+function auctspl(c1, c2, t1, t2, sl, calcm)
+    if c1 >= sl && c2 >= sl
+        auca = aucpart(t1, t2, c1, c2, calcm, true) - (t2 - t1)*sl
+        aucb = 0.0
+        ta   = t2 - t1
+        tb   = 0.0
+    elseif c1 <= sl && c2 <= sl
+        auca = 0.0
+        aucb = (t2 - t1)*sl - aucpart(t1, t2, c1, c2, calcm, true)
+        ta   = 0.0
+        tb   = t2 - t1
+    else
+        tint = tinterpolate(c1, c2, sl, t1, t2, calcm, true)
+        l = aucpart(t1, tint, c1, sl, calcm, true)
+        r = aucpart(tint, t2, sl, c2, calcm, true)
+        if c1 > sl && c2 < sl
+            auca = l - (tint - t1)*sl
+            aucb = (t2 - tint)*sl - r
+            ta   = tint - t1
+            tb   = t2 - tint
+        elseif c1 < sl && c2 > sl
+            auca = r - (t2 - tint)*sl
+            aucb = (tint - t1)*sl - l
+            ta   = t2 - tint
+            tb   = tint - t1
+        else
+            error("!!")
+        end
+    end
+    auca, aucb, ta, tb
+end
+
+function auctblth(c1, c2, t1, t2, bl, th, calcm)
+
+    aucabl, aucbbl, tabl, tbbl = auctspl(c1, c2, t1, t2, bl, calcm)
+
+    aucath, aucbth, tath, tbth = auctspl(c1, c2, t1, t2, th, calcm)
+
+    if th > bl
+        aucbth = aucabl + aucbbl - aucath
+        btw = aucabl - aucath
+    else
+        aucath = aucabl + aucbbl - aucbth
+        btw = aucbbl - aucbth
+    end
+
+    aucabl, aucbbl, tabl, tbbl, aucath, aucbth, tath, tbth, btw
+end
+
+function nca!(data::PDSubject{T,O}; calcm = :lint, intpm = nothing, limitrule::LimitRule = LimitRule(), verbose = 0, warn = true, io::IO = stdout, modify! = identity, kwargs...) where T where O
+
+    result   = Dict{Symbol, Float64}()
+
+    if isnothing(intpm) intpm = calcm end
+
+    options =  Dict(:type => :pd, :calcm => calcm, :intpm => intpm, :limitrule => limitrule, :verbose => verbose, :warn => warn, :modify! => modify!)
+
+    if verbose > 0
+        println(io, "  Pharmacodynamic Analysis")
+        if length(data.id) > 0
+            print(io, "    Subject: ")
+            for (k,v) in data.id
+                print(io, "$(k) => $(v); ")
+            end
+            println(io, "")
+        end
+        println(io, "    Settings:")
+        println(io, "    Method: $(calcm);")
+    end
+
+    auctype  = promote_type(eltype(data.time), eltype(data.obs))
+
+    if isapplicable(limitrule)
+        time, obs = applylimitrule!(deepcopy(data.time), deepcopy(data.obs), limitrule)
+    else
+        time             = deepcopy(data.time)
+        obs              = deepcopy(data.obs)
+    end
+
+################################################################################
+    # STEP 1 FILTER ALL BEFORE DOSETIME AND ALL NAN OR MISSING VALUES
+    if validobsn(time, obs) == 0 return NCAResult(data, options, result) end
+    time_cp, obs_cp, einds = step_1_filterpksubj!(time, obs, first(time))
+    if length(obs_cp) < 2
+        return NCAResult(data, options, result)
+    end
+################################################################################
+    result[:Obsnum] = obsnum = length(obs_cp)
+
+    result[:Rmax], result[:Tmax], tmaxn = ctmax(time_cp, obs_cp, length(obs_cp))
+    # ALL NAN AND MISSING VALUES LINEAR INTERPOLATED
+    step_2_interpolate!(time_cp, obs_cp, einds, 1, :lint)
+
+    aucpartabl  = Array{Float64, 1}(undef, obsnum - 1)
+    aucpartbbl  = Array{Float64, 1}(undef, obsnum - 1)
+    aucpartath  = Array{Float64, 1}(undef, obsnum - 1)
+    aucpartbth  = Array{Float64, 1}(undef, obsnum - 1)
+    tpartabl    = Array{Float64, 1}(undef, obsnum - 1)
+    tpartbbl    = Array{Float64, 1}(undef, obsnum - 1)
+    tpartath    = Array{Float64, 1}(undef, obsnum - 1)
+    tpartbth    = Array{Float64, 1}(undef, obsnum - 1)
+    aucpartbtw  = Array{Float64, 1}(undef, obsnum - 1)
+
+    for i = 1:(obsnum - 1)
+        aucpartabl[i], aucpartbbl[i], tpartabl[i], tpartbbl[i], aucpartath[i], aucpartbth[i], tpartath[i], tpartbth[i], aucpartbtw[i] = auctblth( obs_cp[i], obs_cp[i + 1], time_cp[i], time_cp[i + 1], data.bl, data.th, calcm)
+    end
+
+    result[:AUCABL] = sum(aucpartabl)
+    result[:AUCBBL] = sum(aucpartbbl)
+    result[:AUCATH] = sum(aucpartath)
+    result[:AUCBTH] = sum(aucpartbth)
+    result[:TABL]   = sum(tpartabl)
+    result[:TBBL]   = sum(tpartbbl)
+    result[:TATH]   = sum(tpartath)
+    result[:TBTH]   = sum(tpartbth)
+    result[:AUCBTW] = sum(aucpartbtw)
 
     ncares = NCAResult(data, options, result)
     modify!(ncares)

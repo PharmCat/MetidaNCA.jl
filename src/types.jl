@@ -206,7 +206,7 @@ mutable struct UPKSubject{T <: Tuple{Number, Number}, O <: Union{Number, Missing
     end
 end
 
-# PK subject
+# PD subject
 mutable struct PDSubject{T <: Number, O <: Union{Number, Missing}, V <: Any} <: AbstractSubject
     time::Vector{T}
     obs::Vector{O}
