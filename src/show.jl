@@ -15,8 +15,8 @@ function Base.show(io::IO, obj::ElimRange)
 end
 function Base.show(io::IO, obj::KelData)
     println(io, "Elimination table:")
-    header = ["Strat time", "End time", "a", "b", "r²", "Adjusted r²"]
-    mt = metida_table(obj.s, obj.e, obj.a, obj.b, obj.r, obj.ar; names =  Tuple(Symbol.(header)))
+    header = ["Strat time", "End time", "a", "b", "r²", "Adjusted r²", "N"]
+    mt = metida_table(obj.s, obj.e, obj.a, obj.b, obj.r, obj.ar, obj.n; names =  Tuple(Symbol.(header)))
     PrettyTables.pretty_table(io, mt; tf = PrettyTables.tf_compact, header = header)
 end
 

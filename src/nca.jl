@@ -107,18 +107,18 @@ function linpredict(a₁, a₂, ax, b₁, b₂)
     return (ax - a₁) / (a₂ - a₁)*(b₂ - b₁) + b₁
 end
 
-function slope(x, y)
+function slope(x, y; funk::Function = identity)
     if length(x) != length(y) throw(ArgumentError("Unequal vector length!")) end
     n   = length(x)
     if n < 2 throw(ArgumentError("n < 2!")) end
-    Σxy::Float64 = zero(Float64)
-    Σx::Float64  = zero(Float64)
-    Σy::Float64  = zero(Float64)
-    Σx2::Float64 = zero(Float64)
-    Σy2::Float64 = zero(Float64)
+    Σxy = zero(Float64)
+    Σx  = zero(Float64)
+    Σy  = zero(Float64)
+    Σx2 = zero(Float64)
+    Σy2 = zero(Float64)
     @inbounds for i = 1:n
         xi = x[i]
-        yi = y[i]
+        yi = funk(y[i])
         Σxy += xi  * yi
         Σx  += xi
         Σy  += yi
@@ -131,17 +131,18 @@ function slope(x, y)
 
     n > 2 ? ar  = 1 - (1 - r2)*(n - 1)/(n - 2) : ar = NaN
 
-    return a, b, r2, ar
+    return a, b, r2, ar, n
 end
+#=
 function logslope(x, y)
     if length(x) != length(y) throw(ArgumentError("Unequal vector length!")) end
     n   = length(x)
     if n < 2 throw(ArgumentError("n < 2!")) end
-    Σxy::Float64 = zero(Float64)
-    Σx::Float64  = zero(Float64)
-    Σy::Float64  = zero(Float64)
-    Σx2::Float64 = zero(Float64)
-    Σy2::Float64 = zero(Float64)
+    Σxy = zero(Float64)
+    Σx  = zero(Float64)
+    Σy  = zero(Float64)
+    Σx2 = zero(Float64)
+    Σy2 = zero(Float64)
     @inbounds for i = 1:n
         xi = x[i]
         yi = log(y[i])
@@ -157,9 +158,9 @@ function logslope(x, y)
 
     n > 2 ? ar  = 1 - (1 - r2)*(n - 1)/(n - 2) : ar = NaN
 
-    return a, b, r2, ar
+    return a, b, r2, ar, n
 end #end slope
-
+=#
 #---------------------------------------------------------------------------
 function aucpart(t₁, t₂, c₁, c₂, calcm, aftertmax)
     if calcm == :lint || c₁ <= 0 && c₂ <= 0
@@ -299,7 +300,7 @@ function step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, time, keldata)
                     timepv = view(timep, i:length(timep))
                     sl = slope(view(time_cp, timepv), view(logconc, timepv))
                     if sl[1] < 0
-                        push!(keldata, time_cp[timep[i]], time_cp[timep[end]], sl[1], sl[2], sl[3], sl[4])
+                        push!(keldata, time_cp[timep[i]], time_cp[timep[end]], sl[1], sl[2], sl[3], sl[4], sl[5])
                     end
                 end
             end
@@ -316,8 +317,8 @@ function step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, time, keldata)
         zcinds = findall(x -> x <= 0, obs_cp)
         filter!(x-> x ∉ zcinds, timep)
         if length(timep) > 1
-            sl = logslope(view(time_cp, timep), view(obs_cp, timep))
-            push!(keldata, time_cp[stimep], time_cp[etimep], sl[1], sl[2], sl[3], sl[4])
+            sl = slope(view(time_cp, timep), view(obs_cp, timep), funk = log)
+            push!(keldata, time_cp[stimep], time_cp[etimep], sl[1], sl[2], sl[3], sl[4], sl[5])
         end
     end
     keldata, excltime
@@ -593,6 +594,7 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
         result[:LZ]              = keldata.a[rsqn]
         result[:LZint]           = keldata.b[rsqn]
         result[:Rsqn]            = rsqn
+        result[:NpLZ]            = keldata.n[rsqn]
         result[:Clast_pred]      = exp(result[:LZint] + result[:LZ]*result[:Tlast])
         result[:HL]              = LOG2 / result[:Kel]
         result[:AUCinf]          = result[:AUClast] + result[:Clast] / result[:Kel]
@@ -885,6 +887,7 @@ function nca!(data::UPKSubject{T, O, VOL, V}; adm = :ev, calcm = :lint, intpm = 
         result[:LZ]              = keldata.a[rsqn]
         result[:LZint]           = keldata.b[rsqn]
         result[:Rsqn]            = rsqn
+        result[:NpLZ]            = keldata.n[rsqn]
         result[:HL]              = LOG2 / result[:Kel]
 
         result[:AUCinf]          = result[:AUClast] + result[:Rlast] / result[:Kel]

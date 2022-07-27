@@ -177,6 +177,9 @@ dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
     # Adjusted Rsq
     @test round.(dsnca[:, :ARsq], digits = 6) == round.(refdict[:ARsq], digits = 6)
 
+    # NpLZ - Number points for Kel
+    @test round.(dsnca[:, :NpLZ], digits = 6) == round.(refdict[:NpLZ], digits = 6)
+
     # Kel
     @test round.(dsnca[:, :Kel], sigdigits = 6) == round.(refdict[:Kel], sigdigits = 6)
 

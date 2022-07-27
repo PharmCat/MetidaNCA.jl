@@ -7,11 +7,12 @@ struct KelData{S<:Number,E<:Number}
     b::Vector{Float64}
     r::Vector{Float64}
     ar::Vector{Float64}
-    function KelData(s::Vector{S}, e::Vector{E}, a, b, r, ar)::KelData where S <: Number where E <: Number
-        new{S, E}(s, e, a, b, r, ar)::KelData
+    n::Vector{Int}
+    function KelData(s::Vector{S}, e::Vector{E}, a, b, r, ar, n)::KelData where S <: Number where E <: Number
+        new{S, E}(s, e, a, b, r, ar, n)::KelData
     end
     function KelData()::KelData
-        KelData(Float64[], Float64[], Float64[], Float64[], Float64[], Float64[])
+        KelData(Float64[], Float64[], Float64[], Float64[], Float64[], Float64[], Int[])
     end
 end
 
@@ -25,16 +26,18 @@ function resize!(keldata::KelData, i::Int)
     resize!(keldata.b, i)
     resize!(keldata.r, i)
     resize!(keldata.ar, i)
+    resize!(keldata.n, i)
     keldata
 end
 
-function Base.push!(keldata::KelData, s, e, a, b, r, ar)
+function Base.push!(keldata::KelData, s, e, a, b, r, ar, n)
     push!(keldata.s, s)
     push!(keldata.e, e)
     push!(keldata.a, a)
     push!(keldata.b, b)
     push!(keldata.r, r)
     push!(keldata.ar, ar)
+    push!(keldata.n, n)
 end
 
 function  Base.length(keldata::KelData)

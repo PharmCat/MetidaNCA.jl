@@ -97,6 +97,10 @@ HL = ln(2) / \lambda_z
 
 Adjusted coefficient of determination (R²).
 
+### :NpLZ
+
+Number of points for elimination calculation.
+
 ### :MRTlast
 
 Mean residence time (MRT) from the dose time to the time of the last observed concentration.
