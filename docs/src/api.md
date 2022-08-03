@@ -26,6 +26,12 @@ MetidaNCA.pkimport
 MetidaNCA.upkimport
 ```
 
+### pdimport
+
+```@docs
+MetidaNCA.pdimport
+```
+
 ## Types
 
 ### DoseTime

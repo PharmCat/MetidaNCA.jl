@@ -27,7 +27,10 @@ function floatparse(data)
     end
     identity.(v)
 end
-
+#=
+Check element type of time column
+Check element type of observation / concentration column
+=#
 function checkvalues(timevals_sp, concvals_sp)
     if !(eltype(timevals_sp) <: Number)
         timevals_sp = identity.(timevals_sp)
@@ -124,9 +127,9 @@ end
 
 Import PK data from tabular data `data`, `time` - time column, `conc` - concentration column.
 """
-function pkimport(data, time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), limitrule::Union{Nothing, LimitRule} = nothing)
+function pkimport(data, time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), limitrule::Union{Nothing, LimitRule} = nothing, id = Dict{Symbol, Any}())
     timevals_sp, concvals_sp = checkvalues(copy(Tables.getcolumn(data, time)), copy(Tables.getcolumn(data, conc)))
-    pkimport(timevals_sp, concvals_sp; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime, limitrule = limitrule)
+    pkimport(timevals_sp, concvals_sp; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime, limitrule = limitrule, id = id)
 end
 """
     pkimport(time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), id = Dict{Symbol, Any}())
@@ -242,7 +245,21 @@ function upkimport(stime, etime, conc, vol; kelauto = true,  elimrange = ElimRan
     UPKSubject(timevals_sp, concvals_sp, volvals_sp, kelauto, elimrange,  dosetime, id)
 end
 
+"""
+    pdimport(data, time, obs, sort; bl = 0, th = 0)
 
+Import pharmackodynamic data from table:
+
+* `data` - data table;
+* `time` - observation time;
+* `obs` - observation value;
+* - subject sorting columns.
+
+Keywords:
+
+* `bl` - baseline;
+* `th` - threshold.
+"""
 function pdimport(data, time, obs, sort; bl = 0, th = 0)
     if isa(sort, String) sort = [Symbol(sort)] end
     if isa(sort, Symbol) sort = [sort] end
@@ -286,4 +303,23 @@ function pdimport(data, time, obs, sort; bl = 0, th = 0)
         i += one(Int)
     end
     return DataSet(identity.(sdata))
+end
+
+"""
+    pdimport(data, time, obs; bl = 0, th = 0, id = Dict{Symbol, Any}())
+
+Import PD data from tabular data `data`, `time` - time column, `obs` - observations column.
+"""
+function pdimport(data, time, obs; bl = 0, th = 0, id = Dict{Symbol, Any}())
+    timevals_sp, obsvals_sp = checkvalues(copy(Tables.getcolumn(data, time)), copy(Tables.getcolumn(data, obs)))
+    pdimport(timevals_sp, obsvals_sp; bl = bl, th = th, id = id)
+end
+"""
+    pdimport(time, obs; bl = 0, th = 0, id = Dict{Symbol, Any}())
+
+Import PD data from time vector `time` and observations vector `obs`.
+"""
+function pdimport(time, obs; bl = 0, th = 0, id = Dict{Symbol, Any}())
+    timevals_sp, obsvals_sp = checkvalues(copy(time), copy(obs))
+    PDSubject(timevals_sp, obsvals_sp, bl, th,  id)
 end

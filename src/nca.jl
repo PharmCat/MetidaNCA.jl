@@ -950,6 +950,26 @@ function auctblth(c1, c2, t1, t2, bl, th, calcm)
     aucabl, aucbbl, tabl, tbbl, aucath, aucbth, tath, tbth, btw
 end
 
+"""
+    nca!(data::PDSubject{T,O}; calcm = :lint, intpm = nothing, limitrule::LimitRule = LimitRule(), verbose = 0, warn = true, io::IO = stdout, modify! = identity, kwargs...) where T where O
+
+Non-compartmental (NCA) analysis of pharmacodynamic data.
+
+Results:
+
+* Rmax - max responce;
+* Tmax - time for maximum responce;
+* AUCABL - AUC above baseline;
+* AUCBBL - AUC below baseline;
+* AUCATH - AUC above threshold;
+* AUCBTH - AUC below threshold;
+* TABL - time above baseline;
+* TBBL - time below baseline;
+* TATH - time above threshold;
+* TBTH - time below threshold;
+* AUCBTW - AUC between baseline and threshold;
+
+"""
 function nca!(data::PDSubject{T,O}; calcm = :lint, intpm = nothing, limitrule::LimitRule = LimitRule(), verbose = 0, warn = true, io::IO = stdout, modify! = identity, kwargs...) where T where O
 
     result   = Dict{Symbol, Float64}()

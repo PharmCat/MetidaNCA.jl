@@ -22,7 +22,7 @@ uniqueidlist,
 indsdict!,
 subset
 
-export pkimport, nca!, nca, DoseTime, ElimRange, LimitRule,
+export pkimport, upkimport, pdimport, nca!, nca, DoseTime, ElimRange, LimitRule,
 setdosetime!, setkelauto!, setkelrange!, applylimitrule!,
 pkplot,
 getkeldata, getkelauto, getkelrange, getdosetime,#, subset
