@@ -416,6 +416,7 @@ Results:
 * Kel
 * HL
 * LZint
+* NpLZ
 * Clast_pred
 * AUCinf
 * AUCinf_pred
