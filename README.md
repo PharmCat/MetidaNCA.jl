@@ -47,8 +47,8 @@ dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint, verbose = 2)
 
 ## Plots
 
-![Plot 1](https://github.com/PharmCat/MetidaNCA.jl/blob/fa2bdb1910b4b4245a68077f7ca9a0feadbfb67d/img/plot2.png?raw=true)
+![Plot 1](https://raw.githubusercontent.com/PharmCat/MetidaNCA.jl/main/img/plot2.png)
 
-![Plot 2](https://github.com/PharmCat/MetidaNCA.jl/blob/fa2bdb1910b4b4245a68077f7ca9a0feadbfb67d/img/plot5.png?raw=true)
+![Plot 2](https://raw.githubusercontent.com/PharmCat/MetidaNCA.jl/main/img/plot5.png)
 
-![Plot 3](https://github.com/PharmCat/MetidaNCA.jl/img/plot6.png)
+![Plot 3](https://raw.githubusercontent.com/PharmCat/MetidaNCA.jl/main/img/plot6.png)
