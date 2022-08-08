@@ -126,3 +126,29 @@ sort!(dsnca, :Subject)
 
 dsnca[:, :AUClast]
 ```
+
+## PD subject
+
+Use [`pdimport`](@ref) to import PD data from table to subject set.
+
+#### Import & NCA
+
+```@example ncaexample
+
+pddata = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv",  "pddata.csv")) |> DataFrame
+
+pd =  MetidaNCA.pdimport(pddata, :time, :obs, :subj; bl = 1.5, th = 5.0)
+
+MetidaNCA.nca!(pd[1])
+```
+
+#### PD subject plotting
+
+```@example ncaexample
+
+p = MetidaNCA.pkplot(pd[1], drawth = true, drawbl = true)
+
+png(p, "plot6.png")
+```
+
+![](plot6.png)
