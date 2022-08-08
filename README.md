@@ -13,6 +13,10 @@ Pharmacokinetics, sometimes abbreviated as PK, is a branch of pharmacology dedic
 
 When analyzing pharmacokinetic data, one generally employs either model fitting using nonlinear regression analysis or non-compartmental analysis techniques (NCA). The method one actually employs depends on what is required from the analysis. If the primary requirement is to determine the degree of exposure following administration of a drug (such as AUC), and perhaps the drug's associated pharmacokinetic parameters, such as clearance, elimination half-life, T (max), C (max), etc., then NCA is generally the preferred methodology to use in that it requires fewer assumptions than model-based approaches.[*]
 
+PK urine parameters and PD parameters such as Time Above/Below  Baseline/Threshold can be also calculated.
+
+Also this package include recipes for plotting PK/PD data.
+
 * Gabrielsson J, Weiner D. Non-compartmental analysis. Methods Mol Biol. 2012;929:377-89. doi: 10.1007/978-1-62703-050-2_16. PMID: 23007438.
 
 ## Installation
