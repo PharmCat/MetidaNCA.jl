@@ -253,7 +253,7 @@ Import pharmackodynamic data from table:
 * `data` - data table;
 * `time` - observation time;
 * `obs` - observation value;
-* - subject sorting columns.
+* `sort` - sorting columns.
 
 Keywords:
 

@@ -60,6 +60,12 @@ MetidaNCA.LimitRule
 MetidaNCA.applylimitrule!
 ```
 
+### getbl
+
+```@docs
+MetidaNCA.getbl
+```
+
 ### getdosetime
 
 ```@docs
@@ -78,10 +84,22 @@ MetidaNCA.getkelauto
 MetidaNCA.getkelrange
 ```
 
+### getth
+
+```@docs
+MetidaNCA.getth
+```
+
 ### pkplot
 
 ```@docs
 MetidaNCA.pkplot
+```
+
+### setbl!
+
+```@docs
+MetidaNCA.setbl!
 ```
 
 ### setdosetime!
@@ -100,6 +118,12 @@ MetidaNCA.setkelauto!
 
 ```@docs
 MetidaNCA.setkelrange!
+```
+
+### setth!
+
+```@docs
+MetidaNCA.setth!
 ```
 
 ### timefilter

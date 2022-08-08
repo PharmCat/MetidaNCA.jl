@@ -1,6 +1,13 @@
 
 @testset "  PD                                                       " begin
+    io = IOBuffer();
+
     pd =  MetidaNCA.pdimport(pddata, :time, :obs, :subj; bl = 1.5, th = 5.0)
+    @test_nowarn show(io, pd[1])
+    @test_nowarn show(io, pd)
+
+    @test_nowarn MetidaNCA.pkplot(pd)
+    @test_nowarn MetidaNCA.pkplot(pd[1], drawth = true, drawbl = true)
 
     pd_res = MetidaNCA.nca!(pd[1])
     pd_rds = MetidaNCA.nca!(pd)
@@ -12,6 +19,27 @@
 
     @test  pd_res[:AUCABL] == pd_res[:AUCATH] == nca_res[:AUClast]
 
+    @test MetidaNCA.getbl(pd[1]) ≈ 1.5
+    @test MetidaNCA.getth(pd[1]) ≈ 5.0
+    MetidaNCA.setbl!(pd, 2)
+    MetidaNCA.setth!(pd, 6)
+    @test MetidaNCA.getbl(pd[1]) ≈ 2.0
+    @test MetidaNCA.getth(pd[1]) ≈ 6.0
+    MetidaNCA.setbl!(pd, 3, 1)
+    MetidaNCA.setth!(pd, 4, 1)
+    @test MetidaNCA.getbl(pd[1]) ≈ 3.0
+    @test MetidaNCA.getth(pd[1]) ≈ 4.0
+    MetidaNCA.setbl!(pd, 2, [1])
+    MetidaNCA.setth!(pd, 1, [1])
+    @test MetidaNCA.getbl(pd[1]) ≈ 2.0
+    @test MetidaNCA.getth(pd[1]) ≈ 1.0
+    MetidaNCA.setbl!(pd, 0, Dict(:subj => 1))
+    MetidaNCA.setth!(pd, 0, Dict(:subj => 1))
+    @test MetidaNCA.getbl(pd[1]) ≈ 0.0
+    @test MetidaNCA.getth(pd[1]) ≈ 0.0
+
+    @test_throws ErrorException MetidaNCA.setbl!(pd, NaN)
+    @test_throws ErrorException MetidaNCA.setth!(pd, NaN)
 
     pd =  MetidaNCA.pdimport(pddata, :time, :obs; bl = 1.5, th = 5.0, id = Dict(:subj => 1))
     pd_rds = MetidaNCA.nca!(pd)

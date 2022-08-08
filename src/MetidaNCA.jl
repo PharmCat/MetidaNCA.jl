@@ -23,9 +23,9 @@ indsdict!,
 subset
 
 export pkimport, upkimport, pdimport, nca!, nca, DoseTime, ElimRange, LimitRule,
-setdosetime!, setkelauto!, setkelrange!, applylimitrule!,
+setdosetime!, setkelauto!, setkelrange!, applylimitrule!, setbl!, setth!,
 pkplot,
-getkeldata, getkelauto, getkelrange, getdosetime,#, subset
+getkeldata, getkelauto, getkelrange, getdosetime, getbl, getth,#, subset
 metida_table
 
 const LOG2 = log(2)
@@ -41,6 +41,7 @@ const LOG2 = log(2)
     include("nca.jl")
     include("plots.jl")
     include("metidatable.jl")
+    include("setblth.jl")
     include("timefilter.jl")
 
 

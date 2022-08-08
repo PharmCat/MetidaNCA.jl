@@ -41,6 +41,7 @@ end
 
 @userplot PKPlot
 @userplot PKElimpPlot
+@userplot PdHLine
 
 function luceil(x)
     fl = Int(floor(log10(x)))
@@ -104,6 +105,12 @@ end
     (x, y)
 end
 
+@recipe function f(subj::PdHLine)
+    x, y = subj.args
+    seriestype        --> :straightline
+    (x, [y, y])
+end
+
 # Text label from ID
 function plotlabel(d)
     title = ""
@@ -125,7 +132,13 @@ Plot for subject
 * `ls` - concentration in log scale;
 * `elim` - draw elimination curve;
 * `xticksn` - number of ticks on x axis;
-* `yticksn` - number of ticks on y axis/
+* `yticksn` - number of ticks on y axis;
+
+*Other keywords:*
+
+* `plotstyle` - predefined plot style from PKPLOTSTYLE;
+* `drawbl` (`false`) - draw baseline, only for PDSubject;
+* `drawth` (`false`) - draw threshold, only for PDSubject;
 
 """
 function pkplot(subj::AbstractSubject; ls = false, elim = false, xticksn = :auto, yticksn = :auto, kwargs...)
@@ -138,6 +151,15 @@ function pkplot(subj::AbstractSubject; ls = false, elim = false, xticksn = :auto
         kwargs[:linestyle], kwargs[:linecolor], kwargs[:markershape],  kwargs[:markercolor]  = PKPLOTSTYLE[1]
     else
         kwargs[:linestyle], kwargs[:linecolor], kwargs[:markershape],  kwargs[:markercolor]  = kwargs[:plotstyle]
+    end
+    if !(:title in k)
+        kwargs[:title] = plotlabel(subj.id)
+    end
+    if !(:drawbl in k)
+        kwargs[:drawbl] = false
+    end
+    if !(:drawth in k)
+        kwargs[:drawth] = false
     end
     if !(:title in k)
         kwargs[:title] = plotlabel(subj.id)
@@ -207,6 +229,14 @@ function pkplot(subj::AbstractSubject; ls = false, elim = false, xticksn = :auto
                 y = exp.(lzint .+ lz .* x)
             end
             pkelimpplot!(p, x, y)
+        end
+    end
+    if isa(subj, PDSubject)
+        if kwargs[:drawth] == true
+            pdhline!(p, [minimum(subj.time), maximum(subj.time)], getth(subj), lc = :blue, label = "TH")
+        end
+        if kwargs[:drawbl] == true
+            pdhline!(p, [minimum(subj.time), maximum(subj.time)], getbl(subj), lc = :red, label = "BL")
         end
     end
     return p
@@ -343,6 +373,12 @@ function pkplot(data::DataSet{T};
     end
     if !(:elim in k)
         kwargs[:elim] = false
+    end
+    if !(:drawbl in k)
+        kwargs[:drawbl] = false
+    end
+    if !(:drawth in k)
+        kwargs[:drawth] = false
     end
     if uylims && !(:ylims in k)
         kwargs[:ylims] = (findmin(x -> minconc(x), getdata(data))[1], findmax(x -> maxconc(x), getdata(data))[1]*1.15)

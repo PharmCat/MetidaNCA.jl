@@ -43,8 +43,31 @@ function Base.show(io::IO, obj::UPKSubject)
     PrettyTables.pretty_table(io, metida_table(getindex.(obj.time, 1), getindex.(obj.time, 2), obj.obs, obj.vol); tf = PrettyTables.tf_compact, header  = ["Start time", "End time", "Concentration", "Volume"])
 
 end
-function Base.show(io::IO, obj::DataSet{Subj}) where Subj <: PKSubject
-    println(io, "DataSet: Pharmacokinetic subject")
+
+function Base.show(io::IO, obj::PDSubject)
+    println(io, "  Pharmacodynamics subject")
+    if length(obj.id) > 0
+        print(io, "ID: ")
+        for (k, v) in obj.id
+            print(io, "$k => $v;")
+        end
+        println(io, "")
+    end
+    println(io, "Observations: $(length(obj)); ")
+    PrettyTables.pretty_table(io, metida_table(obj.time, obj.obs; names = (:Time, :Observation)); tf = PrettyTables.tf_compact)
+end
+
+function subject_type_str(subj::Type{<:PKSubject})
+    "Pharmacokinetics subject"
+end
+function subject_type_str(subj::Type{<:UPKSubject})
+    "Pharmacokinetics subject (urine)"
+end
+function subject_type_str(subj::Type{<:PDSubject})
+    "Pharmacodynamics subject"
+end
+function Base.show(io::IO, obj::DataSet{ST}) where ST <: AbstractSubject
+    println(io, "DataSet: $(subject_type_str(ST))")
     println(io, "Length: $(length(obj))")
     for i = 1:length(obj)
         print(io, "Subject $(i): ")
