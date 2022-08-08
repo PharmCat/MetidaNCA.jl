@@ -751,7 +751,7 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing,  
         end
         if verbose > 1
             println(io, "    Results:")
-            PrettyTables.pretty_table(io, result; tf = PrettyTables.tf_compact, formatters = PrettyTables.ft_printf("%4.6g"))
+            PrettyTables.pretty_table(io, result; tf = PrettyTables.tf_compact, header = ["Parameter", "Value"], formatters = PrettyTables.ft_printf("%4.6g"))
         end
     end
 ################################################################################
@@ -1056,6 +1056,31 @@ function nca!(data::PDSubject{T,O}; calcm = :lint, intpm = nothing, verbose = 0,
     result[:TATH]   = sum(tpartath)
     result[:TBTH]   = sum(tpartbth)
     result[:AUCBTW] = sum(aucpartbtw)
+
+
+    # Verbose output
+    if verbose > 0
+
+        hnames = [:Time, :Observation, :AUCABL, :AUCBBL, :AUCATH, :AUCBTH]
+        mx = metida_table(collect(time_cp),
+        collect(obs_cp),
+        pushfirst!(aucpartabl, 0.0),
+        pushfirst!(aucpartbbl, 0.0),
+        pushfirst!(aucpartath, 0.0),
+        pushfirst!(aucpartbth, 0.0);
+        names = hnames)
+
+        hnames = (["Time" "Obs." "AUCABL"  "AUCBBL" "AUCATH" "AUCBTH"],
+                  ["" "" "" "" "" "" ""])
+        PrettyTables.pretty_table(io, mx; tf = PrettyTables.tf_compact, header = hnames, formatters = PrettyTables.ft_printf("%3.4g"))
+        println(io, "")
+        if verbose > 1
+            println(io, "    Results:")
+            PrettyTables.pretty_table(io, result; tf = PrettyTables.tf_compact, header = ["Parameter", "Value"], formatters = PrettyTables.ft_printf("%4.6g"))
+        end
+    end
+
+
 
     ncares = NCAResult(data, options, result)
     modify!(ncares)

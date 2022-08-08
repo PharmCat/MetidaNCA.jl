@@ -83,12 +83,12 @@ function Base.show(io::IO, obj::DataSet{ST}) where ST <: AbstractSubject
 end
 
 function Base.show(io::IO, obj::T) where T <: NCAResult
-    println(io, "  Pharmacokinetic subject NCA result")
+    println(io, "  PK/PD subject NCA result")
     PrettyTables.pretty_table(io, obj.result; header = ["Parameter", "Value"], tf = PrettyTables.tf_compact)
 end
 
 function Base.show(io::IO, obj::DataSet{Res}) where Res <: NCAResult
-    println(io, "DataSet: Pharmacokinetic subject NCA result")
+    println(io, "DataSet: PK/PD NCA result")
     println(io, "Length: $(length(obj))")
     for i = 1:length(obj)
         println(io, "Subject $(i): ", obj[i].data.id)

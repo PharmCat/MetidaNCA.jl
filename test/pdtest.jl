@@ -54,7 +54,9 @@
     @test  pd_rds[:AUCBTH] ≈ 13.542857142857143 atol=1E-6
     @test  pd_rds[:AUCBTW] ≈ 11.733333333333333 atol=1E-6
 
-
+    #
     pd_rds = MetidaNCA.nca!(pd; calcm = :luld)
+
+    pd_rds = MetidaNCA.nca!(pd; calcm = :luld, verbose = 2, io = io)
 
 end
