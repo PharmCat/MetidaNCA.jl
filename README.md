@@ -44,3 +44,11 @@ sort!(ds, :Subject)
 
 dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint, verbose = 2)
 ```
+
+## Plots
+
+![Plot 1](https://github.com/PharmCat/MetidaNCA.jl/img/plot2.png)
+
+![Plot 2](https://github.com/PharmCat/MetidaNCA.jl/img/plot5.png)
+
+![Plot 3](https://github.com/PharmCat/MetidaNCA.jl/img/plot6.png)

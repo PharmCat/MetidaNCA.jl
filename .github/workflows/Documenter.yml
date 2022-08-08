@@ -9,6 +9,7 @@ on:
       - 'README.md'
       - '.github/**'
       - 'test/**'
+      - 'img/**'
       - 'validation/**'
       - 'change.log'
       - '.gitignore'
@@ -24,7 +25,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v2
-      - name: Install Pandoc 
+      - name: Install Pandoc
         run: sudo apt-get install pandoc texlive-latex-recommended texlive-xetex texlive-luatex pandoc-citeproc texlive-latex-extra
       - uses: julia-actions/setup-julia@latest
         with:
