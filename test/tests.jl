@@ -110,6 +110,9 @@ include("refdicts.jl")
     dsncafromds =  MetidaNCA.nca(missingpk, :Time, :Concentration, intpm = :luld, io = io, verbose = 2)
     @test dsncafromds[:AUClast] ≈ 9585.189297075749
 
+    # Test wirh elimination range - start time is NaN
+    dsncafromds2 =  MetidaNCA.nca(missingpk, :Time, :Concentration, intpm = :luld, io = io, verbose = 2, kelauto = false, elimrange = MetidaNCA.ElimRange(kelstart = 13, kelend = 18))
+    @test dsncafromds2[:AUClast] ≈ 9585.189297075749
 
     dsncafromds =  MetidaNCA.nca(missingpk, :Time, :Concentration;
     limitrule = MetidaNCA.LimitRule(;lloq = 0, btmax = 0, atmax = NaN, nan = NaN, rm = true))

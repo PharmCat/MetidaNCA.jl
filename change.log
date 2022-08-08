@@ -1,5 +1,8 @@
-0.4.1
+0.4.2
+  - LimitRule with nca! is dropped
+  - fix kelstart / kelend when it missing
 
+0.4.1
   - output for PD subject
   - plotting bl/th
   - set/get th/bl

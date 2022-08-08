@@ -84,6 +84,12 @@ MetidaNCA.getkelauto
 MetidaNCA.getkelrange
 ```
 
+### getkeldata
+
+```@docs
+MetidaNCA.getkeldata
+```
+
 ### getth
 
 ```@docs

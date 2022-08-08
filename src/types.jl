@@ -225,11 +225,10 @@ mutable struct PDSubject{T <: Number, O <: Union{Number, Missing}, V <: Any} <: 
 end
 
 
-struct NCAOptions{LR <: Union{Nothing, LimitRule}}
+struct NCAOptions
     adm::Symbol
     calcm::Symbol
     intpm::Symbol
-    limitrule::LR
     verbose::Int
     warn::Bool
     io::IO

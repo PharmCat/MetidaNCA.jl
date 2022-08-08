@@ -13,7 +13,11 @@ Cmax, Tmax calculation. Interpolate `NaN` and `missing` values.
 
 ## Step 3
 
-Exclude interpolated points from calculation (add to excltime). Elimination parameters calculation. 
+Exclude interpolated points from calculation (add to excltime). Elimination parameters calculation.
+
+!!! note
+    If `kelstart` or `kelend` in `excltime` then `kelauto` set to `true`.
+
 
 !!! note
     If `kelauto` is `true` than range of observations for elimination will start from Tmax if administration set as `iv`, and from next observation after Tmax in other cases.

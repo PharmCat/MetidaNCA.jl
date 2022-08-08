@@ -260,7 +260,7 @@ Keywords:
 * `bl` - baseline;
 * `th` - threshold.
 """
-function pdimport(data, time, obs, sort; bl = 0, th = 0)
+function pdimport(data, time, obs, sort; bl = 0, th = 0, limitrule::Union{Nothing, LimitRule} = nothing)
     if isa(sort, String) sort = [Symbol(sort)] end
     if isa(sort, Symbol) sort = [sort] end
 
@@ -302,7 +302,11 @@ function pdimport(data, time, obs, sort; bl = 0, th = 0)
         sdata[i] = PDSubject(timevals_sp, obsvals_sp, bl, th, Dict(sort .=> k))
         i += one(Int)
     end
-    return DataSet(identity.(sdata))
+    ds = DataSet(identity.(sdata))
+    if !isnothing(limitrule)
+        applylimitrule!(ds, limitrule)
+    end
+    ds
 end
 
 """

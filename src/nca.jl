@@ -242,20 +242,25 @@ function step_1_filterpksubj!(time, obs, dosetime)
         inds = Vector{Int}(undef, 0)
     end
     if length(inds) > 0
+        # delete all before and after dosetime
         deleteat!(time, inds)
         deleteat!(obs, inds)
     end
+    # find all NaN or Missing values
     inds = findall(isnanormissing, obs)
     if length(inds) > 0
+        # find last observation
         li   = findlast(!isnanormissing, obs)
+        # find all NaN or Missing values after last observation in inds list
         excl = findall(x -> x > li, inds)
+        # this values excluded
         if length(excl) > 0
             deleteat!(time, inds[excl])
             deleteat!(obs, inds[excl])
             deleteat!(inds, excl)
         end
     end
-    time, obs, inds
+    time, obs, inds # return time, obs, and NaN or Missing value list
 end
 #2
 
@@ -278,8 +283,9 @@ end
 function step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, time, keldata)
     resize!(keldata)
     obsnum = length(time_cp)
+    # data.kelrange.kelexcl - indexes; excltime - time values
     excltime = time[data.kelrange.kelexcl]
-    #keldata                = KelData()
+
     if data.kelauto
         if (adm != :iv && obsnum - tmaxn > 2) || (adm == :iv && obsnum - tmaxn > 1)
             if adm == :iv
@@ -287,12 +293,15 @@ function step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, time, keldata)
             else
                 stimep = tmaxn + 1
             end
-            timep = collect(stimep:obsnum)
+            timep = collect(stimep:obsnum) # time points (and conc) - indexes for time vector from start to end
+            # Esclude all indexes in data.kelrange.kelexcl
             if length(data.kelrange.kelexcl) > 0
                 exclinds = findall(x -> x in excltime, time_cp)
                 filter!(x-> x ∉ exclinds, timep)
             end
+            # find all concentrations <= 0 - indexes
             zcinds = findall(x -> x <= 0, obs_cp)
+            # exclude concentrations <= 0 from time vector
             filter!(x-> x ∉ zcinds, timep)
             if length(timep) > 2
                 logconc    = log.(obs_cp)
@@ -321,6 +330,7 @@ function step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, time, keldata)
             push!(keldata, time_cp[stimep], time_cp[etimep], sl[1], sl[2], sl[3], sl[4], sl[5])
         end
     end
+    # keldata - New KelData, excltime excluded time values
     keldata, excltime
 end
 # 6
@@ -367,20 +377,34 @@ Syntax simillar to [`pkimport`](@ref)
 
 Applicable `kwargs` see  [`nca!`](@ref).
 """
-function nca(args...; type::Symbol = :bps, bl = 0, th = 0, kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), kwargs...)
+function nca(args...; type::Symbol = :bps, bl = 0, th = 0, kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), limitrule::Union{Nothing, LimitRule} = nothing, kwargs...)
     if !(type in (:bps, :ur, :pd)) error("Unknown type") end
     if type == :bps
-        pki    = pkimport(args...; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime)
+        pki    = pkimport(args...; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime, limitrule = limitrule)
     elseif type == :ur
         pki    = upkimport(args...; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime)
     elseif type == :pd
-        pki    = pdimport(args...; th = th, bl = bl)
+        pki    = pdimport(args...; th = th, bl = bl, limitrule = limitrule)
     end
     #kwargs = Dict{Symbol, Any}(kwargs)
     nca!(pki; kwargs...)
 end
+
 """
-    nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, limitrule = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = nothing) where T where O
+    nca!(data::DataSet{Subj}; adm = :ev, calcm = :lint, intpm = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = identity) where Subj <: AbstractSubject
+
+Non-compartmental (NCA) analysis of PK/PD data.
+"""
+function nca!(data::DataSet{Subj}; adm = :ev, calcm = :lint, intpm = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = identity) where Subj <: AbstractSubject
+    result = Vector{NCAResult{Subj}}(undef, length(data))
+    for i = 1:length(data)
+        result[i] = nca!(data[i]; adm = adm, calcm = calcm, intpm = intpm, verbose = verbose, warn = warn, io = io, modify! = modify!)
+    end
+    DataSet(result)
+end
+
+"""
+    nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = nothing) where T where O
 
 * `adm` - administration:
     - `:ev` - extra vascular;
@@ -395,7 +419,6 @@ end
     - `:logt` - log-trapezoidal after Tmax;
     - `:luld` - linar up log down;
     - `:luldt` - linear up log down after Tmax;
-* `limitrule` use limitrule for data;
 * `verbose` - print to `io`, 1: partial areas table, 2: 1, and results;
 * `warn` - show warnings;
 * `io` - output stream;
@@ -448,13 +471,13 @@ Stable state (tau used):
 * Cltau
 * Vztau
 """
-function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, limitrule::LimitRule = LimitRule(), verbose = 0, warn = true, io::IO = stdout, modify! = identity) where T where O
+function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing,  verbose = 0, warn = true, io::IO = stdout, modify! = identity) where T where O
 
     result   = Dict{Symbol, Float64}()
 
     if isnothing(intpm) intpm = calcm end
 
-    options =  Dict(:type => :bps, :adm => adm, :calcm => calcm, :intpm => intpm, :limitrule => limitrule, :verbose => verbose, :warn => warn, :modify! => modify!)
+    options =  Dict(:type => :bps, :adm => adm, :calcm => calcm, :intpm => intpm, :verbose => verbose, :warn => warn, :modify! => modify!)
 
     if verbose > 0
         println(io, "  Non-compartmental Pharmacokinetic Analysis")
@@ -473,13 +496,17 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
     end
 
     auctype  = promote_type(eltype(data.time), eltype(data.obs))
-
+    #=
     if isapplicable(limitrule)
+        # time and obs  after applylimitrule! may be different length from data.obs / data.time
         time, obs = applylimitrule!(deepcopy(data.time), deepcopy(data.obs), limitrule)
     else
         time             = deepcopy(data.time)
         obs              = deepcopy(data.obs)
     end
+    =#
+    time = deepcopy(data.time)
+    obs  = deepcopy(data.obs)
 ################################################################################
     # STEP 1 FILTER ALL BEFORE DOSETIME AND ALL NAN OR MISSING VALUES
     if validobsn(time, obs) == 0 return NCAResult(data, options, result) end
@@ -517,9 +544,12 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
 
     if length(einds) > 0
         for ei in einds
-            if time_cp[ei] ∉ data.kelrange.kelexcl push!(data.kelrange.kelexcl, time_cp[ei]) end
+            if ei ∉ data.kelrange.kelexcl push!(data.kelrange.kelexcl, ei) end
         end
         sort!(data.kelrange.kelexcl)
+        if data.kelrange.kelstart in data.kelrange.kelexcl || data.kelrange.kelend in data.kelrange.kelexcl
+            data.kelauto = true
+        end
     end
 
     keldata, excltime = step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, data.time, data.keldata)
@@ -733,20 +763,6 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, l
     return ncares
 end
 
-"""
-    nca!(data::DataSet{Subj}; adm = :ev, calcm = :lint, intpm = nothing, limitrule::LimitRule = LimitRule(), verbose = 0, warn = true, io::IO = stdout, modify! = identity) where Subj <: AbstractSubject
-
-Non-compartmental (NCA) analysis of PK/PD data.
-"""
-function nca!(data::DataSet{Subj}; adm = :ev, calcm = :lint, intpm = nothing, limitrule::LimitRule = LimitRule(), verbose = 0, warn = true, io::IO = stdout, modify! = identity) where Subj <: AbstractSubject
-    result = Vector{NCAResult{Subj}}(undef, length(data))
-    for i = 1:length(data)
-        result[i] = nca!(data[i]; adm = adm, calcm = calcm, intpm = intpm, limitrule = limitrule, verbose = verbose, warn = warn, io = io, modify! = modify!)
-    end
-    DataSet(result)
-end
-
-
 function maxconc(subj::T) where T <: PKSubject
     maximum(subj.obs)
 end
@@ -786,7 +802,7 @@ function step_1_filterupksubj(time, obs, vol, dosetime)
 end
 
 """
-    nca!(data::UPKSubject{T, O, VOL, V}; adm = :ev, calcm = :lint, intpm = nothing, limitrule::LimitRule = LimitRule(), verbose = 0, warn = true, io::IO = stdout, modify! = identity) where T where O where VOL where V
+    nca!(data::UPKSubject{T, O, VOL, V}; adm = :ev, calcm = :lint, intpm = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = identity) where T where O where VOL where V
 
 Non-compartmental (NCA) analysis of pharmacokinetic for urine data.
 
@@ -809,11 +825,11 @@ Results:
 * HL
 * AUCinf
 """
-function nca!(data::UPKSubject{T, O, VOL, V}; adm = :ev, calcm = :lint, intpm = nothing, limitrule::LimitRule = LimitRule(), verbose = 0, warn = true, io::IO = stdout, modify! = identity) where T where O where VOL where V
+function nca!(data::UPKSubject{T, O, VOL, V}; adm = :ev, calcm = :lint, intpm = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = identity) where T where O where VOL where V
 
     result   = Dict{Symbol, Float64}()
 
-    options =  Dict(:type => :urine, :adm => adm, :calcm => calcm, :intpm => intpm, :limitrule => limitrule, :verbose => verbose, :warn => warn, :modify! => modify!)
+    options =  Dict(:type => :urine, :adm => adm, :calcm => calcm, :intpm => intpm, :verbose => verbose, :warn => warn, :modify! => modify!)
 
     if verbose > 0
         println(io, "  Non-compartmental Pharmacokinetic Analysis")
@@ -952,7 +968,7 @@ function auctblth(c1, c2, t1, t2, bl, th, calcm)
 end
 
 """
-    nca!(data::PDSubject{T,O}; calcm = :lint, intpm = nothing, limitrule::LimitRule = LimitRule(), verbose = 0, warn = true, io::IO = stdout, modify! = identity, kwargs...) where T where O
+    nca!(data::PDSubject{T,O}; calcm = :lint, intpm = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = identity, kwargs...) where T where O
 
 Non-compartmental (NCA) analysis of pharmacodynamic data.
 
@@ -971,13 +987,13 @@ Results:
 * AUCBTW - AUC between baseline and threshold;
 
 """
-function nca!(data::PDSubject{T,O}; calcm = :lint, intpm = nothing, limitrule::LimitRule = LimitRule(), verbose = 0, warn = true, io::IO = stdout, modify! = identity, kwargs...) where T where O
+function nca!(data::PDSubject{T,O}; calcm = :lint, intpm = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = identity, kwargs...) where T where O
 
     result   = Dict{Symbol, Float64}()
 
     if isnothing(intpm) intpm = calcm end
 
-    options =  Dict(:type => :pd, :calcm => calcm, :intpm => intpm, :limitrule => limitrule, :verbose => verbose, :warn => warn, :modify! => modify!)
+    options =  Dict(:type => :pd, :calcm => calcm, :intpm => intpm, :verbose => verbose, :warn => warn, :modify! => modify!)
 
     if verbose > 0
         println(io, "  Pharmacodynamic Analysis")
@@ -993,14 +1009,16 @@ function nca!(data::PDSubject{T,O}; calcm = :lint, intpm = nothing, limitrule::L
     end
 
     auctype  = promote_type(eltype(data.time), eltype(data.obs))
-
+    #=
     if isapplicable(limitrule)
         time, obs = applylimitrule!(deepcopy(data.time), deepcopy(data.obs), limitrule)
     else
         time             = deepcopy(data.time)
         obs              = deepcopy(data.obs)
     end
-
+    =#
+    time             = deepcopy(data.time)
+    obs              = deepcopy(data.obs)
 ################################################################################
     # STEP 1 FILTER ALL BEFORE DOSETIME AND ALL NAN OR MISSING VALUES
     if validobsn(time, obs) == 0 return NCAResult(data, options, result) end
