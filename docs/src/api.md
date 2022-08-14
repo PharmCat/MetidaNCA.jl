@@ -137,3 +137,26 @@ MetidaNCA.setth!
 ```@docs
 MetidaNCA.timefilter
 ```
+
+## Atomic
+
+!!! Info
+  Atomic functions: `cmax`, `tmax`, `auc` not exported, use `import MetidaNCA: cmax, tmax, auc;`.
+
+### auc
+
+```@docs
+MetidaNCA.auc
+```
+
+### cmax
+
+```@docs
+MetidaNCA.cmax
+```
+
+### tmax
+
+```@docs
+MetidaNCA.tmax
+```

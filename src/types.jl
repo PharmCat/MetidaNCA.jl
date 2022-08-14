@@ -224,6 +224,13 @@ mutable struct PDSubject{T <: Number, O <: Union{Number, Missing}, V <: Any} <: 
     end
 end
 
+function gettime(subj::T) where T <: AbstractSubject
+    subj.time
+end
+function getobs(subj::T) where T <: AbstractSubject
+    subj.obs
+end
+
 
 struct NCAOptions
     adm::Symbol

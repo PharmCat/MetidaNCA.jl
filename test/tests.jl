@@ -79,6 +79,7 @@ include("refdicts.jl")
     @test_nowarn MetidaNCA.plotstyle(40)
     pl = MetidaNCA.pkplot(ds[2])
     pl = MetidaNCA.pkplot!(ds[3]; yscale = :log10)
+
     # setdosetime!
     MetidaNCA.setdosetime!(ds, MetidaNCA.DoseTime(dose = 100, time = 0.25))
     @test first(MetidaNCA.nca!(ds)[:, :Cdose]) == 0
@@ -139,6 +140,10 @@ ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]
 sort!(ds, :Subject)
 dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
 
+    @test MetidaNCA.cmax(MetidaNCA.gettime(ds[1]), MetidaNCA.getobs(ds[1])) == refdict[:Cmax][1]
+    @test MetidaNCA.tmax(MetidaNCA.gettime(ds[1]), MetidaNCA.getobs(ds[1])) == refdict[:Tmax][1]
+    @test round(MetidaNCA.auc(MetidaNCA.gettime(ds[1]), MetidaNCA.getobs(ds[1])), sigdigits = 8) == refdict[:AUCall][1]
+
     # Cmax
     @test dsnca[:, :Cmax] == refdict[:Cmax]
 
@@ -149,18 +154,9 @@ dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
     @test round.(dsnca[:, :Cdose], sigdigits = 6) == round.(refdict[:Cdose], sigdigits = 6)
 
     # Tlag
-    #=
-    @test round.(dsnca[:, :Tlag], sigdigits = 6) == round.([0
-    0
-    0
-    0
-    0.5
-    0
-    0
-    0
-    0
-    0], sigdigits = 6)
-    =#
+
+    @test round.(dsnca[:, :Tlag], sigdigits = 6) == round.(refdict[:Tlag], sigdigits = 6)
+
 
     # Clast
     @test dsnca[:, :Clast] == refdict[:Clast]
@@ -230,6 +226,7 @@ end
     ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0.25, tau = 9))
     sort!(ds, :Subject)
     dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luld)
+
     # Cmax
     @test dsnca[:, :Cmax] == refdict2[:Cmax]
 
@@ -304,6 +301,7 @@ end
     ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 120, time = 0, tau = 12))
     sort!(ds, :Subject)
     dsnca = MetidaNCA.nca!(ds, adm = :iv, calcm = :lint)
+
 
     # Cmax
     @test dsnca[:, :Cmax] == refdict3[:Cmax]
@@ -536,6 +534,10 @@ end
     sort!(ds, :Subject)
     dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luldt)
 
+    @test MetidaNCA.cmax(MetidaNCA.gettime(ds[1]), MetidaNCA.getobs(ds[1])) == 190.869
+    @test MetidaNCA.tmax(MetidaNCA.gettime(ds[1]), MetidaNCA.getobs(ds[1])) == 1
+    @test round(MetidaNCA.auc(MetidaNCA.gettime(ds[1]), MetidaNCA.getobs(ds[1]), calcm = :luldt), sigdigits = 8) == round(9573.810558691312, sigdigits = 8)
+
     # Cmax
     @test dsnca[:, :Cmax] == [190.869
     261.177
@@ -573,7 +575,7 @@ end
     0.0], sigdigits = 6)
 
     # Tlag
-    #=
+
     @test round.(dsnca[:, :Tlag], sigdigits = 6) == round.([0
     0
     0
@@ -584,7 +586,7 @@ end
     0
     0
     0], sigdigits = 6)
-    =#
+
 
     # Clast
     @test dsnca[:, :Clast] == [112.846
@@ -1292,6 +1294,92 @@ end
     142.34985100539438
     113.362
     13.634]
+
+end
+
+@testset "  Linear trapezoidal, Dose 120, Dosetime 0, tau 12 IV    " begin
+    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 120, time = 0.0, tau = 12))
+    sort!(ds, :Subject)
+    dsnca = MetidaNCA.nca!(ds, adm = :iv, calcm = :lint)
+
+    @test dsnca[:, :Cmax] == [190.869
+    261.177
+    105.345
+    208.542
+    169.334
+    154.648
+    153.254
+    138.327
+    167.347
+    125.482]
+
+    @test round.(dsnca[:, :Clast], sigdigits = 6) == round.([112.846
+    85.241
+    67.901
+    97.625
+    110.778
+    69.501
+    58.051
+    74.437
+    93.44
+    42.191], sigdigits = 6)
+
+    @test round.(dsnca[:, :Clast_pred], sigdigits = 6) == round.([117.30578
+    82.53669
+    66.931057
+    100.76793
+    105.19623
+    71.939942
+    61.172702
+    75.604277
+    93.761762
+    39.408841], sigdigits = 6)
+
+    @test round.(dsnca[:, :AUClast], sigdigits = 6) == round.([9585.4218
+    10112.176
+    5396.5498
+    9317.8358
+    9561.26
+    6966.598
+    7029.5735
+    7110.6745
+    8315.0803
+    5620.8945], sigdigits = 6)
+
+    @test round.(dsnca[:, :AUCinf], sigdigits = 6) == round.([42925.019
+    16154.93
+    26026.183
+    22004.078
+    25714.393
+    16001.76
+    11688.953
+    15446.21
+    24865.246
+    8171.1624], sigdigits = 6)
+
+    @test round.(dsnca[:, :Ctau], sigdigits = 6) == round.([144.964
+    196.035
+    76.027
+    132.257
+    154.066
+    113.751
+    123.37
+    134.133
+    135.58
+    106.476], sigdigits = 6)
+
+    @test round.(dsnca[:, :HL], sigdigits = 5) == round.([204.78571
+    49.137367
+    210.59148
+    90.073577
+    101.0715
+    90.10945
+    55.634451
+    77.619371
+    122.77077
+    41.897822], sigdigits = 5)
+
+
 
 end
 

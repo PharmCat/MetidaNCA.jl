@@ -1,3 +1,7 @@
+0.4.3
+  - atomic cmac, tmax, auc
+  - more test
+  
 0.4.2
   - LimitRule with nca! is dropped
   - fix kelstart / kelend when it missing

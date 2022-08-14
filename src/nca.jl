@@ -45,12 +45,12 @@ function ctmax(time::AbstractVector, obs::AbstractVector{T}, taulastp) where T
     end
     return cmax, time[tmaxn], tmaxn
 end
-function ctmax(time::AbstractVector, obs::AbstractVector{T}) where T
+function ctmax(time::AbstractVector, obs::AbstractVector)
     f = findfirst(!isnanormissing, obs)
     cmax  = obs[f]
     tmaxn = f
     if length(obs) - f == 0 return cmax, time[f], tmaxn end
-    @inbounds for i = f+1:length(obs)
+    @inbounds for i = f + 1:length(obs)
         if !isnanormissing(obs[i]) && obs[i] > cmax
             cmax  = obs[i]
             tmaxn = i

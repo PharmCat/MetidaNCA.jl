@@ -43,6 +43,7 @@ const LOG2 = log(2)
     include("metidatable.jl")
     include("setblth.jl")
     include("timefilter.jl")
+    include("atomic.jl")
 
 
 end # module
