@@ -140,8 +140,8 @@ MetidaNCA.timefilter
 
 ## Atomic
 
-!!! Info
-  Atomic functions: `cmax`, `tmax`, `auc` not exported, use `import MetidaNCA: cmax, tmax, auc;`.
+> **Warning**
+> Atomic functions: `cmax`, `tmax`, `auc` not exported, use `import MetidaNCA: cmax, tmax, auc;`.
 
 ### auc
 
