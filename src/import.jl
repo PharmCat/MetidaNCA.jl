@@ -138,7 +138,6 @@ function pkimport(data, time, conc, sort; kelauto = true,  elimrange = ElimRange
             end
             sort!(nuvinds)
             deleteat!(v, nuvinds)
-            deleteat!(v, nuvinds)
             timevals = view(timec, v)
             concvals = view(concc, v)
         end
@@ -332,7 +331,6 @@ function pdimport(data, time, obs, sort; bl = 0, th = 0, limitrule::Union{Nothin
                 end
             end
             sort!(nuvinds)
-            deleteat!(v, nuvinds)
             deleteat!(v, nuvinds)
             timevals = view(timec, v)
             obsvals = view(obsc, v)

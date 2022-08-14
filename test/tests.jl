@@ -125,6 +125,45 @@ include("refdicts.jl")
     limitrule = MetidaNCA.LimitRule(;lloq = 0, btmax = 0, atmax = NaN, nan = NaN, rm = true))
     @test  sbj[:AUClast]  ≈ dsncafromds[:AUClast]
 
+    # Multiple time
+
+    @test_logs (:warn,"Not all time values is unique ([96.0, 4.0, 2.5]), last observation used! ((1,))") (:warn,"Some concentration values maybe not a number, try to fix.") ds = MetidaNCA.pkimport(multtimepk, :Time, :Concentration, :Subject)
+    dsmultt = MetidaNCA.pdimport(multtimepk, :Time, :Concentration, :Subject; warn = false)
+    @test MetidaNCA.gettime(dsmultt[1]) ≈ [0.0
+    0.5
+    1.0
+    1.5
+    2.0
+    2.5
+    3.0
+    4.0
+    5.0
+    6.0
+    8.0
+    10.0
+    12.0
+    24.0
+    48.0
+    72.0
+    96.0]
+    @test MetidaNCA.getobs(dsmultt[1]) ≈ [0.0
+    178.949
+    190.869
+    164.927
+    139.962
+    129.59
+    131.369
+    150.854
+    121.239
+    139.229
+    128.52
+    143.243
+    144.964
+    133.16
+    137.271
+    112.846
+    0.0]
+
     # Apply modify! function
     function newparam(data)
         data.result[:AUChalf] = data.result[:AUClast] / 2
@@ -1559,14 +1598,6 @@ end
     MetidaNCA.setkelrange!(ds, kr; kelauto = false)
     show(io, ds[1])
     @test_nowarn dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint, verbose = 2, io = io)
-end
-
-@testset "  Multiple time                                            " begin
-    io = IOBuffer();
-    @test_logs (:warn,"Not all time values is unique ([4.0, 2.5]), last observation used! ((1,))") ds = MetidaNCA.pkimport(multtimepk, :Time, :Concentration, :Subject)
-    @test_logs (:warn,"Not all time values is unique ([4.0, 2.5]), last observation used! ((1,))") ds = MetidaNCA.pdimport(multtimepk, :Time, :Concentration, :Subject)
-    #@test ds[1].obs[6] == 129.59
-
 end
 
 @testset "  timefilter                                               " begin
