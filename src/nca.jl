@@ -380,11 +380,11 @@ Applicable `kwargs` see  [`nca!`](@ref).
 function nca(args...; type::Symbol = :bps, bl = 0, th = 0, kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), limitrule::Union{Nothing, LimitRule} = nothing, kwargs...)
     if !(type in (:bps, :ur, :pd)) error("Unknown type") end
     if type == :bps
-        pki    = pkimport(args...; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime, limitrule = limitrule)
+        pki    = pkimport(args...; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime, limitrule = limitrule, kwargs...)
     elseif type == :ur
-        pki    = upkimport(args...; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime)
+        pki    = upkimport(args...; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime, kwargs...)
     elseif type == :pd
-        pki    = pdimport(args...; th = th, bl = bl, limitrule = limitrule)
+        pki    = pdimport(args...; th = th, bl = bl, limitrule = limitrule, kwargs...)
     end
     #kwargs = Dict{Symbol, Any}(kwargs)
     nca!(pki; kwargs...)
@@ -505,8 +505,8 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing,  
         obs              = deepcopy(data.obs)
     end
     =#
-    time = deepcopy(data.time)
-    obs  = deepcopy(data.obs)
+    time = deepcopy(gettime(data))
+    obs  = deepcopy(getobs(data))
 ################################################################################
     # STEP 1 FILTER ALL BEFORE DOSETIME AND ALL NAN OR MISSING VALUES
     if validobsn(time, obs) == 0 return NCAResult(data, options, result) end

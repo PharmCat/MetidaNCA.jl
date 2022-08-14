@@ -225,10 +225,10 @@ mutable struct PDSubject{T <: Number, O <: Union{Number, Missing}, V <: Any} <: 
 end
 
 function gettime(subj::T) where T <: AbstractSubject
-    subj.time
+    getfield(subj, :time)
 end
 function getobs(subj::T) where T <: AbstractSubject
-    subj.obs
+    getfield(subj, :obs)
 end
 
 

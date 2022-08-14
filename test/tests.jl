@@ -11,6 +11,7 @@ missingpk  = CSV.File(joinpath(path, "csv", "missingpk.csv")) |> DataFrame
 aucallpk  = CSV.File(joinpath(path, "csv", "aucalltest.csv")) |> DataFrame
 upkdata  = CSV.File(joinpath(path, "csv", "upkdata.csv")) |> DataFrame
 pddata  = CSV.File(joinpath(path, "csv", "pddata.csv")) |> DataFrame
+lloqpk  = CSV.File(joinpath(path, "csv", "lloqpk.csv")) |> DataFrame
 include("refdicts.jl")
 # Cmax
 # Tmax
@@ -108,6 +109,11 @@ include("refdicts.jl")
     dsncafromds =  MetidaNCA.nca(missingpk, :Time, :Concentration, io = io, verbose = 2)
     @test  sbj[:AUClast]  ≈ dsncafromds[:AUClast]
 
+    # Missing string LLOQ
+    dsncafromds =  MetidaNCA.nca(lloqpk, :Time, :Concentration, io = io, verbose = 2, warn = false)
+    @test  sbj[:AUClast]  ≈ dsncafromds[:AUClast]
+
+
     dsncafromds =  MetidaNCA.nca(missingpk, :Time, :Concentration, intpm = :luld, io = io, verbose = 2)
     @test dsncafromds[:AUClast] ≈ 9585.189297075749
 
@@ -130,7 +136,7 @@ include("refdicts.jl")
 
     #redirect_stderr(Base.DevNull())
     missingpk.ConcentrationStr = string.(missingpk.Concentration)
-    @test_logs (:warn, "Some concentration values not a number, try to fix.") pkiw = MetidaNCA.pkimport(missingpk, :Time, :ConcentrationStr)
+    @test_logs (:warn, "Some concentration values maybe not a number, try to fix.") (:warn, "Value missing parsed as `NaN`") pkiw = MetidaNCA.pkimport(missingpk, :Time, :ConcentrationStr)
 
 end
 
@@ -1297,7 +1303,7 @@ end
 
 end
 
-@testset "  Linear trapezoidal, Dose 120, Dosetime 0, tau 12 IV    " begin
+@testset "  Linear trapezoidal, Dose 120, Dosetime 0, tau 12 IV      " begin
     ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 120, time = 0.0, tau = 12))
     sort!(ds, :Subject)
     dsnca = MetidaNCA.nca!(ds, adm = :iv, calcm = :lint)
@@ -1557,8 +1563,8 @@ end
 
 @testset "  Multiple time                                            " begin
     io = IOBuffer();
-    @test_logs (:warn,"Not all time values is unique, last observation used! ((1,))") ds = MetidaNCA.pkimport(multtimepk, :Time, :Concentration, :Subject)
-    @test_logs (:warn,"Not all time values is unique, last observation used! ((1,))") ds = MetidaNCA.pdimport(multtimepk, :Time, :Concentration, :Subject)
+    @test_logs (:warn,"Not all time values is unique ([4.0, 2.5]), last observation used! ((1,))") ds = MetidaNCA.pkimport(multtimepk, :Time, :Concentration, :Subject)
+    @test_logs (:warn,"Not all time values is unique ([4.0, 2.5]), last observation used! ((1,))") ds = MetidaNCA.pdimport(multtimepk, :Time, :Concentration, :Subject)
     #@test ds[1].obs[6] == 129.59
 
 end
