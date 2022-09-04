@@ -81,9 +81,9 @@ include("refdicts.jl")
     pl = MetidaNCA.pkplot(ds[2])
     pl = MetidaNCA.pkplot!(ds[3]; yscale = :log10)
 
-    pyplot()
-    @test_nowarn pl = MetidaNCA.pkplot(ds[1]; ylims = (0, 10), yscale = :log2, legend = false)
-    @test_nowarn pl = MetidaNCA.pkplot(ds[1]; ylims = (0, 10), yscale = :ln, legend = false)
+    #pyplot()
+    #@test_nowarn pl = MetidaNCA.pkplot(ds[1]; ylims = (0, 10), yscale = :log2, legend = false)
+    #@test_nowarn pl = MetidaNCA.pkplot(ds[1]; ylims = (0, 10), yscale = :ln, legend = false)
 
     # setdosetime!
     MetidaNCA.setdosetime!(ds, MetidaNCA.DoseTime(dose = 100, time = 0.25))
