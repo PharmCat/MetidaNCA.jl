@@ -24,10 +24,18 @@ function firstobs(time::Vector{<:Tuple}, obs, vol, dosetime)
 end
 
 function ctaumin(time::AbstractVector, obs::AbstractVector, taulastp::Int)
-    min = first(obs)
+    fi = 0
+    min = NaN
+    for i = 1:taulastp
+        if !isnanormissing(obs[i])
+            fi = i
+            min = obs[i]
+            break
+        end
+    end
     if length(obs) == 1 return min end
-    @inbounds for i = 2:taulastp
-        if  obs[i] < min  min = obs[i] end
+    @inbounds for i = fi:taulastp
+        if !isnanormissing(obs[i]) && obs[i] < min  min = obs[i] end
     end
     min
 end

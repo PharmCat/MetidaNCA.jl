@@ -186,11 +186,11 @@ struct LimitRule{T<:Real}
         LimitRule(lloq, btmax, atmax, nan, rm)
     end
 end
-
+#=
 function isapplicable(lr::LimitRule)
     !isnan(lr.lloq) || !isnan(lr.nan) || lr.rm ? true : false
 end
-
+=#
 #Urine PK subject
 mutable struct UPKSubject{T <: Tuple{Number, Number}, O <: Union{Number, Missing}, VOL <: Union{Number, Missing}, V <: Any} <: AbstractSubject
     time::Vector{T}

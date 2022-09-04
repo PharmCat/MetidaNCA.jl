@@ -81,6 +81,10 @@ include("refdicts.jl")
     pl = MetidaNCA.pkplot(ds[2])
     pl = MetidaNCA.pkplot!(ds[3]; yscale = :log10)
 
+    pyplot()
+    @test_nowarn pl = MetidaNCA.pkplot(ds[1]; ylims = (0, 10), yscale = :log2, legend = false)
+    @test_nowarn pl = MetidaNCA.pkplot(ds[1]; ylims = (0, 10), yscale = :ln, legend = false)
+
     # setdosetime!
     MetidaNCA.setdosetime!(ds, MetidaNCA.DoseTime(dose = 100, time = 0.25))
     @test first(MetidaNCA.nca!(ds)[:, :Cdose]) == 0
@@ -106,12 +110,22 @@ include("refdicts.jl")
     @test  sbj[:AUClast]  ≈ dsncafromds[:AUClast]
 
     # Missing NaN
-    dsncafromds =  MetidaNCA.nca(missingpk, :Time, :Concentration, io = io, verbose = 2)
+    dsncafromds =  MetidaNCA.nca(missingpk, :Time, :Concentration, io = io, verbose = 2, dosetime = MetidaNCA.DoseTime(dose = 100, time = 0, tau = 48))
     @test  sbj[:AUClast]  ≈ dsncafromds[:AUClast]
+    auc048 = dsncafromds[:AUCtau]
+
+
+    missingpkl = deepcopy(missingpk)
+    missingpkl[18, :Concentration] = missing
+    dsncafromds =  MetidaNCA.nca(missingpkl, :Time, :Concentration, io = io, verbose = 2)
+    @test auc048  ≈ dsncafromds[:AUClast]
+
 
     # Missing string LLOQ
     dsncafromds =  MetidaNCA.nca(lloqpk, :Time, :Concentration, io = io, verbose = 2, warn = false)
     @test  sbj[:AUClast]  ≈ dsncafromds[:AUClast]
+
+
 
 
     dsncafromds =  MetidaNCA.nca(missingpk, :Time, :Concentration, intpm = :luld, io = io, verbose = 2)
@@ -124,6 +138,9 @@ include("refdicts.jl")
     dsncafromds =  MetidaNCA.nca(missingpk, :Time, :Concentration;
     limitrule = MetidaNCA.LimitRule(;lloq = 0, btmax = 0, atmax = NaN, nan = NaN, rm = true))
     @test  sbj[:AUClast]  ≈ dsncafromds[:AUClast]
+
+    dsncafromds =  MetidaNCA.pkimport(missingpk, :Time, :Concentration, :Subject;
+    limitrule = MetidaNCA.LimitRule(;lloq = 0, btmax = 0, atmax = NaN, nan = NaN, rm = true))
 
     # Multiple time
 
@@ -176,6 +193,8 @@ include("refdicts.jl")
     #redirect_stderr(Base.DevNull())
     missingpk.ConcentrationStr = string.(missingpk.Concentration)
     @test_logs (:warn, "Some concentration values maybe not a number, try to fix.") (:warn, "Value missing parsed as `NaN`") pkiw = MetidaNCA.pkimport(missingpk, :Time, :ConcentrationStr)
+
+
 
 end
 
@@ -1590,14 +1609,45 @@ end
     sort!(ds, :Subject)
     @test_nowarn dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint, verbose = 1, io = io)
     show(io, ds[1])
+
     dt = MetidaNCA.DoseTime(dose = 100, time = 0.25, tau = 9)
     MetidaNCA.setdosetime!(ds, dt)
     @test_nowarn dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luld, verbose = 1, io = io)
     show(io, ds[1])
+
     kr =  MetidaNCA.ElimRange(kelstart = 10, kelend = 16, kelexcl = Int[13,14])
     MetidaNCA.setkelrange!(ds, kr; kelauto = false)
     show(io, ds[1])
     @test_nowarn dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint, verbose = 2, io = io)
+
+    # UPK
+    io = IOBuffer();
+    upkds = MetidaNCA.upkimport(upkdata, :st, :et, :conc, :vol, :subj; dosetime =  MetidaNCA.DoseTime(dose = 100))
+    @test_nowarn show(io, upkds[1])
+    @test_nowarn dsnca = MetidaNCA.nca!(upkds, verbose = 2, io = io)
+    upkds = MetidaNCA.upkimport(upkdata, :st, :et, :conc, :vol; dosetime =  MetidaNCA.DoseTime(dose = 100))
+    upkds = MetidaNCA.upkimport(upkdata[!, :st], upkdata[!, :et], upkdata[!, :conc], upkdata[!, :vol]; dosetime =  MetidaNCA.DoseTime(dose = 100))
+    unca  = MetidaNCA.nca!(upkds)
+    @test_nowarn show(io, upkds)
+    @test_nowarn show(io, unca)
+    @test_nowarn MetidaNCA.nca(upkdata, :st, :et, :conc, :vol; type = :ur, dosetime =  MetidaNCA.DoseTime(dose = 100))
+
+    # PD
+
+    io = IOBuffer();
+
+    pd =  MetidaNCA.pdimport(pddata, :time, :obs, :subj; bl = 1.5, th = 5.0)
+    pd_res = MetidaNCA.nca!(pd[1], verbose = 2, io = io)
+    pd_rds = MetidaNCA.nca!(pd, verbose = 2, io = io)
+    pd_rds = MetidaNCA.nca!(pd; calcm = :luld, verbose = 2, io = io)
+    pd_rds = MetidaNCA.nca!(pd; calcm = :logt, verbose = 2, io = io)
+    pd_rds = MetidaNCA.nca!(pd; calcm = :luldt, verbose = 2, io = io)
+
+    @test_nowarn show(io, pd[1])
+    @test_nowarn show(io, pd)
+    @test_nowarn show(io, pd_res)
+    @test_nowarn show(io, pd_rds)
+
 end
 
 @testset "  timefilter                                               " begin

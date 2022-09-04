@@ -3,8 +3,6 @@
     io = IOBuffer();
 
     pd =  MetidaNCA.pdimport(pddata, :time, :obs, :subj; bl = 1.5, th = 5.0)
-    @test_nowarn show(io, pd[1])
-    @test_nowarn show(io, pd)
 
     @test_nowarn MetidaNCA.pkplot(pd)
     @test_nowarn MetidaNCA.pkplot(pd[1], drawth = true, drawbl = true)
@@ -57,6 +55,6 @@
     #
     pd_rds = MetidaNCA.nca!(pd; calcm = :luld)
 
-    pd_rds = MetidaNCA.nca!(pd; calcm = :luld, verbose = 2, io = io)
+    
 
 end

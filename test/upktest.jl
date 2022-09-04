@@ -21,6 +21,7 @@
     @test unca[1, :Kel]     ≈ 0.13445441459631066 atol=1E-6
     @test unca[1, :AUCinf]  ≈ 19.60415499341648 atol=1E-6
     =#
+    #=
     io = IOBuffer();
     @test_nowarn dsnca = MetidaNCA.nca!(upkds, verbose = 2, io = io)
 
@@ -30,7 +31,8 @@
     @test_nowarn show(io, upkds)
     @test_nowarn show(io, unca)
     @test_nowarn MetidaNCA.nca(upkdata, :st, :et, :conc, :vol; type = :ur, dosetime =  MetidaNCA.DoseTime(dose = 100))
-
+    =#
+    
     upkdatac = deepcopy(upkdata)
     upkdatac.st = float.(upkdatac.st)
     upkdatac[1, :st] = NaN
