@@ -13,7 +13,7 @@ Cmax, Tmax calculation. Interpolate `NaN` and `missing` values.
 
 ## Step 3
 
-Exclude interpolated points from calculation (add to excltime). Elimination parameters calculation.
+Exclude interpolated points from calculation (add to `excltime`). Elimination parameters calculation. Find last concentration > 0 and time for last concentration > 0.
 
 !!! note
     If `kelstart` or `kelend` in `excltime` then `kelauto` set to `true`.

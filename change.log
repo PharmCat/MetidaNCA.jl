@@ -1,6 +1,12 @@
+0.4.5
+  - Unitful
+  - changes in type promoting
+  - minor changes in calc steps
+  - dose time auto type
+
 0.4.4
   - minor changes, test julia 1.8
-  
+
 0.4.3
   - atomic cmac, tmax, auc
   - more test

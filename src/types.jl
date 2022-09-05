@@ -1,6 +1,6 @@
 
 # Elimination data
-struct KelData{S<:Number,E<:Number}
+struct KelData{S<:Number, E<:Number}
     s::Vector{S}
     e::Vector{E}
     a::Vector{Float64}
@@ -8,7 +8,7 @@ struct KelData{S<:Number,E<:Number}
     r::Vector{Float64}
     ar::Vector{Float64}
     n::Vector{Int}
-    function KelData(s::Vector{S}, e::Vector{E}, a, b, r, ar, n)::KelData where S <: Number where E <: Number
+    function KelData(s::Vector{S}, e::Vector{E}, a::Vector{A}, b::Vector{B}, r, ar, n)::KelData where S <: Number where E <: Number where A where B
         new{S, E}(s, e, a, b, r, ar, n)::KelData
     end
     function KelData()::KelData
@@ -66,11 +66,6 @@ mutable struct ElimRange{Symbol}
         if kelstart in kelexcl || kelend in kelexcl throw(ArgumentError("Kel start or kel end in exclusion")) end
         new{:point}(kelstart, kelend, kelexcl)::ElimRange
     end
-    #=
-    function ElimRange(kelstart, kelend)
-        ElimRange(kelstart, kelend, Vector{Int}(undef, 0))
-    end
-    =#
     function ElimRange(;kelstart = 0, kelend = 0, kelexcl = Int[])
         ElimRange(kelstart, kelend, kelexcl)
     end
@@ -96,7 +91,7 @@ struct DoseTime{D <: Number, T <: Number, TAU <: Number}
         if time < zero(T) throw(ArgumentError("Dose time can't be less zero!")) end
         new{D, T, TAU}(dose, time, tau)::DoseTime
     end
-    function DoseTime(;dose = NaN, time = 0, tau = NaN)
+    function DoseTime(;dose = NaN, time = 0.0, tau = NaN)
         DoseTime(dose, time, tau)
     end
     #=
@@ -121,8 +116,8 @@ mutable struct PKSubject{T <: Number, O <: Union{Number, Missing}, V <: Any} <: 
     function PKSubject(time::Vector{T}, conc::Vector{O}, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, keldata::KelData, sort::Dict{Symbol, V} = Dict{Symbol, Any}()) where T <: Number where O <: Union{Number, Missing} where V
         new{T, O, V}(time, conc, kelauto, kelrange, dosetime, keldata, sort)::PKSubject
     end
-    function PKSubject(time::Vector, conc::Vector, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, sort::Dict{Symbol, V}) where V
-        PKSubject(time, conc, kelauto, kelrange, dosetime, KelData(), sort)
+    function PKSubject(time::Vector{T}, conc::Vector{O}, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, sort::Dict{Symbol, V}) where T where O where V
+        PKSubject(time, conc, kelauto, kelrange, dosetime, KelData(T[], T[], Float64[], Float64[], Float64[], Float64[], Int[]), sort)
     end
     #=
     function PKSubject(time::Vector, conc::Vector, sort::Dict)
@@ -142,12 +137,12 @@ function Base.length(obj::T) where T <: AbstractSubject
 end
 
 
-struct NCAResult{T} <: AbstractSubjectResult{T}
+struct NCAResult{T, U} <: AbstractSubjectResult{T}
     data::T
     options::Dict{Symbol}
-    result::Dict{Symbol, Float64}
-    function NCAResult(subject::T, options, result) where T <: AbstractSubject
-        new{T}(subject, options, result)
+    result::Dict{Symbol, U}
+    function NCAResult(subject::T, options, result::Dict{Symbol, U}) where T <: AbstractSubject where U
+        new{T, U}(subject, options, result)
     end
     #=
     function NCAResult(subject::T, method, result) where T <: AbstractSubject

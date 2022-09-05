@@ -101,7 +101,7 @@ keywords:
     If time column have non-unique values - last pair time-concentration will be used.
 
 """
-function pkimport(data, time, conc, sort; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true, kwargs...)
+function pkimport(data, time, conc, sort; kelauto = true,  elimrange = ElimRange(), dosetime = nothing, limitrule::Union{Nothing, LimitRule} = nothing, warn = true, kwargs...)
     if isa(sort, String) sort = [Symbol(sort)] end
     if isa(sort, Symbol) sort = [sort] end
 
@@ -114,6 +114,8 @@ function pkimport(data, time, conc, sort; kelauto = true,  elimrange = ElimRange
 
     timec = Tables.getcolumn(data, time)
     concc = Tables.getcolumn(data, conc)
+
+    if isnothing(dosetime) dosetime = DoseTime(NaN, zero(eltype(timec)), NaN) end
 
     any(isnanormissing, timec) && error("Some time values is NaN or Missing!")
 
@@ -177,8 +179,11 @@ end
 
 Import PK data from time vector `time` and concentration vector `conc`.
 """
-function pkimport(time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true, kwargs...)
+function pkimport(time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true, kwargs...)
     timevals_sp, concvals_sp = checkvalues(time, conc, warn = warn)
+
+    if isnothing(dosetime) dosetime = DoseTime(NaN, zero(eltype(timevals_sp)), NaN) end
+
     pks = PKSubject(timevals_sp, concvals_sp, kelauto, elimrange,  dosetime, id)
     if !isnothing(limitrule)
         applylimitrule!(pks, limitrule)
@@ -198,7 +203,7 @@ Import urine PK data from table `data`.
 * `vol` - volume column;
 * `sort` - subject sorting columns.
 """
-function upkimport(data, stime, etime, conc, vol, sort; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
+function upkimport(data, stime, etime, conc, vol, sort; kelauto = true,  elimrange = ElimRange(), dosetime = nothing)
     if isa(sort, String) sort = [Symbol(sort)] end
     if isa(sort, Symbol) sort = [sort] end
 
@@ -217,6 +222,8 @@ function upkimport(data, stime, etime, conc, vol, sort; kelauto = true,  elimran
     etimec = Tables.getcolumn(data, etime)
     concc = Tables.getcolumn(data, conc)
     volc = Tables.getcolumn(data, vol)
+
+    if isnothing(dosetime) dosetime = DoseTime(NaN, zero(promote_type(eltype(stimec), eltype(etimec))), NaN) end
 
     any(isnanormissing, stimec) && error("Some Start Time values is NaN or Missing!")
     any(isnanormissing, etimec) && error("Some End Time values is NaN or Missing!")
@@ -244,7 +251,7 @@ Import single urine PK data from table `data`.
 * `conc` - concentration column;
 * `vol` - volume column.
 """
-function upkimport(data, stime, etime, conc, vol; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
+function upkimport(data, stime, etime, conc, vol; kelauto = true,  elimrange = ElimRange(), dosetime = nothing)
     upkimport(Tables.getcolumn(data, stime), Tables.getcolumn(data, etime), Tables.getcolumn(data, conc), Tables.getcolumn(data, vol); kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime)
 end
 """
@@ -256,7 +263,7 @@ Import urine PK data from time vectors:
 * `conc` - concentrations;
 * `vol` - volumes.
 """
-function upkimport(stime, etime, conc, vol; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), id = Dict{Symbol, Any}())
+function upkimport(stime, etime, conc, vol; kelauto = true,  elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}())
     any(isnanormissing, stime) && error("Some Start Time values is NaN or Missing!")
     any(isnanormissing, etime) && error("Some End Time values is NaN or Missing!")
     timeranges = collect(zip(stime, etime))
@@ -264,6 +271,10 @@ function upkimport(stime, etime, conc, vol; kelauto = true,  elimrange = ElimRan
     timevals_sp = timeranges[sp]
     concvals_sp = conc[sp]
     volvals_sp  = vol[sp]
+
+    if isnothing(dosetime) dosetime = DoseTime(NaN, zero(promote_type(eltype(stime), eltype(etime))), NaN) end
+
+
     if length(timevals_sp) > 1
         for c = 2:length(timevals_sp)
             timevals_sp[c][1] == timevals_sp[c-1][2] || error("Start time ($(timevals_sp[c][1])) for observation $c not equal End time ($(timevals_sp[c-1][2])) for observation $(c-1)!")

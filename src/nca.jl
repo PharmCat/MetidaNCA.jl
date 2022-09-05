@@ -10,9 +10,9 @@ function validobsn(time::Vector{<:Number}, obs::Vector)
     n
 end
 
-function firstobs(time::Vector{<:Number}, obs::Vector, dosetime)
+function firstobs(time::Vector{T}, obs::Vector, dosetime) where T <: Number
     @inbounds for i = 1:length(time)
-        if time[i] >= dosetime && !isnanormissing(obs[i]) return i end
+        if time[i] >= dosetime && !isnanormissing(obs[i]) return i end #unitful dosetime?
     end
     error("Observations not found")
 end
@@ -115,15 +115,16 @@ function linpredict(a₁, a₂, ax, b₁, b₂)
     return (ax - a₁) / (a₂ - a₁)*(b₂ - b₁) + b₁
 end
 
-function slope(x, y; funk::Function = identity)
+function slope(x::AbstractVector{X}, y::AbstractVector{Y}; funk::Function = identity) where X where Y
+    XYT = promote_type(X, Y)
     if length(x) != length(y) throw(ArgumentError("Unequal vector length!")) end
     n   = length(x)
     if n < 2 throw(ArgumentError("n < 2!")) end
-    Σxy = zero(Float64)
-    Σx  = zero(Float64)
-    Σy  = zero(Float64)
-    Σx2 = zero(Float64)
-    Σy2 = zero(Float64)
+    Σxy = zero(XYT)
+    Σx  = zero(X)
+    Σy  = zero(Y)
+    Σx2 = zero(X)
+    Σy2 = zero(Y)
     @inbounds for i = 1:n
         xi = x[i]
         yi = funk(y[i])
@@ -242,30 +243,28 @@ end
 # STEPS
 ################################################################################
 # 1
-function step_1_filterpksubj!(time, obs, dosetime)
-    fobs     = firstobs(time, obs, dosetime)
-    if fobs > 1
-        inds = collect(1:fobs-1)
-    else
-        inds = Vector{Int}(undef, 0)
-    end
-    if length(inds) > 0
-        # delete all before and after dosetime
-        deleteat!(time, inds)
-        deleteat!(obs, inds)
-    end
-    # find all NaN or Missing values
-    inds = findall(isnanormissing, obs)
-    if length(inds) > 0
-        # find last observation
-        li   = findlast(!isnanormissing, obs)
-        # find all NaN or Missing values after last observation in inds list
-        excl = findall(x -> x > li, inds)
-        # this values excluded
-        if length(excl) > 0
-            deleteat!(time, inds[excl])
-            deleteat!(obs, inds[excl])
-            deleteat!(inds, excl)
+# Make observation vector and time vector, no points befor Dosetime and nopoints after last nonmissing concentration
+function step_1_filterpksubj(_time::AbstractVector{T}, _obs, dosetime) where T
+    fobs     = firstobs(_time, _obs, dosetime)
+    li       = findlast(!isnanormissing, _obs)
+    n        = li - fobs + 1
+    obstype  = typeof(zero(eltype(_obs)))
+    nanobst  = NaN * zero(eltype(_obs))
+
+    time     = Vector{T}(undef, n)
+    obs      = Vector{obstype}(undef, n)
+    inds     = Vector{Int}(undef, 0)
+
+    ii       = 0
+
+    for i = fobs:li
+        ii += 1
+        time[ii] = _time[i]
+        if isnanormissing(_obs[i])
+            obs[ii] = nanobst
+            push!(inds, ii)
+        else
+            obs[ii] = _obs[i]
         end
     end
     time, obs, inds # return time, obs, and NaN or Missing value list
@@ -288,11 +287,18 @@ function step_2_interpolate!(time, obs::AbstractVector{T}, inds, tmaxn, intpm) w
 end
 
 # 3
-function step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, time, keldata)
+# Elimination, TlastN, Tlast
+function step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp::Vector{T}, time, keldata) where T
     resize!(keldata)
     obsnum = length(time_cp)
     # data.kelrange.kelexcl - indexes; excltime - time values
     excltime = time[data.kelrange.kelexcl]
+    # Unitful values
+    r_time_cp = reinterpret(typeof(one(eltype(time_cp))), time_cp)
+    r_obs_cp  = reinterpret(typeof(one(eltype(obs_cp))), obs_cp)
+
+    tlastn   = findlast(x-> x > zero(x), r_obs_cp)
+    tlast    = r_time_cp[tlastn]
 
     if data.kelauto
         if (adm != :iv && obsnum - tmaxn > 2) || (adm == :iv && obsnum - tmaxn > 1)
@@ -308,14 +314,14 @@ function step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, time, keldata)
                 filter!(x-> x ∉ exclinds, timep)
             end
             # find all concentrations <= 0 - indexes
-            zcinds = findall(x -> x <= 0, obs_cp)
+            zcinds = findall(x -> x <= zero(T), obs_cp)
             # exclude concentrations <= 0 from time vector
             filter!(x-> x ∉ zcinds, timep)
             if length(timep) > 2
-                logconc    = log.(obs_cp)
+                logconc    = log.(r_obs_cp)
                 for i = length(timep)-2:-1:1
                     timepv = view(timep, i:length(timep))
-                    sl = slope(view(time_cp, timepv), view(logconc, timepv))
+                    sl = slope(view(r_time_cp, timepv), view(logconc, timepv))
                     if sl[1] < 0
                         push!(keldata, time_cp[timep[i]], time_cp[timep[end]], sl[1], sl[2], sl[3], sl[4], sl[5])
                     end
@@ -334,18 +340,20 @@ function step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, time, keldata)
         zcinds = findall(x -> x <= 0, obs_cp)
         filter!(x-> x ∉ zcinds, timep)
         if length(timep) > 1
-            sl = slope(view(time_cp, timep), view(obs_cp, timep), funk = log)
+            sl = slope(view(r_time_cp, timep), view(r_obs_cp, timep), funk = log)
             push!(keldata, time_cp[stimep], time_cp[etimep], sl[1], sl[2], sl[3], sl[4], sl[5])
         end
     end
-    # keldata - New KelData, excltime excluded time values
-    keldata, excltime
+    # keldata - New KelData, excltime excluded time values, t last N and tlast
+    keldata, excltime, tlastn, tlast
 end
 # 6
-function step_6_areas(time_cp, obs_cp, calcm, tmaxn, tlastn)
-    obsnum = length(time_cp)
-    aucpartl  = Array{Float64, 1}(undef, obsnum - 1)
-    aumcpartl = Array{Float64, 1}(undef, obsnum - 1)
+function step_6_areas(time_cp::AbstractVector{T}, obs_cp::AbstractVector{O}, calcm, tmaxn, tlastn) where T where O
+    obsnum     = length(time_cp)
+    auctype    = typeof(zero(eltype(time_cp))*zero(eltype(obs_cp)))
+    aumctype   = typeof(zero(eltype(time_cp))^2*zero(eltype(obs_cp)))
+    aucpartl   = Array{auctype, 1}(undef, obsnum - 1)
+    aumcpartl  = Array{aumctype, 1}(undef, obsnum - 1)
     #Calculate all AUC/AUMC part based on data
     for i = 1:(obsnum - 1)
         aucpartl[i]  = aucpart(time_cp[i], time_cp[i + 1], obs_cp[i], obs_cp[i + 1], calcm, i >= tmaxn)
@@ -354,14 +362,14 @@ function step_6_areas(time_cp, obs_cp, calcm, tmaxn, tlastn)
 
     #-----------------------------------------------------------------------
     #-----------------------------------------------------------------------
-    auclast  = 0.0
-    aumclast = 0.0
+    auclast  = zero(auctype)
+    aumclast = zero(aumctype)
     @inbounds for i = 1:tlastn-1
         auclast  += aucpartl[i]
         aumclast += aumcpartl[i]
     end
-    if auclast == 0.0 auclast = NaN end
-    if aumclast == 0.0 aumclast = NaN end
+    if auclast == zero(auctype) auclast = NaN * zero(auctype) end
+    if aumclast == zero(aumctype) aumclast = NaN * zero(aumctype) end
     aucall  = auclast
     if tlastn < length(time_cp)
         @inbounds for i = tlastn:obsnum-1
@@ -394,7 +402,6 @@ function nca(args...; type::Symbol = :bps, bl = 0, th = 0, kelauto = true,  elim
     elseif type == :pd
         pki    = pdimport(args...; th = th, bl = bl, limitrule = limitrule, kwargs...)
     end
-    #kwargs = Dict{Symbol, Any}(kwargs)
     nca!(pki; kwargs...)
 end
 
@@ -479,9 +486,11 @@ Stable state (tau used):
 * Cltau
 * Vztau
 """
-function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing,  verbose = 0, warn = true, io::IO = stdout, modify! = identity) where T where O
+function nca!(data::PKSubject{T, O}; adm = :ev, calcm = :lint, intpm = nothing,  verbose = 0, warn = true, io::IO = stdout, modify! = identity) where T where O
 
-    result   = Dict{Symbol, Float64}()
+    ptype  = promote_type(Float64, T, O)
+
+    result   = Dict{Symbol, ptype}()
 
     if isnothing(intpm) intpm = calcm end
 
@@ -502,29 +511,17 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing,  
             println(io, "    Tau: $(data.dosetime.tau)")
         end
     end
-
-    auctype  = promote_type(eltype(data.time), eltype(data.obs))
-    #=
-    if isapplicable(limitrule)
-        # time and obs  after applylimitrule! may be different length from data.obs / data.time
-        time, obs = applylimitrule!(deepcopy(data.time), deepcopy(data.obs), limitrule)
-    else
-        time             = deepcopy(data.time)
-        obs              = deepcopy(data.obs)
-    end
-    =#
-    time = deepcopy(gettime(data))
-    obs  = deepcopy(getobs(data))
 ################################################################################
     # STEP 1 FILTER ALL BEFORE DOSETIME AND ALL NAN OR MISSING VALUES
-    if validobsn(time, obs) == 0 return NCAResult(data, options, result) end
-    time_cp, obs_cp, einds = step_1_filterpksubj!(time, obs, data.dosetime.time)
+    if validobsn(data.time, data.obs) == 0 return NCAResult(data, options, result) end
+    time_cp, obs_cp, einds = step_1_filterpksubj(data.time, data.obs, data.dosetime.time)
     if length(obs_cp) < 2
         return NCAResult(data, options, result)
     end
 ################################################################################
     # STEP 2 - CMAX TMAX FOR TAU RANGE Clast Tlast; interpolate NaN and missings
-    result[:Obsnum] = obsnum = length(obs_cp)
+    #result[:Obsnum] = obsnum = length(obs_cp)
+    result[:Obsnum] = validobsn(time_cp, obs_cp)
     # If TAU set, calculates start and end timepoints for AUCtau
     if  data.dosetime.tau > zero(typeof(data.dosetime.tau))
         taulastp = findlast(x -> x <= data.dosetime.time + data.dosetime.tau, time_cp)
@@ -536,20 +533,10 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing,  
 
     step_2_interpolate!(time_cp, obs_cp, einds, tmaxn, intpm)
 
-    # C last and T last
-    tlastn = 0
-    @inbounds for i = length(obs_cp):-1:1
-        if obs_cp[i] > zero(O)
-            result[:Tlast]   = time_cp[i]
-            result[:Clast]   = obs_cp[i]
-            tlastn           = i
-            break
-        end
-    end
 ################################################################################
     # STEP 3
     # Elimination, add interpolated inds to elimination exclusion
-
+    # Get last concentration
     if length(einds) > 0
         for ei in einds
             if ei ∉ data.kelrange.kelexcl push!(data.kelrange.kelexcl, ei) end
@@ -560,10 +547,15 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing,  
         end
     end
 
-    keldata, excltime = step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, data.time, data.keldata)
+    keldata, excltime, tlastn, tlast = step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, data.time, data.keldata)
+    # C last and T last
+    result[:Tlast]   = time_cp[tlastn]
+    result[:Clast]   = obs_cp[tlastn]
+
+
 ################################################################################
     # STEP 4
-    if  data.dosetime.time > 0
+    if  data.dosetime.time > zero(T)
         time_cp .-= data.dosetime.time
     end
 ################################################################################
@@ -609,7 +601,7 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing,  
     #---------------------------------------------------------------------------
     result[:MRTlast]    = result[:AUMClast] / result[:AUClast]
     #---------------------------------------------------------------------------
-    if data.dosetime.dose > 0
+    if data.dosetime.dose > zero(data.dosetime.dose)
         result[:Cllast]           = data.dosetime.dose / result[:AUClast]
         result[:Dose]             = data.dosetime.dose
     end
@@ -618,23 +610,24 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing,  
     tlagn = findfirst(!iszero, obs_cp)
 
     if isnothing(tlagn)
-        result[:Tlag] = NaN
+        result[:Tlag] = NaN*zero(T)
     elseif tlagn > 1
         result[:Tlag] = time_cp[tlagn-1]
     else
-        result[:Tlag] = 0.0
+        result[:Tlag] = zero(T)
     end
 
     if  length(data.keldata) > 0
         #data.keldata             = keldata
         result[:ARsq], rsqn      = findmax(keldata.ar)
         result[:Rsq]             = keldata.r[rsqn]
-        result[:Kel]             = abs(keldata.a[rsqn])
+        #kel                      = abs(keldata.a[rsqn])
+        result[:Kel]             = abs(keldata.a[rsqn]) / oneunit(T)
         result[:LZ]              = keldata.a[rsqn]
         result[:LZint]           = keldata.b[rsqn]
         result[:Rsqn]            = rsqn
         result[:NpLZ]            = keldata.n[rsqn]
-        result[:Clast_pred]      = exp(result[:LZint] + result[:LZ]*result[:Tlast])
+        result[:Clast_pred]      = exp(result[:LZint] + result[:LZ] * tlast) * oneunit(O)
         result[:HL]              = LOG2 / result[:Kel]
         result[:AUCinf]          = result[:AUClast] + result[:Clast] / result[:Kel]
         result[:AUCinf_pred]     = result[:AUClast] + result[:Clast_pred] / result[:Kel]
@@ -648,13 +641,14 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing,  
             result[:Vssinf]          = result[:Clinf] * result[:MRTinf]
         end
     else
-        result[:Kel] = NaN
+        result[:Kel] = NaN / oneunit(T)
     end
 ################################################################################
     # STEP 8
     # Steady-state parameters
     if data.dosetime.tau > 0
-        eaucpartl  = eaumcpartl = 0.0
+        eaucpartl  = zero(T)*zero(O)
+        eaumcpartl = zero(T)^2*zero(O)
         if time_cp[taulastp] < data.dosetime.tau < time_cp[end]
             result[:Ctau] = interpolate(time_cp[taulastp], time_cp[taulastp + 1], data.dosetime.tau, obs_cp[taulastp], obs_cp[taulastp + 1], intpm, true)
             eaucpartl = aucpart(time_cp[taulastp], data.dosetime.tau, obs_cp[taulastp], result[:Ctau], calcm, true)
@@ -689,7 +683,7 @@ function nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing,  
         result[:Fluctau]  = (result[:Cmax] - result[:Ctau])/result[:Cavg] * 100
         #If Kel calculated
         result[:Cltau]           = data.dosetime.dose / result[:AUCtau]
-        if result[:Kel] !== NaN
+        if !isnan(result[:Kel])
             result[:Accind]   = 1 / (1 - (exp(-result[:Kel] * data.dosetime.tau)))
             result[:MRTtauinf]       = (result[:AUMCtau] + data.dosetime.tau * (result[:AUCinf] - result[:AUCtau])) / result[:AUCtau]
             result[:Vztau]           = data.dosetime.dose / result[:AUCtau] / result[:Kel]
@@ -1025,12 +1019,12 @@ function nca!(data::PDSubject{T,O}; calcm = :lint, intpm = nothing, verbose = 0,
         obs              = deepcopy(data.obs)
     end
     =#
-    time             = deepcopy(data.time)
-    obs              = deepcopy(data.obs)
+    #time             = deepcopy(data.time)
+    #obs              = deepcopy(data.obs)
 ################################################################################
     # STEP 1 FILTER ALL BEFORE DOSETIME AND ALL NAN OR MISSING VALUES
-    if validobsn(time, obs) == 0 return NCAResult(data, options, result) end
-    time_cp, obs_cp, einds = step_1_filterpksubj!(time, obs, first(time))
+    if validobsn(data.time, data.obs) == 0 return NCAResult(data, options, result) end
+    time_cp, obs_cp, einds = step_1_filterpksubj(data.time, data.obs, first(data.time))
     if length(obs_cp) < 2
         return NCAResult(data, options, result)
     end
