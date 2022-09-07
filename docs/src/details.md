@@ -49,3 +49,11 @@ Calculate steady-state parameters.
 !!! note
     If end of tau interval lies between two observation, than interpolation used to compute Ctau and partial AUCs; `intpm` keyword used to define interpolation method.
     If end of tau interval lies after all observation, than extrapolation used to compute Ctau and partial AUCs. Extrapolation based on using elimination parameters.
+
+
+## [Unitful details](@ref unitful_details)
+
+!!! warning Unitful.jl
+  MetidaNCA can work with [Unitful.jl](https://painterqubits.github.io/Unitful.jl/stable/).
+  There is no guarantee that all functions will work without errors.
+  All validation procedures with Unitful should be done manually before use.

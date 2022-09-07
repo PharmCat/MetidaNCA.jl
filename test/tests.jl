@@ -1,6 +1,6 @@
 #using MetidaNCA
 using Test
-using DataFrames, CSV, Plots
+using DataFrames, CSV, Plots, Unitful
 import TypedTables: Table
 
 path     = dirname(@__FILE__)
@@ -1648,6 +1648,39 @@ end
     @test_nowarn show(io, pd_res)
     @test_nowarn show(io, pd_rds)
 
+end
+
+Unitful
+@testset "  Unitful                                                  " begin
+    io = IOBuffer();
+    upk = deepcopy(pkdata2)
+    upk.Time = upk.Time .* u"hr"
+    upk.Concentration = upk.Concentration .* u"ng/ml"
+    uds = MetidaNCA.pkimport(upk, :Time, :Concentration, [:Subject, :Formulation])
+    ds  = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
+
+    upknca = MetidaNCA.nca!(uds, calcm = :lint)
+    pknca  = MetidaNCA.nca!(ds, calcm = :lint)
+
+    @test upknca[:, :AUClast] ≈ pknca[:, :AUClast] .* u"ng*hr/ml"
+    @test upknca[:, :Kel] ≈ pknca[:, :Kel] .* u"1/hr"
+
+    upknca = MetidaNCA.nca!(uds, calcm = :luldt)
+    pknca = MetidaNCA.nca!(ds, calcm = :luldt)
+
+    udt = MetidaNCA.DoseTime(dose = 100u"mg", time = 0.25u"hr", tau = 9u"hr")
+    dt = MetidaNCA.DoseTime(dose = 100, time = 0.25, tau = 9)
+    MetidaNCA.setdosetime!(uds, udt)
+    MetidaNCA.setdosetime!(ds, dt)
+
+    upknca = MetidaNCA.nca!(uds, calcm = :lint)
+    pknca  = MetidaNCA.nca!(ds, calcm = :lint)
+
+    upknca = MetidaNCA.nca!(uds, calcm = :luldt)
+    pknca = MetidaNCA.nca!(ds, calcm = :luldt)
+
+    @test upknca[:, :AUCtau] ≈ pknca[:, :AUCtau] .* u"ng*hr/ml"
+    @test upknca[:, :MRTtauinf] ≈ pknca[:, :MRTtauinf] .* u"hr"
 end
 
 @testset "  timefilter                                               " begin

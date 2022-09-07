@@ -89,8 +89,8 @@ function logtpredict(c₁, c₂, cx, t₁, t₂)
     return log(cx/c₁)/log(c₂/c₁)*(t₂-t₁)+t₁
 end
 
-function logcpredict(t₁, t₂, tx, c₁, c₂)
-    return exp(log(c₁) + (tx-t₁)/(t₂-t₁)*(log(c₂) - log(c₁)))
+function logcpredict(t₁, t₂, tx, c₁::T, c₂::T) where T
+    return exp(log(c₁/oneunit(c₁)) + (tx-t₁)/(t₂-t₁)*(log(c₂/oneunit(c₂)) - log(c₁/oneunit(c₁))))*oneunit(c₁)
 end
 
 #Linear trapezoidal auc
@@ -172,13 +172,13 @@ end #end slope
 =#
 #---------------------------------------------------------------------------
 function aucpart(t₁, t₂, c₁, c₂, calcm, aftertmax)
-    if calcm == :lint || c₁ <= 0 && c₂ <= 0
+    if calcm == :lint || c₁ <= zero(c₁) && c₂ <= zero(c₂)
         auc   =  linauc(t₁, t₂, c₁, c₂)
-    elseif calcm == :logt && aftertmax && c₁ > 0 && c₂ > 0
+    elseif calcm == :logt && aftertmax && c₁ > zero(c₁) && c₂ > zero(c₂)
         auc   =  logauc(t₁, t₂, c₁, c₂)
-    elseif calcm == :luld &&  c₁ > c₂ > 0
+    elseif calcm == :luld &&  c₁ > c₂ > zero(c₂)
         auc   =  logauc(t₁, t₂, c₁, c₂)
-    elseif calcm == :luldt && aftertmax && c₁ > c₂ > 0
+    elseif calcm == :luldt && aftertmax && c₁ > c₂ > zero(c₂)
         auc   =  logauc(t₁, t₂, c₁, c₂)
     #elseif calcm == :log && c₁ > zero(T) && c₂ > zero(T)
         #auc   =  logauc(t₁, t₂, c₁, c₂)
@@ -188,13 +188,13 @@ function aucpart(t₁, t₂, c₁, c₂, calcm, aftertmax)
     return auc
 end
 function aumcpart(t₁, t₂, c₁, c₂, calcm, aftertmax)
-    if calcm == :lint || c₁ <= 0 && c₂ <= 0
+    if calcm == :lint || c₁ <= zero(c₁) && c₂ <= zero(c₂)
         aumc  = linaumc(t₁, t₂, c₁, c₂)
-    elseif calcm == :logt && aftertmax && c₁ > 0 && c₂ > 0
+    elseif calcm == :logt && aftertmax && c₁ > zero(c₁) && c₂ > zero(c₂)
         aumc  = logaumc(t₁, t₂, c₁, c₂)
-    elseif calcm == :luld &&  c₁ > c₂ > 0
+    elseif calcm == :luld &&  c₁ > c₂ > zero(c₂)
         aumc  = logaumc(t₁, t₂, c₁, c₂)
-    elseif calcm == :luldt && aftertmax && c₁ > c₂ > 0
+    elseif calcm == :luldt && aftertmax && c₁ > c₂ > zero(c₂)
         aumc  = logaumc(t₁, t₂, c₁, c₂)
     #elseif calcm == :log && c₁ > zero(T) && c₂ > zero(T)
         #aumc  = logaumc(t₁, t₂, c₁, c₂)
@@ -205,13 +205,13 @@ function aumcpart(t₁, t₂, c₁, c₂, calcm, aftertmax)
 end
 #---------------------------------------------------------------------------
 function interpolate(t₁, t₂, tx, c₁, c₂, intpm, aftertmax)
-    if intpm == :lint || c₁ <= 0 || c₂ <= 0
+    if intpm == :lint || c₁ <= zero(c₁) || c₂ <= zero(c₂)
         c = linpredict(t₁, t₂, tx, c₁, c₂)
-    elseif intpm == :logt && aftertmax && c₁ > 0 && c₂ > 0
+    elseif intpm == :logt && aftertmax && c₁ > zero(c₁) && c₂ > zero(c₂)
         c = logcpredict(t₁, t₂, tx, c₁, c₂)
-    elseif intpm == :luld && c₁ > c₂ > 0
+    elseif intpm == :luld && c₁ > c₂ > zero(c₂)
         c = logcpredict(t₁, t₂, tx, c₁, c₂)
-    elseif intpm == :luldt && aftertmax && c₁ > c₂ > 0
+    elseif intpm == :luldt && aftertmax && c₁ > c₂ > zero(c₂)
         c = logcpredict(t₁, t₂, tx, c₁, c₂)
     #elseif intpm == :log && c₁ > zero(T) && c₂ > zero(T)
         #c = logcpredict(t₁, t₂, tx, c₁, c₂)
@@ -223,13 +223,13 @@ end
 
 # Time interpolation
 function tinterpolate(c₁, c₂, cx, t₁, t₂, intpm, aftertmax)
-    if intpm == :lint || c₁ <= 0 || c₂ <= 0
+    if intpm == :lint || c₁ <= zero(c₁) || c₂ <= zero(c₂)
         t = linpredict(c₁, c₂, cx, t₁, t₂)
-    elseif intpm == :logt && aftertmax && c₁ > 0 && c₂ > 0
+    elseif intpm == :logt && aftertmax && c₁ > zero(c₁) && c₂ > zero(c₂)
         t = logtpredict(c₁, c₂, cx, t₁, t₂)
-    elseif intpm == :luld && c₁ > c₂ > 0
+    elseif intpm == :luld && c₁ > c₂ > zero(c₂)
         t = logtpredict(c₁, c₂, cx, t₁, t₂)
-    elseif intpm == :luldt && aftertmax && c₁ > c₂ > 0
+    elseif intpm == :luldt && aftertmax && c₁ > c₂ > zero(c₂)
         t = logtpredict(c₁, c₂, cx, t₁, t₂)
     #elseif intpm == :log && c₁ > zero(T) && c₂ > zero(T)
         #t = logtpredict(c₁, c₂, cx, t₁, t₂)
@@ -634,7 +634,7 @@ function nca!(data::PKSubject{T, O}; adm = :ev, calcm = :lint, intpm = nothing, 
         result[:AUCpct]          = (result[:AUCinf] - result[:AUClast]) / result[:AUCinf] * 100
         result[:AUMCinf]         = result[:AUMClast] + result[:Tlast] * result[:Clast] / result[:Kel] + result[:Clast] / result[:Kel] ^ 2
         result[:MRTinf]          = result[:AUMCinf] / result[:AUCinf]
-        if data.dosetime.dose > 0
+        if data.dosetime.dose > zero(data.dosetime.dose)
             result[:Vzlast]          = data.dosetime.dose / result[:AUClast] / result[:Kel]
             result[:Vzinf]           = data.dosetime.dose / result[:AUCinf] / result[:Kel]
             result[:Clinf]           = data.dosetime.dose / result[:AUCinf]
@@ -646,7 +646,7 @@ function nca!(data::PKSubject{T, O}; adm = :ev, calcm = :lint, intpm = nothing, 
 ################################################################################
     # STEP 8
     # Steady-state parameters
-    if data.dosetime.tau > 0
+    if data.dosetime.tau > zero(data.dosetime.tau)
         eaucpartl  = zero(T)*zero(O)
         eaumcpartl = zero(T)^2*zero(O)
         if time_cp[taulastp] < data.dosetime.tau < time_cp[end]

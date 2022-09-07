@@ -22,6 +22,10 @@ Validation report: [validation_report.pdf](./validation_report.pdf).
 
 Appendix 2: [Appendix2.1.pdf](./pdf/Appendix2.1.pdf), [Appendix2.2.pdf](./pdf/Appendix2.2.pdf), [Appendix2.3.pdf](./pdf/Appendix2.3.pdf), [Appendix2.4.pdf](./pdf/Appendix2.4.pdf), [Appendix2.5.pdf](./pdf/Appendix2.5.pdf).
 
+## Unitful
+
+See [Unitful details](@id unitful_details).
+
 ## Contents
 
 ```@contents
