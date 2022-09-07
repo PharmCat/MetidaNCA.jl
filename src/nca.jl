@@ -288,14 +288,14 @@ end
 
 # 3
 # Elimination, TlastN, Tlast
-function step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp::Vector{T}, time, keldata) where T
+function step_3_elim!(result, data, adm, tmaxn, time_cp::AbstractVector{T}, obs_cp::AbstractVector{O}, time, keldata) where T where O
     resize!(keldata)
     obsnum = length(time_cp)
     # data.kelrange.kelexcl - indexes; excltime - time values
     excltime = time[data.kelrange.kelexcl]
     # Unitful values
-    r_time_cp = reinterpret(typeof(one(eltype(time_cp))), time_cp)
-    r_obs_cp  = reinterpret(typeof(one(eltype(obs_cp))), obs_cp)
+    r_time_cp = reinterpret(typeof(one(T)), time_cp)
+    r_obs_cp  = reinterpret(typeof(one(O)), obs_cp)
 
     tlastn   = findlast(x-> x > zero(x), r_obs_cp)
     tlast    = r_time_cp[tlastn]
@@ -314,7 +314,7 @@ function step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp::Vector{T}, time
                 filter!(x-> x ∉ exclinds, timep)
             end
             # find all concentrations <= 0 - indexes
-            zcinds = findall(x -> x <= zero(T), obs_cp)
+            zcinds = findall(x -> x <= zero(O), obs_cp)
             # exclude concentrations <= 0 from time vector
             filter!(x-> x ∉ zcinds, timep)
             if length(timep) > 2
@@ -772,9 +772,10 @@ function minconc(subj::T) where T <: PKSubject
     minimum(subj.obs)
 end
 
-function exrate(time, conc, vol)
+function exrate(time::AbstractVector{Tuple{S, E}}, conc::AbstractVector{C}, vol::AbstractVector{V})  where S where E where C where V
+    T = promote_type(S, E)
     length(time) == length(conc) == length(vol) || error("")
-    er = Vector{Float64}(undef, length(time))
+    er = Vector{typeof(oneunit(C)*oneunit(V)/oneunit(T))}(undef, length(time))
     @inbounds for i = 1:length(time)
         er[i] = conc[i]*vol[i]/(time[i][2] - time[i][1])
     end
@@ -827,9 +828,11 @@ Results:
 * HL
 * AUCinf
 """
-function nca!(data::UPKSubject{T, O, VOL, V}; adm = :ev, calcm = :lint, intpm = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = identity) where T where O where VOL where V
+function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}; adm = :ev, calcm = :lint, intpm = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = identity) where S where E where O where VOL where V
 
-    result   = Dict{Symbol, Float64}()
+    ptype  = promote_type(Float64, S, E, O, VOL)
+    ttype  = promote_type(S, E)
+    result   = Dict{Symbol, ptype}()
 
     options =  Dict(:type => :urine, :adm => adm, :calcm => calcm, :intpm => intpm, :verbose => verbose, :warn => warn, :modify! => modify!)
 
@@ -863,20 +866,20 @@ function nca!(data::UPKSubject{T, O, VOL, V}; adm = :ev, calcm = :lint, intpm = 
     else
         pushfirst!(mtime, time[1][1])
     end
-    pushfirst!(obs, 0)
-    pushfirst!(vol, 0)
-    pushfirst!(exr, 0)
+    pushfirst!(obs, zero(O))
+    pushfirst!(vol, zero(VOL))
+    pushfirst!(exr, zero(eltype(exr)))
 
     result[:Maxrate], result[:Tmax], tmaxn = ctmax(mtime, exr)
 
-    if data.dosetime.dose > 0
+    if data.dosetime.dose > zero(data.dosetime.dose)
         result[:Prec]  = result[:AR]/data.dosetime.dose * 100
     end
     obsnum = length(exr)
 
     lastobs = length(exr)
     for i = length(exr):-1:1
-        if exr[i] > 0
+        if exr[i] > zero(eltype(exr))
             break
         else
             lastobs = i
@@ -889,7 +892,7 @@ function nca!(data::UPKSubject{T, O, VOL, V}; adm = :ev, calcm = :lint, intpm = 
 
     #result[:Kel]
     #result[:HL]
-    aucpartl  = Array{Float64, 1}(undef, obsnum - 1)
+    aucpartl  = Vector{typeof(zero(eltype(exr))*zero(ttype))}(undef, obsnum - 1)
     #Calculate all AUC part based on data
     for i = 1:(obsnum - 1)
         aucpartl[i] = aucpart(mtime[i], mtime[i + 1], exr[i], exr[i + 1], calcm, i >= tmaxn)
@@ -902,7 +905,7 @@ function nca!(data::UPKSubject{T, O, VOL, V}; adm = :ev, calcm = :lint, intpm = 
     if  length(data.keldata) > 0
         result[:ARsq], rsqn      = findmax(keldata.ar)
         result[:Rsq]             = keldata.r[rsqn]
-        result[:Kel]             = abs(keldata.a[rsqn])
+        result[:Kel]             = abs(keldata.a[rsqn]) / oneunit(ttype)
         result[:LZ]              = keldata.a[rsqn]
         result[:LZint]           = keldata.b[rsqn]
         result[:Rsqn]            = rsqn

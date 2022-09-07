@@ -272,7 +272,17 @@ function upkimport(stime, etime, conc, vol; kelauto = true,  elimrange = ElimRan
     concvals_sp = conc[sp]
     volvals_sp  = vol[sp]
 
-    if isnothing(dosetime) dosetime = DoseTime(NaN, zero(promote_type(eltype(stime), eltype(etime))), NaN) end
+
+    time_type = promote_type(typeof(zero(eltype(stime))), typeof(zero(eltype(stime))))
+    zerotime  = zero(time_type)
+    if isnothing(dosetime)
+        dosetime = DoseTime(NaN, zerotime, NaN*zerotime)
+    else
+        if !(time_type <: typeof(dosetime.time))
+            @warn "Type of dose time can be wrong... try to fix it"
+            dosetime = DoseTime(dosetime.dose, dosetime.time*oneunit(time_type), dosetime.tau)
+        end
+    end
 
 
     if length(timevals_sp) > 1

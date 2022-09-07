@@ -1622,15 +1622,15 @@ end
 
     # UPK
     io = IOBuffer();
-    upkds = MetidaNCA.upkimport(upkdata, :st, :et, :conc, :vol, :subj; dosetime =  MetidaNCA.DoseTime(dose = 100))
+    upkds = MetidaNCA.upkimport(upkdata, :st, :et, :conc, :vol, :subj; dosetime =  MetidaNCA.DoseTime(dose = 100, time = 0))
     @test_nowarn show(io, upkds[1])
     @test_nowarn dsnca = MetidaNCA.nca!(upkds, verbose = 2, io = io)
-    upkds = MetidaNCA.upkimport(upkdata, :st, :et, :conc, :vol; dosetime =  MetidaNCA.DoseTime(dose = 100))
-    upkds = MetidaNCA.upkimport(upkdata[!, :st], upkdata[!, :et], upkdata[!, :conc], upkdata[!, :vol]; dosetime =  MetidaNCA.DoseTime(dose = 100))
+    upkds = MetidaNCA.upkimport(upkdata, :st, :et, :conc, :vol; dosetime =  MetidaNCA.DoseTime(dose = 100, time = 0))
+    upkds = MetidaNCA.upkimport(upkdata[!, :st], upkdata[!, :et], upkdata[!, :conc], upkdata[!, :vol]; dosetime =  MetidaNCA.DoseTime(dose = 100, time = 0))
     unca  = MetidaNCA.nca!(upkds)
     @test_nowarn show(io, upkds)
     @test_nowarn show(io, unca)
-    @test_nowarn MetidaNCA.nca(upkdata, :st, :et, :conc, :vol; type = :ur, dosetime =  MetidaNCA.DoseTime(dose = 100))
+    @test_nowarn MetidaNCA.nca(upkdata, :st, :et, :conc, :vol; type = :ur, dosetime =  MetidaNCA.DoseTime(dose = 100, time = 0))
 
     # PD
 
@@ -1650,7 +1650,24 @@ end
 
 end
 
-Unitful
+
+@testset "  timefilter                                               " begin
+    io = IOBuffer();
+    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
+    ds2 = MetidaNCA.timefilter(ds, (0.75, 24))
+    @test minimum(ds2[1].time) >= 0.75
+    @test maximum(ds2[1].time) <= 24
+
+    ds2 = MetidaNCA.timefilter(ds, LinRange(0.75, 24, 2))
+    @test minimum(ds2[1].time) >= 0.75
+    @test maximum(ds2[1].time) <= 24
+end
+
+include("upktest.jl")
+include("pdtest.jl")
+
+
+#Unitful
 @testset "  Unitful                                                  " begin
     io = IOBuffer();
     upk = deepcopy(pkdata2)
@@ -1681,19 +1698,15 @@ Unitful
 
     @test upknca[:, :AUCtau] ≈ pknca[:, :AUCtau] .* u"ng*hr/ml"
     @test upknca[:, :MRTtauinf] ≈ pknca[:, :MRTtauinf] .* u"hr"
+
+
+    upk = deepcopy(upkdata)
+    upk.st = upk.st .* u"hr"
+    upk.et = upk.et .* u"hr"
+    upk.conc = upk.conc .* u"ng/ml"
+    upk.vol = upk.vol .* u"l"
+
+    uds = MetidaNCA.upkimport(upk, :st, :et, :conc, :vol, :subj; dosetime =  MetidaNCA.DoseTime(dose = 100u"mg", time = 0u"hr"))
+    pknca  = MetidaNCA.nca!(uds)
+
 end
-
-@testset "  timefilter                                               " begin
-    io = IOBuffer();
-    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
-    ds2 = MetidaNCA.timefilter(ds, (0.75, 24))
-    @test minimum(ds2[1].time) >= 0.75
-    @test maximum(ds2[1].time) <= 24
-
-    ds2 = MetidaNCA.timefilter(ds, LinRange(0.75, 24, 2))
-    @test minimum(ds2[1].time) >= 0.75
-    @test maximum(ds2[1].time) <= 24
-end
-
-include("upktest.jl")
-include("pdtest.jl")

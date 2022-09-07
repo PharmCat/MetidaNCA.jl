@@ -199,8 +199,10 @@ mutable struct UPKSubject{T <: Tuple{Number, Number}, O <: Union{Number, Missing
     function UPKSubject(time::Vector{T}, conc::Vector{O}, vol::Vector{VOL}, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, keldata::KelData, id::Dict{Symbol, V} = Dict{Symbol, Any}()) where T <: Tuple{Number, Number} where O <: Union{Number, Missing} where VOL <: Union{Number, Missing} where V
         new{T, O, VOL, V}(time, conc, vol, kelauto, kelrange, dosetime, keldata, id)
     end
-    function UPKSubject(time::Vector, conc::Vector, vol::Vector, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, id::Dict{Symbol, V}) where V
-        UPKSubject(time, conc, vol, kelauto, kelrange, dosetime, KelData(), id)
+    function UPKSubject(time::AbstractVector{Tuple{S,E}}, conc::Vector, vol::Vector, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, id::Dict{Symbol, V}) where V where S where E
+        ttype = promote_type(S, E)
+
+        UPKSubject(time, conc, vol, kelauto, kelrange, dosetime, KelData(ttype[], ttype[], Float64[], Float64[], Float64[], Float64[], Int[]), id)
     end
 end
 
