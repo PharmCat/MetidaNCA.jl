@@ -278,7 +278,7 @@ function upkimport(stime, etime, conc, vol; kelauto = true,  elimrange = ElimRan
     if isnothing(dosetime)
         dosetime = DoseTime(NaN, zerotime, NaN*zerotime)
     else
-        if !(time_type <: typeof(dosetime.time))
+        if !(time_type <: typeof(dosetime.time)) && !(time_type <: Real)
             @warn "Type of dose time can be wrong... try to fix it"
             dosetime = DoseTime(dosetime.dose, dosetime.time*oneunit(time_type), dosetime.tau)
         end
