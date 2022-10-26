@@ -934,3 +934,57 @@ urefdict = Dict{Symbol, Float64}(
 #:AURC_INF_pred => 19.311984,
 #:AURC_%Extrap_pred => 11.324493,
 )
+
+
+
+pdrefdict = Dict{Symbol, Float64}(
+#:N_Samples => 5,
+#:Dose => 100,
+:Rsq => 0.90549162,
+:ARsq => 0.81098324, #Rsq_adjusted
+#:Corr_XY => -0.95157323,
+#:No_points_lambda_z => 3,
+:Kel => 0.13445441, #Lambda_z
+#:Lambda_z_intercept => 0.79280975,
+#:Lambda_z_lower => 4,
+#:Lambda_z_upper => 15,
+:HL => 5.1552579, #HL_Lambda_z
+#:Span => 2.1337439,
+#:Tlag => 0,
+:Tmax => 1.5, #Tmax_Rate
+:Maxrate => 4, #Max_Rate
+#:Mid_Pt_last => 15,
+:Rlast => 0.33333333, #Rate_last
+#:Rate_last_pred => 0.2940497,
+:AUClast => 17.125, #AURC_last
+#:AURC_last_D => 0.17125,
+:Vol => 11, #Vol_UR
+:AR => 16, #Amount_Recovered
+:Prec => 16, #Percent_Recovered
+:AUCall => 17.125, #AURC_all
+:AUCinf => 19.604155, #AURC_INF_obs
+:AUCpct => 12.646069, #AURC_%Extrap_obs
+#:AURC_INF_pred => 19.311984,
+#:AURC_%Extrap_pred => 11.324493,
+)
+
+
+
+pdrefdict = Dict{Symbol, Float64}(
+    #N_Samples => 13,
+    :Tmax => 5.0,
+    :Rmax => 8.0 ,
+
+    :AUCABL => 7.3857143 ,
+    :AUCBBL => 8.7357143 ,
+    :AUCATH => 13.959524 ,
+    :AUCBTH => 1.8095238 ,
+    :AUCBTW => 6.926190 ,
+    :TABL => 3.4809524 ,
+    :TBBL => 5.5190476 ,
+    :TATH => 5.7619048 ,
+    :TBTH => 3.2380952 ,
+    :AUCNETB => -1.35 ,
+    :AUCNETT => 12.15 ,
+    :TIMEBTW => 2.2809524,
+)

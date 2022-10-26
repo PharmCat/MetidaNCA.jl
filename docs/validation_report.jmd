@@ -153,6 +153,7 @@ dfn = DataFrame(
 
 pkdata2  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "pkdata2.csv")) |> DataFrame
 upkdata  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "upkdata.csv")) |> DataFrame
+pddata   = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "pddata.csv")) |> DataFrame
 ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
 sort!(ds, :Subject)
 #pretty_table(dfn; tf = tf_ascii_rounded)
@@ -420,6 +421,41 @@ Table: Urine data results
 
 \pagebreak
 
+
+
+### Pharmacodynamics data; Linear-trapezoidal rule
+
+**Code:**
+
+```julia; eval = false
+pd =  MetidaNCA.pdimport(pddata, :time, :obs; bl = 3.0, th = 1.5, id = Dict(:subj => 1))
+pdres = MetidaNCA.nca!(pd)
+```
+
+```julia; echo = false, results = "tex"
+
+list = collect(keys(pdrefdict))
+
+pd =  MetidaNCA.pdimport(pddata, :time, :obs; bl = 3.0, th = 1.5, id = Dict(:subj => 1))
+pdres = MetidaNCA.nca!(pd)
+pname = string.(list)
+vals = zeros(Float64, length(list))
+refs = zeros(Float64, length(list))
+for i = 1: length(list)
+    vals[i] = round(pdres[1, list[i]], sigdigits = 6)
+    refs[i] = round(urefdict[list[i]], sigdigits = 6)
+end
+
+  mx = hcat(pname, vals, refs, vals .- refs)
+  df = DataFrame(mx, ["Parameter", "Value", "Reference", "Difference"])
+  show(latexify(df))
+```
+Table: Pharmacodynamics data results
+
+\pagebreak
+
+
+
 # Glossary
 
   * Installation qualification (IQ) - Establishing confidence that process equipment and ancillary systems are compliant with appropriate codes and approved design intentions, and that manufacturer's recommendations are suitably considered.
@@ -439,7 +475,7 @@ Table: Urine data results
 
 # Appendix 1
 
-### Testing PK  dataset.
+### Testing PK dataset.
 
 ```julia; echo = false
 
@@ -448,10 +484,18 @@ pretty_table(pkdata2; tf = tf_ascii_rounded, header = names(pkdata2))
 
 \pagebreak
 
-### Testing urine PK  dataset.
+### Testing urine PK dataset.
 ```julia; echo = false
 
 pretty_table(upkdata; tf = tf_ascii_rounded, header = names(upkdata))
+```
+
+\pagebreak
+
+### Testing PD dataset.
+```julia; echo = false
+
+pretty_table(pddata; tf = tf_ascii_rounded, header = names(pddata))
 ```
 
 \pagebreak

@@ -39,18 +39,42 @@
     @test_throws ErrorException MetidaNCA.setbl!(pd, NaN)
     @test_throws ErrorException MetidaNCA.setth!(pd, NaN)
 
-    pd =  MetidaNCA.pdimport(pddata, :time, :obs; bl = 1.5, th = 5.0, id = Dict(:subj => 1))
+    pd =  MetidaNCA.pdimport(pddata, :time, :obs; bl = 3.0, th = 1.5, id = Dict(:subj => 1))
     pd_rds = MetidaNCA.nca!(pd)
 
-    # Not validated
+   
     @test  pd_rds[:Tmax] ≈ 5.0 atol=1E-6
     @test  pd_rds[:Rmax] ≈ 8.0 atol=1E-6
 
-    @test  pd_rds[:AUCABL] ≈ 13.959523809523809 atol=1E-6
-    @test  pd_rds[:AUCBBL] ≈ 1.8095238095238095 atol=1E-6
-    @test  pd_rds[:AUCATH] ≈ 2.2261904761904767 atol=1E-6
-    @test  pd_rds[:AUCBTH] ≈ 13.542857142857143 atol=1E-6
-    @test  pd_rds[:AUCBTW] ≈ 11.733333333333333 atol=1E-6
+    @test  pd_rds[:AUCABL] ≈ 7.3857143 atol=1E-6
+    @test  pd_rds[:AUCBBL] ≈ 8.7357143 atol=1E-6
+    @test  pd_rds[:AUCATH] ≈ 13.959524 atol=1E-6
+    @test  pd_rds[:AUCBTH] ≈ 1.8095238 atol=1E-6
+    @test  pd_rds[:AUCBTW] ≈ 6.926190 atol=1E-6
+    @test  pd_rds[:TABL] ≈ 3.4809524 atol=1E-6
+    @test  pd_rds[:TBBL] ≈ 5.5190476 atol=1E-6
+    @test  pd_rds[:TATH] ≈ 5.7619048 atol=1E-6
+    @test  pd_rds[:TBTH] ≈ 3.2380952 atol=1E-6
+    @test  pd_rds[:AUCNETB] ≈ -1.35 atol=1E-2
+    @test  pd_rds[:AUCNETT] ≈ 12.15 atol=1E-2
+    @test  pd_rds[:TIMEBTW] ≈ 2.2809524 atol=1E-6
+
+    pd =  MetidaNCA.pdimport(pddata, :time, :obs; bl = 1.5, th = 3.0, id = Dict(:subj => 1))
+    pd_rds = MetidaNCA.nca!(pd)
+
+    @test  pd_rds[:AUCATH] ≈ 7.3857143 atol=1E-6
+    @test  pd_rds[:AUCBTH] ≈ 8.7357143 atol=1E-6
+    @test  pd_rds[:AUCABL] ≈ 13.959524 atol=1E-6
+    @test  pd_rds[:AUCBBL] ≈ 1.8095238 atol=1E-6
+    @test  pd_rds[:AUCBTW] ≈ 6.5738095 atol=1E-6
+    @test  pd_rds[:TATH] ≈ 3.4809524 atol=1E-6
+    @test  pd_rds[:TBTH] ≈ 5.5190476 atol=1E-6
+    @test  pd_rds[:TABL] ≈ 5.7619048 atol=1E-6
+    @test  pd_rds[:TBBL] ≈ 3.2380952 atol=1E-6
+    @test  pd_rds[:AUCNETT] ≈ -1.35 atol=1E-2
+    @test  pd_rds[:AUCNETB] ≈ 12.15 atol=1E-2
+    @test  pd_rds[:TIMEBTW] ≈ 2.2809524 atol=1E-6
+
 
     #
     pd_rds = MetidaNCA.nca!(pd; calcm = :luld)

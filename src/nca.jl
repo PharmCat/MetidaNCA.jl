@@ -962,14 +962,16 @@ function auctblth(c1, c2, t1, t2, bl, th, calcm)
     aucath, aucbth, tath, tbth = auctspl(c1, c2, t1, t2, th, calcm)
 
     if th > bl
-        aucbth = aucabl + aucbbl - aucath
-        btw = aucabl - aucath
+        #aucbth = aucabl + aucbbl - aucath
+        aucbtw = aucabl - aucath
+        #timebtw = tbth - tbbl
     else
-        aucath = aucabl + aucbbl - aucbth
-        btw = aucbbl - aucbth
+        #aucath = aucabl + aucbbl - aucbth
+        aucbtw = aucbbl - aucbth
+        #timebtw = tbbl - tbth
     end
 
-    aucabl, aucbbl, tabl, tbbl, aucath, aucbth, tath, tbth, btw
+    aucabl, aucbbl, tabl, tbbl, aucath, aucbth, tath, tbth, aucbtw#, timebtw
 end
 
 """
@@ -985,6 +987,8 @@ Results:
 * AUCBBL - AUC below baseline;
 * AUCATH - AUC above threshold;
 * AUCBTH - AUC below threshold;
+* AUCNETB - AUCABL - AUCBBL;
+* AUCNETT - AUCATH - AUCBTH;
 * TABL - time above baseline;
 * TBBL - time below baseline;
 * TATH - time above threshold;
@@ -1062,6 +1066,14 @@ function nca!(data::PDSubject{T,O}; calcm = :lint, intpm = nothing, verbose = 0,
     result[:TBTH]   = sum(tpartbth)
     result[:AUCBTW] = sum(aucpartbtw)
 
+    result[:AUCNETB] = result[:AUCABL] - result[:AUCBBL]
+    result[:AUCNETT] = result[:AUCATH] - result[:AUCBTH]
+
+    if data.th > data.bl
+        result[:TIMEBTW] = result[:TBTH] - result[:TBBL]
+    else
+        result[:TIMEBTW] = result[:TBBL] - result[:TBTH]
+    end
 
     # Verbose output
     if verbose > 0
