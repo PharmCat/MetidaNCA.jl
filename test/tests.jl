@@ -1707,6 +1707,14 @@ include("pdtest.jl")
     upk.vol = upk.vol .* u"l"
 
     uds = MetidaNCA.upkimport(upk, :st, :et, :conc, :vol, :subj; dosetime =  MetidaNCA.DoseTime(dose = 100u"mg", time = 0u"hr"))
-    pknca  = MetidaNCA.nca!(uds)
+    @test_nowarn pknca  = MetidaNCA.nca!(uds)
 
+
+    upd = deepcopy(pddata)
+    upd.time = upd.time .* u"hr"
+    upd.obs = upd.obs .* u"m"
+    pd =  MetidaNCA.pdimport(upd, :time, :obs; bl = 3.0, th = 1.5, id = Dict(:subj => 1))
+    @test_nowarn pd_rds = MetidaNCA.nca!(pd);
+    #pd_rds = MetidaNCA.nca!(pd, io = io, verbose = 2)
+    
 end

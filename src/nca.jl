@@ -924,28 +924,29 @@ end
 
 
 function auctspl(c1, c2, t1, t2, sl, calcm)
-    if c1 >= sl && c2 >= sl
-        auca = aucpart(t1, t2, c1, c2, calcm, true) - (t2 - t1)*sl
-        aucb = 0.0
+    slu = sl*oneunit(c1)
+    if c1 >= slu && c2 >= slu
+        auca = aucpart(t1, t2, c1, c2, calcm, true) - (t2 - t1)*slu
+        aucb = zero(auca)
         ta   = t2 - t1
-        tb   = 0.0
-    elseif c1 <= sl && c2 <= sl
-        auca = 0.0
-        aucb = (t2 - t1)*sl - aucpart(t1, t2, c1, c2, calcm, true)
-        ta   = 0.0
+        tb   = zero(ta)
+    elseif c1 <= slu && c2 <= slu
+        aucb = (t2 - t1)*slu - aucpart(t1, t2, c1, c2, calcm, true)
+        auca = zero(aucb)
         tb   = t2 - t1
+        ta   = zero(tb)
     else
-        tint = tinterpolate(c1, c2, sl, t1, t2, calcm, true)
-        l = aucpart(t1, tint, c1, sl, calcm, true)
-        r = aucpart(tint, t2, sl, c2, calcm, true)
-        if c1 > sl && c2 < sl
-            auca = l - (tint - t1)*sl
-            aucb = (t2 - tint)*sl - r
+        tint = tinterpolate(c1, c2, slu, t1, t2, calcm, true)
+        l = aucpart(t1, tint, c1, slu, calcm, true)
+        r = aucpart(tint, t2, slu, c2, calcm, true)
+        if c1 > slu && c2 < slu
+            auca = l - (tint - t1)*slu
+            aucb = (t2 - tint)*slu - r
             ta   = tint - t1
             tb   = t2 - tint
-        elseif c1 < sl && c2 > sl
-            auca = r - (t2 - tint)*sl
-            aucb = (tint - t1)*sl - l
+        elseif c1 < slu && c2 > slu
+            auca = r - (t2 - tint)*slu
+            aucb = (tint - t1)*slu - l
             ta   = t2 - tint
             tb   = tint - t1
         else
@@ -997,8 +998,10 @@ Results:
 
 """
 function nca!(data::PDSubject{T,O}; calcm = :lint, intpm = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = identity, kwargs...) where T where O
+    
+    ptype  = promote_type(Float64, T, O)
 
-    result   = Dict{Symbol, Float64}()
+    result   = Dict{Symbol, ptype}()
 
     if isnothing(intpm) intpm = calcm end
 
@@ -1042,15 +1045,15 @@ function nca!(data::PDSubject{T,O}; calcm = :lint, intpm = nothing, verbose = 0,
     # ALL NAN AND MISSING VALUES LINEAR INTERPOLATED
     step_2_interpolate!(time_cp, obs_cp, einds, 1, :lint)
 
-    aucpartabl  = Array{Float64, 1}(undef, obsnum - 1)
-    aucpartbbl  = Array{Float64, 1}(undef, obsnum - 1)
-    aucpartath  = Array{Float64, 1}(undef, obsnum - 1)
-    aucpartbth  = Array{Float64, 1}(undef, obsnum - 1)
-    tpartabl    = Array{Float64, 1}(undef, obsnum - 1)
-    tpartbbl    = Array{Float64, 1}(undef, obsnum - 1)
-    tpartath    = Array{Float64, 1}(undef, obsnum - 1)
-    tpartbth    = Array{Float64, 1}(undef, obsnum - 1)
-    aucpartbtw  = Array{Float64, 1}(undef, obsnum - 1)
+    aucpartabl  = Array{ptype, 1}(undef, obsnum - 1)
+    aucpartbbl  = Array{ptype, 1}(undef, obsnum - 1)
+    aucpartath  = Array{ptype, 1}(undef, obsnum - 1)
+    aucpartbth  = Array{ptype, 1}(undef, obsnum - 1)
+    tpartabl    = Array{ptype, 1}(undef, obsnum - 1)
+    tpartbbl    = Array{ptype, 1}(undef, obsnum - 1)
+    tpartath    = Array{ptype, 1}(undef, obsnum - 1)
+    tpartbth    = Array{ptype, 1}(undef, obsnum - 1)
+    aucpartbtw  = Array{ptype, 1}(undef, obsnum - 1)
 
     for i = 1:(obsnum - 1)
         aucpartabl[i], aucpartbbl[i], tpartabl[i], tpartbbl[i], aucpartath[i], aucpartbth[i], tpartath[i], tpartbth[i], aucpartbtw[i] = auctblth( obs_cp[i], obs_cp[i + 1], time_cp[i], time_cp[i + 1], data.bl, data.th, calcm)
@@ -1081,10 +1084,10 @@ function nca!(data::PDSubject{T,O}; calcm = :lint, intpm = nothing, verbose = 0,
         hnames = [:Time, :Observation, :AUCABL, :AUCBBL, :AUCATH, :AUCBTH]
         mx = metida_table(collect(time_cp),
         collect(obs_cp),
-        pushfirst!(aucpartabl, 0.0),
-        pushfirst!(aucpartbbl, 0.0),
-        pushfirst!(aucpartath, 0.0),
-        pushfirst!(aucpartbth, 0.0);
+        pushfirst!(aucpartabl, zero(first(aucpartabl))),
+        pushfirst!(aucpartbbl, zero(first(aucpartbbl))),
+        pushfirst!(aucpartath, zero(first(aucpartath))),
+        pushfirst!(aucpartbth, zero(first(aucpartbth)));
         names = hnames)
 
         hnames = (["Time" "Obs." "AUCABL"  "AUCBBL" "AUCATH" "AUCBTH"],
