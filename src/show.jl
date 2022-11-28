@@ -93,6 +93,14 @@ function Base.show(io::IO, obj::DataSet{Res}) where Res <: NCAResult
     println(io, "DataSet: PK/PD NCA result")
     println(io, "Length: $(length(obj))")
     for i = 1:length(obj)
-        println(io, "Subject $(i): ", obj[i].data.id)
+        print(io, "Subject $(i): ")
+        if length(obj[i].data.id) > 0
+            for (k, v) in obj[i].data.id
+                print(io, "$k => $v, ")
+            end
+            println(io, "")
+        else
+            println(io, "-")
+        end
     end
 end
