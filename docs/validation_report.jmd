@@ -154,7 +154,8 @@ dfn = DataFrame(
 pkdata2  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "pkdata2.csv")) |> DataFrame
 upkdata  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "upkdata.csv")) |> DataFrame
 pddata   = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "pddata.csv")) |> DataFrame
-ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
+ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; 
+dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
 sort!(ds, :Subject)
 #pretty_table(dfn; tf = tf_ascii_rounded)
 show(latexify(dfn; latex=false))
@@ -428,7 +429,8 @@ Table: Urine data results
 **Code:**
 
 ```julia; eval = false
-pd =  MetidaNCA.pdimport(pddata, :time, :obs; bl = 3.0, th = 1.5, id = Dict(:subj => 1))
+pd =  MetidaNCA.pdimport(pddata, :time, :obs; 
+bl = 3.0, th = 1.5, id = Dict(:subj => 1))
 pdres = MetidaNCA.nca!(pd)
 ```
 
@@ -436,7 +438,8 @@ pdres = MetidaNCA.nca!(pd)
 
 list = collect(keys(pdrefdict))
 
-pd =  MetidaNCA.pdimport(pddata, :time, :obs; bl = 3.0, th = 1.5, id = Dict(:subj => 1))
+pd =  MetidaNCA.pdimport(pddata, :time, :obs; 
+bl = 3.0, th = 1.5, id = Dict(:subj => 1))
 pdres = MetidaNCA.nca!(pd)
 pname = string.(list)
 vals = zeros(Float64, length(list))
