@@ -140,6 +140,12 @@ MetidaNCA.timefilter
 
 ## Atomic
 
+### auc_sparse
+
+```@docs
+MetidaNCA.auc_sparse
+```
+
 > **Warning**
 > Atomic functions: `cmax`, `tmax`, `auc` not exported, use `import MetidaNCA: cmax, tmax, auc;`.
 

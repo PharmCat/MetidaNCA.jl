@@ -7,7 +7,9 @@ function Base.show(io::IO, obj::ElimRange)
     print(io, "Elimination range: $(obj.kelstart) - $(obj.kelend) ")
     if length(obj.kelexcl) > 0
         print(io, "Exclusions: $(obj.kelexcl[1])")
-        if length(obj.kelexcl) > 1 for i = 2:length(obj.kelexcl) print(io, ", $(obj.kelexcl[i])") end end
+        if length(obj.kelexcl) > 1 
+            for i = 2:length(obj.kelexcl) print(io, ", $(obj.kelexcl[i])") end 
+        end
         print(io, ".")
     else
         print(io, "No exclusion.")

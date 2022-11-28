@@ -23,6 +23,7 @@ indsdict!,
 subset
 
 export pkimport, upkimport, pdimport, nca!, nca, DoseTime, ElimRange, LimitRule,
+auc_sparse,
 setdosetime!, setkelauto!, setkelrange!, applylimitrule!, setbl!, setth!,
 pkplot,
 getkeldata, getkelauto, getkelrange, getdosetime, getbl, getth,#, subset
@@ -43,7 +44,7 @@ const LOG2 = log(2)
     include("metidatable.jl")
     include("setblth.jl")
     include("timefilter.jl")
+    include("sparse.jl")
     include("atomic.jl")
-
 
 end # module
