@@ -7,7 +7,9 @@ function Base.show(io::IO, obj::ElimRange)
     print(io, "Elimination range: $(obj.kelstart) - $(obj.kelend) ")
     if length(obj.kelexcl) > 0
         print(io, "Exclusions: $(obj.kelexcl[1])")
-        if length(obj.kelexcl) > 1 for i = 2:length(obj.kelexcl) print(io, ", $(obj.kelexcl[i])") end end
+        if length(obj.kelexcl) > 1 
+            for i = 2:length(obj.kelexcl) print(io, ", $(obj.kelexcl[i])") end 
+        end
         print(io, ".")
     else
         print(io, "No exclusion.")
@@ -91,6 +93,14 @@ function Base.show(io::IO, obj::DataSet{Res}) where Res <: NCAResult
     println(io, "DataSet: PK/PD NCA result")
     println(io, "Length: $(length(obj))")
     for i = 1:length(obj)
-        println(io, "Subject $(i): ", obj[i].data.id)
+        print(io, "Subject $(i): ")
+        if length(obj[i].data.id) > 0
+            for (k, v) in obj[i].data.id
+                print(io, "$k => $v, ")
+            end
+            println(io, "")
+        else
+            println(io, "-")
+        end
     end
 end

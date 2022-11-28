@@ -1663,6 +1663,29 @@ end
     @test maximum(ds2[1].time) <= 24
 end
 
+@testset "  Sparse PK                                                " begin
+    obs = [0.2
+    0.3
+    0.4
+    0.3
+    0.2
+    0.1]
+
+    time = [1
+    2
+    3
+    4
+    5
+    6]
+
+    auc = MetidaNCA.auc_sparse(time, obs)
+    @test auc ≈ 1.35 atol=1E-5
+
+    @test_throws ErrorException MetidaNCA.auc_sparse([1], [1])
+    @test_throws ErrorException MetidaNCA.auc_sparse([1,2], [1,2,3])
+    @test_throws ErrorException MetidaNCA.auc_sparse([2,1], [1,2])
+end
+
 include("upktest.jl")
 include("pdtest.jl")
 
