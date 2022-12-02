@@ -22,6 +22,7 @@ const PKPLOTSTYLE = (
 )
 
 function plotstyle(n)
+    if isnothing(n) n = 1 end
     if n >= 1 && n <= 20
         return PKPLOTSTYLE[n]
     elseif n > 1900
@@ -324,12 +325,16 @@ function pageplot(data, id, ulist; kwargs...)
     for subj in subdata
             if !isnothing(ulist)
                 num = findfirst(x-> x ⊆ subj.id, ulist)
-                style = plotstyle(num)
-                if num ∈ labvec
-                    kwargs[:label] = nothing
+                if !isnothing(num)
+                    style = plotstyle(num)
+                    if num ∈ labvec
+                        kwargs[:label] = nothing
+                    else
+                        kwargs[:label] = plotlabel(ulist[num])
+                        push!(labvec, num)
+                    end
                 else
-                    kwargs[:label] = plotlabel(ulist[num])
-                    push!(labvec, num)
+                    style = plotstyle(1)
                 end
             else
                 style = plotstyle(1)
@@ -348,7 +353,7 @@ end
     pkplot(data::DataSet{T};
     typesort::Union{Nothing, Symbol, AbstractVector{Symbol}} = nothing,
     pagesort::Union{Nothing, Symbol, AbstractVector{Symbol}} = nothing,
-    sort::Union{Nothing, Dict{Symbol}} = nothing,
+    filter::Union{Nothing, Dict{Symbol}} = nothing,
     uylims::Bool = false,
     kwargs...) where T <: AbstractSubject
 
@@ -356,13 +361,13 @@ PK plot for subject set.
 
 * `typesort` - sort on page by this id key;
 * `pagesort` - different pages by this id key;
-* `sort` - use only subjects if sort ⊆ subject id;
+* `filter` - use only subjects if filter ⊆ subject id;
 * `uylims` - same ylims for all dataset.
 """
 function pkplot(data::DataSet{T};
     typesort::Union{Nothing, Symbol, AbstractVector{Symbol}} = nothing,
     pagesort::Union{Nothing, Symbol, AbstractVector{Symbol}} = nothing,
-    sort::Union{Nothing, Dict{Symbol}} = nothing,
+    filter::Union{Nothing, Dict{Symbol}} = nothing,
     uylims::Bool = false,
     kwargs...) where T <: AbstractSubject
 
@@ -383,7 +388,7 @@ function pkplot(data::DataSet{T};
     if uylims && !(:ylims in k)
         kwargs[:ylims] = (findmin(x -> minconc(x), getdata(data))[1], findmax(x -> maxconc(x), getdata(data))[1]*1.15)
     end
-    if !isnothing(sort) data = subset(data, sort) end
+    if !isnothing(filter) data = subset(data, filter) end
 
     if isnothing(typesort) && isnothing(pagesort)
         p = []
@@ -423,14 +428,14 @@ function pkplot(data::DataSet{T};
         end
         return p
     else
-        if !(:title in k) && !isnothing(sort)
-            kwargs[:title] = plotlabel(sort)
+        if !(:title in k) && !isnothing(filter)
+            kwargs[:title] = plotlabel(filter)
         end
         return pageplot(data, pagesort, typelist; kwargs...)
     end
 end
 
 
-function uniqueidlist(data::DataSet{T}, ::Nothing) where T <: AbstractIdData
+function uniqueidlist(::DataSet{T}, ::Nothing) where T <: AbstractIdData
     nothing
 end

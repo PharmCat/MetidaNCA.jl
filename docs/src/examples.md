@@ -42,7 +42,7 @@ dsnca = nca!(ds[1], adm = :ev, calcm = :lint, verbose = 2);
 ```@example ncaexample
 using Plots
 
-p = pkplot(ds; typesort = :Subject, pagesort = nothing, sort = Dict(:Formulation => "R"))
+p = pkplot(ds; typesort = :Subject, pagesort = nothing, filter = Dict(:Formulation => "R"))
 
 png(p, "plot1.png")
 
