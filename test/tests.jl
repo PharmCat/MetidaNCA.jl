@@ -80,6 +80,8 @@ include("refdicts.jl")
     @test_nowarn MetidaNCA.plotstyle(40)
     pl = MetidaNCA.pkplot(ds[2])
     pl = MetidaNCA.pkplot!(ds[3]; yscale = :log10)
+    # Unknown typesort
+    @test_nowarn pl = MetidaNCA.pkplot(ds; typesort = :unknown)
 
     #pyplot()
     #@test_nowarn pl = MetidaNCA.pkplot(ds[1]; ylims = (0, 10), yscale = :log2, legend = false)
