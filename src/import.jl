@@ -191,6 +191,12 @@ function pkimport(time, conc; kelauto = true,  elimrange = ElimRange(), dosetime
     pks
 end
 
+function pkimport(data; time, conc, sort = nothing, kwargs...)
+    if isnothing(sort)
+        pkimport(data, time, conc; kwargs...)
+    end
+    pkimport(data, time, conc, sort; kwargs...)
+end
 
 """
     upkimport(data, stime, etime, conc, vol, sort; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
