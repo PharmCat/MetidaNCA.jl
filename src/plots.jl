@@ -438,7 +438,3 @@ function pkplot(data::DataSet{T};
         return pageplot(data, nothing, typelist; kwargs...)
     end
 end
-
-function uniqueidlist(::DataSet{T}, ::Nothing) where T <: AbstractIdData
-    nothing
-end
