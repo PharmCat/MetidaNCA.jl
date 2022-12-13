@@ -22,11 +22,11 @@ uniqueidlist,
 indsdict!,
 subset
 
-export pkimport, upkimport, pdimport, nca!, nca, DoseTime, ElimRange, LimitRule,
+export pkimport, upkimport, pdimport, nca!, nca, DoseTime, ElimRange, LimitRule, NoPageSort,
 auc_sparse,
 setdosetime!, setkelauto!, setkelrange!, applylimitrule!, setbl!, setth!,
 pkplot,
-getkeldata, getkelauto, getkelrange, getdosetime, getbl, getth,#, subset
+getkeldata, getkelauto, getkelrange, getdosetime, getbl, getth, subset
 metida_table
 
 const LOG2 = log(2)

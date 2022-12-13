@@ -1,3 +1,5 @@
+struct NoPageSort end
+
 const PKPLOTSTYLE = (
 (:solid, :blue, :circle, :blue),
 (:solid, :red, :utriangle, :red),
@@ -352,7 +354,7 @@ end
 """
     pkplot(data::DataSet{T};
     typesort::Union{Nothing, Symbol, AbstractVector{Symbol}} = nothing,
-    pagesort::Union{Nothing, Symbol, AbstractVector{Symbol}} = nothing,
+    pagesort::Union{Nothing, Symbol, AbstractVector{Symbol}, NoPageSort} = nothing,
     filter::Union{Nothing, Dict{Symbol}} = nothing,
     uylims::Bool = false,
     kwargs...) where T <: AbstractSubject
@@ -363,10 +365,12 @@ PK plot for subject set.
 * `pagesort` - different pages by this id key;
 * `filter` - use only subjects if filter ⊆ subject id;
 * `uylims` - same ylims for all dataset.
+
+Use `pagesort = MetidaNCA.NoPageSort()` to prevent page plotting.
 """
 function pkplot(data::DataSet{T};
     typesort::Union{Nothing, Symbol, AbstractVector{Symbol}} = nothing,
-    pagesort::Union{Nothing, Symbol, AbstractVector{Symbol}} = nothing,
+    pagesort::Union{Nothing, Symbol, AbstractVector{Symbol}, NoPageSort} = nothing,
     filter::Union{Nothing, Dict{Symbol}} = nothing,
     uylims::Bool = false,
     kwargs...) where T <: AbstractSubject
@@ -419,7 +423,7 @@ function pkplot(data::DataSet{T};
         end
     end
 
-    if !isnothing(pagesort)
+    if !isnothing(pagesort) && !isa(pagesort, NoPageSort)  
         if isa(pagesort, Symbol) pagesort = [pagesort] end
         p = []
         pagelist = uniqueidlist(data, pagesort)
@@ -431,11 +435,6 @@ function pkplot(data::DataSet{T};
         if !(:title in k) && !isnothing(filter)
             kwargs[:title] = plotlabel(filter)
         end
-        return pageplot(data, pagesort, typelist; kwargs...)
+        return pageplot(data, nothing, typelist; kwargs...)
     end
-end
-
-
-function uniqueidlist(::DataSet{T}, ::Nothing) where T <: AbstractIdData
-    nothing
 end

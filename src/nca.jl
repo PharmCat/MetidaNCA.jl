@@ -427,12 +427,12 @@ end
 * `calcm` - AUC/AUMC calculation method:
     - `:lint` - linear trapezoidal;
     - `:logt` - log-trapezoidal after Tmax;
-    - `:luld` - linar up log down;
+    - `:luld` - linear up log down;
     - `:luldt` - linear up log down after Tmax;
 * `intpm` - interpolation method:
     - `:lint` - linear trapezoidal;
     - `:logt` - log-trapezoidal after Tmax;
-    - `:luld` - linar up log down;
+    - `:luld` - linear up log down;
     - `:luldt` - linear up log down after Tmax;
 * `verbose` - print to `io`, 1: partial areas table, 2: 1, and results;
 * `warn` - show warnings;
