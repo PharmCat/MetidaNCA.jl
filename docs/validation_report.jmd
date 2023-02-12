@@ -12,7 +12,7 @@ using Dates, DataFrames, CSV, PrettyTables, Latexify
 
 # Introduction and package description
 
-Non-compartment anlysis software.
+This is Non-compartment anlysis software. The package is designed for batch processing of pharmacokinetic data.
 
 See documentation:
 
@@ -27,15 +27,19 @@ implemented through software can be consistently fulfilled.
 
 ## Requirements
 
-  * Julia 1.6.* (or higher) installed
-  * Julia packages from dependence list installed (see [Project.toml](https://github.com/PharmCat/MetidaNCA.jl/blob/main/Project.toml))
+  * Julia 1.6 (or higher) installed for Operating System/OS Version/Architecture in Tier 1 list
+
+  *Tier 1: Julia is guaranteed to build from source and pass all tests on these platforms when built with the default options. 
+  Official binaries are always available and CI is run on every commit to ensure support is actively maintained.*
+
 
 ## Developer software life cycle
 
   * Development stage
   * Testing procedures development
   * Performing testing procedures on local machine
-  * Push to master branch
+  * Push to development branch
+  * Make pull request to main branch
   * Performing testing procedures with GitHub Actions
   * Make pull request to the official registry of general Julia packages (if nessesary)
   * Make release (if previous completed)
@@ -52,9 +56,9 @@ implemented through software can be consistently fulfilled.
 
 ### Tier 1
 
-  * julia-version: 1.6, 1.7
+  * julia-version: 1.6, 1.7, 1.8
   * julia-arch: x64
-  * os: ubuntu-18.04, macos-10.15, windows-2019
+  * os: ubuntu-latest, macOS-latest, windows-latest
 
 \pagebreak
 
@@ -95,7 +99,7 @@ ver
 
 This part of validation based on testing procedures entails running software products under known conditions with defined inputs and
 documented outcomes that can be compared to their predefined expectations. All documented public API included in testing procedures and part of
-critical internal methods.
+critical internal methods. Testing procedures can be found in `test` directory.
 
 ## Coverage
 

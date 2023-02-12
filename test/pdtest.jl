@@ -1,5 +1,5 @@
 
-@testset "  PD                                                       " begin
+@testset "  #6 Pharmacodynamics data; Linear-trapezoidal rule        " begin
     io = IOBuffer();
 
     pd =  MetidaNCA.pdimport(pddata, :time, :obs, :subj; bl = 1.5, th = 5.0)
@@ -42,7 +42,6 @@
     pd =  MetidaNCA.pdimport(pddata, :time, :obs; bl = 3.0, th = 1.5, id = Dict(:subj => 1))
     pd_rds = MetidaNCA.nca!(pd)
 
-   
     @test  pd_rds[:Tmax] ≈ 5.0 atol=1E-6
     @test  pd_rds[:Rmax] ≈ 8.0 atol=1E-6
 
@@ -74,11 +73,6 @@
     @test  pd_rds[:AUCNETT] ≈ -1.35 atol=1E-2
     @test  pd_rds[:AUCNETB] ≈ 12.15 atol=1E-2
     @test  pd_rds[:TIMEBTW] ≈ 2.2809524 atol=1E-6
-
-
     #
     pd_rds = MetidaNCA.nca!(pd; calcm = :luld)
-
-    
-
 end

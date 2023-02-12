@@ -50,7 +50,7 @@ include("refdicts.jl")
 # Fluctau
 # Swing
 # Swingtau
-@testset "   Simple test                                             " begin
+@testset "   Basic API test                                          " begin
     # Basic dataset scenario
     ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
     sort!(ds, :Subject)

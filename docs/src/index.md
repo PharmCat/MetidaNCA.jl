@@ -4,7 +4,7 @@
 CurrentModule = MetidaNCA
 ```
 
-Non-compartment pharmacokinetic analysis (NCA).
+Non-compartment pharmacokinetic analysis (NCA). The package is designed for batch processing of pharmacokinetic data.
 
 *This program comes with absolutely no warranty. No liability is accepted for any loss and risk to public health resulting from use of this software.
 
