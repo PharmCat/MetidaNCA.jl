@@ -1744,3 +1744,10 @@ include("pdtest.jl")
     #pd_rds = MetidaNCA.nca!(pd, io = io, verbose = 2)
     
 end
+
+@testset "  Precompile                                               " begin
+    data = MetidaNCA.metida_table([0.,1.,2.,3.,4.,2.,1.,0.], [0.,1.,2.,3.,4.,5.,6.,7.], names = (:conc, :time))
+    pki  = MetidaNCA.pkimport(data, :time, :conc; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0, tau = 5.5))
+    @test_nowarn MetidaNCA.nca!(pki)
+end
+

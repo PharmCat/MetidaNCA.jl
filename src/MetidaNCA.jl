@@ -7,7 +7,7 @@ using RecipesBase
 
 import Base: length, length, push!, resize!
 import MetidaBase
-import MetidaBase: Tables, StatsBase,
+import MetidaBase: Tables, StatsBase, SnoopPrecompile,
 PrettyTables,
 AbstractIdData,
 AbstractSubject,
@@ -46,5 +46,6 @@ const LOG2 = log(2)
     include("timefilter.jl")
     include("sparse.jl")
     include("atomic.jl")
+    include("precompile.jl")
 
 end # module
