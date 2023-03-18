@@ -59,6 +59,9 @@ include("refdicts.jl")
     @test  MetidaNCA.getid(dsnca, :, :Subject) == collect(1:10)
     show(io, dsnca)
 
+    # pkimport method with keywords
+    @test_nowarn MetidaNCA.pkimport(pkdata2; time = :Time, conc = :Concentration)
+
     # Export to tables
     mtds  = MetidaNCA.metida_table(ds)
     mtdst = Table(ds)
@@ -127,8 +130,6 @@ include("refdicts.jl")
     # Missing string LLOQ
     dsncafromds =  MetidaNCA.nca(lloqpk, :Time, :Concentration, io = io, verbose = 2, warn = false)
     @test  sbj[:AUClast]  ≈ dsncafromds[:AUClast]
-
-
 
 
     dsncafromds =  MetidaNCA.nca(missingpk, :Time, :Concentration, intpm = :luld, io = io, verbose = 2)

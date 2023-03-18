@@ -193,9 +193,9 @@ end
 
 function pkimport(data; time, conc, sort = nothing, kwargs...)
     if isnothing(sort)
-        pkimport(data, time, conc; kwargs...)
+        return pkimport(data, time, conc; kwargs...)
     end
-    pkimport(data, time, conc, sort; kwargs...)
+    return pkimport(data, time, conc, sort; kwargs...)
 end
 
 """
