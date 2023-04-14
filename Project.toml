@@ -1,7 +1,7 @@
 name = "MetidaNCA"
 uuid = "097c2839-c7bc-4c4b-a5f2-b4167c1b4e7c"
 authors = ["PharmCat <v.s.arnautov@yandex.ru>"]
-version = "0.5.1"
+version = "0.5.2"
 
 [deps]
 
@@ -10,7 +10,7 @@ RecipesBase = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
 
 [compat]
 
-MetidaBase = "0.10.2"
+MetidaBase = "0.11"
 RecipesBase = "1"
 julia = "1"
 

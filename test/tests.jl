@@ -50,7 +50,7 @@ include("refdicts.jl")
 # Fluctau
 # Swing
 # Swingtau
-@testset "   Simple test                                             " begin
+@testset "   Basic API test                                          " begin
     # Basic dataset scenario
     ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
     sort!(ds, :Subject)
@@ -58,6 +58,9 @@ include("refdicts.jl")
     dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
     @test  MetidaNCA.getid(dsnca, :, :Subject) == collect(1:10)
     show(io, dsnca)
+
+    # pkimport method with keywords
+    @test_nowarn MetidaNCA.pkimport(pkdata2; time = :Time, conc = :Concentration)
 
     # Export to tables
     mtds  = MetidaNCA.metida_table(ds)
@@ -127,8 +130,6 @@ include("refdicts.jl")
     # Missing string LLOQ
     dsncafromds =  MetidaNCA.nca(lloqpk, :Time, :Concentration, io = io, verbose = 2, warn = false)
     @test  sbj[:AUClast]  ≈ dsncafromds[:AUClast]
-
-
 
 
     dsncafromds =  MetidaNCA.nca(missingpk, :Time, :Concentration, intpm = :luld, io = io, verbose = 2)
@@ -1744,3 +1745,10 @@ include("pdtest.jl")
     #pd_rds = MetidaNCA.nca!(pd, io = io, verbose = 2)
     
 end
+
+@testset "  Precompile                                               " begin
+    data = MetidaNCA.metida_table([0.,1.,2.,3.,4.,2.,1.,0.], [0.,1.,2.,3.,4.,5.,6.,7.], names = (:conc, :time))
+    pki  = MetidaNCA.pkimport(data, :time, :conc; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0, tau = 5.5))
+    @test_nowarn MetidaNCA.nca!(pki)
+end
+
