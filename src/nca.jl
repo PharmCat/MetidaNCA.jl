@@ -426,14 +426,14 @@ end
     - `:iv` - intravascular bolus;
 * `calcm` - AUC/AUMC calculation method:
     - `:lint` - linear trapezoidal;
-    - `:logt` - log-trapezoidal after Tmax;
     - `:luld` - linear up log down;
     - `:luldt` - linear up log down after Tmax;
+    - `:logt` - log-trapezoidal after Tmax (Not Recommended);
 * `intpm` - interpolation method:
     - `:lint` - linear trapezoidal;
-    - `:logt` - log-trapezoidal after Tmax;
     - `:luld` - linear up log down;
     - `:luldt` - linear up log down after Tmax;
+    - `:logt` - log-trapezoidal after Tmax;
 * `verbose` - print to `io`, 1: partial areas table, 2: 1, and results;
 * `warn` - show warnings;
 * `io` - output stream;
@@ -470,7 +470,7 @@ Results:
 * Vzinf
 * Vssinf
 
-Stable state (tau used):
+Steady-state parameters (tau used):
 
 * AUCtau
 * AUMCtau
@@ -963,16 +963,12 @@ function auctblth(c1, c2, t1, t2, bl, th, calcm)
     aucath, aucbth, tath, tbth = auctspl(c1, c2, t1, t2, th, calcm)
 
     if th > bl
-        #aucbth = aucabl + aucbbl - aucath
         aucbtw = aucabl - aucath
-        #timebtw = tbth - tbbl
     else
-        #aucath = aucabl + aucbbl - aucbth
         aucbtw = aucbbl - aucbth
-        #timebtw = tbbl - tbth
     end
 
-    aucabl, aucbbl, tabl, tbbl, aucath, aucbth, tath, tbth, aucbtw#, timebtw
+    aucabl, aucbbl, tabl, tbbl, aucath, aucbth, tath, tbth, aucbtw
 end
 
 """
@@ -1021,16 +1017,7 @@ function nca!(data::PDSubject{T,O}; calcm = :lint, intpm = nothing, verbose = 0,
     end
 
     auctype  = promote_type(eltype(data.time), eltype(data.obs))
-    #=
-    if isapplicable(limitrule)
-        time, obs = applylimitrule!(deepcopy(data.time), deepcopy(data.obs), limitrule)
-    else
-        time             = deepcopy(data.time)
-        obs              = deepcopy(data.obs)
-    end
-    =#
-    #time             = deepcopy(data.time)
-    #obs              = deepcopy(data.obs)
+
 ################################################################################
     # STEP 1 FILTER ALL BEFORE DOSETIME AND ALL NAN OR MISSING VALUES
     if validobsn(data.time, data.obs) == 0 return NCAResult(data, options, result) end
@@ -1042,6 +1029,7 @@ function nca!(data::PDSubject{T,O}; calcm = :lint, intpm = nothing, verbose = 0,
     result[:Obsnum] = obsnum = length(obs_cp)
 
     result[:Rmax], result[:Tmax], tmaxn = ctmax(time_cp, obs_cp, length(obs_cp))
+    
     # ALL NAN AND MISSING VALUES LINEAR INTERPOLATED
     step_2_interpolate!(time_cp, obs_cp, einds, 1, :lint)
 
@@ -1080,7 +1068,6 @@ function nca!(data::PDSubject{T,O}; calcm = :lint, intpm = nothing, verbose = 0,
 
     # Verbose output
     if verbose > 0
-
         hnames = [:Time, :Observation, :AUCABL, :AUCBBL, :AUCATH, :AUCBTH]
         mx = metida_table(collect(time_cp),
         collect(obs_cp),
@@ -1099,8 +1086,6 @@ function nca!(data::PDSubject{T,O}; calcm = :lint, intpm = nothing, verbose = 0,
             PrettyTables.pretty_table(io, result; tf = PrettyTables.tf_compact, header = ["Parameter", "Value"], formatters = PrettyTables.ft_printf("%4.6g"))
         end
     end
-
-
 
     ncares = NCAResult(data, options, result)
     modify!(ncares)
