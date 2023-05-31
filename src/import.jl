@@ -62,7 +62,7 @@ return new arrays
 function checkvalues(timevals_sp, concvals_sp; warn = true)
 
     timevals_sp_ = identity.(timevals_sp)
-    eltype(timevals_sp_) <: Number || error("Some time values not a number!")
+    eltype(timevals_sp_) <: Number || error("Some time values not a number ($(eltype(timevals_sp_))))!")
 
     if !(eltype(concvals_sp) <: Union{Number, Missing})
         warn && @warn "Some concentration values maybe not a number, try to fix."
