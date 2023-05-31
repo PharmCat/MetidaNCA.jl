@@ -7,7 +7,7 @@ using RecipesBase
 
 import Base: length, length, push!, resize!
 import MetidaBase
-import MetidaBase: Tables, StatsBase, SnoopPrecompile,
+import MetidaBase: Tables, StatsBase, PrecompileTools,
 PrettyTables,
 AbstractIdData,
 AbstractSubject,
