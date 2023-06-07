@@ -22,14 +22,14 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v3
       - name: Install Pandoc
         run: sudo apt-get install pandoc texlive-latex-recommended texlive-xetex texlive-luatex pandoc-citeproc texlive-latex-extra
       - uses: julia-actions/setup-julia@latest
         with:
-          version: '1'
+          version: '1.8'
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-docdeploy@v1
       - name: Install dependencies
