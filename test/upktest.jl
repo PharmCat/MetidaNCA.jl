@@ -6,6 +6,11 @@
         @test  unca[1, k]  ≈ urefdict[k] atol=1E-4
     end
 
+    @test_nowarn show(io, upkds)
+
+    @test_nowarn show(io, unca)
+
+
     upkdatac = deepcopy(upkdata)
     upkdatac.st = float.(upkdatac.st)
     upkdatac[1, :st] = NaN
@@ -20,4 +25,5 @@
     upkdatac.et = float.(upkdatac.et)
     upkdatac[1, :et] = 1.5
     @test_throws ErrorException MetidaNCA.upkimport(upkdatac, :st, :et, :conc, :vol, :subj; dosetime =  MetidaNCA.DoseTime(dose = 100, time = 0))
+
 end
