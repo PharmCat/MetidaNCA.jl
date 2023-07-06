@@ -881,7 +881,7 @@ Results:
 * HL
 * AUCinf
 """
-function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}; adm = :ev, calcm = :lint, intpm = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = identity) where S where E where O where VOL where V
+function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}; adm = :ev, calcm = :lint, intpm = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = identity, kwargs...) where S where E where O where VOL where V
 
     ptype  = promote_type(Float64, S, E, O, VOL)
     ttype  = promote_type(S, E)

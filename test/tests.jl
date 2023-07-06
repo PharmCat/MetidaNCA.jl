@@ -1461,7 +1461,7 @@ end
 end
 
 
-@testset "  Partials  " begin
+@testset "  Partials                                                 " begin
 
     ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0.25, tau = 9))
     sort!(ds, :Subject)
