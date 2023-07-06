@@ -1460,6 +1460,37 @@ end
 
 end
 
+
+@testset "  Partials                                                 " begin
+
+    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0.25, tau = 9))
+    sort!(ds, :Subject)
+    dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luld, partials = [(0.25, 9.25)])
+    v1 = dsnca[:, Symbol("AUC_0.25_9.25")]
+
+    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0.25, tau = 9))
+    sort!(ds, :Subject)
+    dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luld)
+    v2 = dsnca[:, :AUCtau]
+
+    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100))
+    sort!(ds, :Subject)
+    dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luld, partials = [(0.25, 9.25), [0.25, 9], Pair(1, 3)], verbose = 3, io = io)
+    v3 = dsnca[:, Symbol("AUC_0.25_9.25")]
+
+    @test v1 ≈ v2 atol=1E-6
+    @test v3 ≈ [1264.305068205526
+    1827.9316525749111
+    751.5337978798051
+    1333.204619921286
+    1310.904516109241
+    1110.6227262325967
+    1078.119979444785
+    772.3366199961695
+    1213.5372385701808
+    969.4541441511578] atol=1E-6
+end
+
 @testset "  set-get*! tests                                          " begin
     ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
     sort!(ds, :Subject)

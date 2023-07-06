@@ -410,16 +410,16 @@ end
 
 Non-compartmental (NCA) analysis of PK/PD data.
 """
-function nca!(data::DataSet{Subj}; adm = :ev, calcm = :lint, intpm = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = identity) where Subj <: AbstractSubject
+function nca!(data::DataSet{Subj}; adm = :ev, calcm = :lint, intpm = nothing,  partials = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = identity) where Subj <: AbstractSubject
     result = Vector{NCAResult{Subj}}(undef, length(data))
     for i = 1:length(data)
-        result[i] = nca!(data[i]; adm = adm, calcm = calcm, intpm = intpm, verbose = verbose, warn = warn, io = io, modify! = modify!)
+        result[i] = nca!(data[i]; adm = adm, calcm = calcm, intpm = intpm, partials = partials, verbose = verbose, warn = warn, io = io, modify! = modify!)
     end
     DataSet(result)
 end
 
 """
-    nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = nothing) where T where O
+    nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing,  partials = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = nothing) where T where O
 
 * `adm` - administration:
     - `:ev` - extra vascular;
@@ -434,6 +434,7 @@ end
     - `:luld` - linear up log down;
     - `:luldt` - linear up log down after Tmax;
     - `:logt` - log-trapezoidal after Tmax;
+* `partials` - calculate partial AUC vor vector of time intervals;
 * `verbose` - print to `io`, 1: partial areas table, 2: 1, and results;
 * `warn` - show warnings;
 * `io` - output stream;
@@ -485,8 +486,10 @@ Steady-state parameters (tau used):
 * MRTtauinf
 * Cltau
 * Vztau
+
+`partials` is a vector of vectors, tuples or pairs. Example: `partials = [(1,2), (3,4)]`, `partials = [[1,2], (3,4)]`
 """
-function nca!(data::PKSubject{T, O}; adm = :ev, calcm = :lint, intpm = nothing,  verbose = 0, warn = true, io::IO = stdout, modify! = identity) where T where O
+function nca!(data::PKSubject{T, O}; adm = :ev, calcm = :lint, intpm = nothing,  partials = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = identity) where T where O
 
     ptype  = promote_type(Float64, T, O)
 
@@ -692,6 +695,55 @@ function nca!(data::PKSubject{T, O}; adm = :ev, calcm = :lint, intpm = nothing, 
 
 
     end
+    #partials
+    if !isnothing(partials)
+        for prt in partials
+            stime = prt[1]
+            etime = prt[2]
+            if stime <  data.dosetime.time error("Start time can't be less than dose time!") end
+            if stime <  data.dosetime.time error("End time can't be less than dose time!") end
+            if etime <= stime error("End time can't be less or equal start time!") end
+            suffix = "_"*string(stime)*"_"*string(etime)
+            stime = stime - data.dosetime.time
+            etime = etime - data.dosetime.time
+            if etime > last(time_cp) error("End time can't be greater than last time point!") end 
+            #first point
+            firstp = findfirst(x -> x >= stime, time_cp)
+            #last point
+            lastp  = findlast(x -> x <= etime, time_cp)
+            firstpart = zero(T)*zero(O)
+            lastpart  = zero(T)*zero(O)
+            if stime < time_cp[firstp]
+                firstpartc = interpolate(time_cp[firstp - 1], time_cp[firstp], stime, obs_cp[firstp - 1], obs_cp[firstp], intpm,  stime > result[:Tmax])
+                firstpart += aucpart(stime, time_cp[firstp], firstpartc, obs_cp[firstp], calcm, stime > result[:Tmax])
+                #println("firstpartc = $firstpartc , firstpart = $firstpart")
+            end
+            if etime > time_cp[lastp]
+                lastpartc  = interpolate(time_cp[lastp], time_cp[lastp + 1], etime, obs_cp[lastp], obs_cp[lastp + 1], intpm,  time_cp[lastp] > result[:Tmax])
+                lastpart +=  aucpart(time_cp[lastp], etime, obs_cp[lastp], lastpartc, calcm, time_cp[lastp] > result[:Tmax])
+                #println("lastpartc = $lastpartc , lastpart = $lastpart")
+            end
+            aucpartial = zero(T)*zero(O)
+            if firstp != lastp
+                aucpartn = lastp - firstp
+                for i = 1:aucpartn
+                    aucpartial += aucpart(time_cp[firstp + i - 1], time_cp[firstp + i], obs_cp[firstp + i - 1], obs_cp[firstp + i], calcm, time_cp[firstp + i - 1] >= result[:Tmax])
+                    #println("first = $(firstp + i - 1) , scns = $(firstp + i) , aucpartial = $aucpartial")
+                end
+            end
+            aucpartial += firstpart + lastpart
+            result[Symbol("AUC"*suffix)] = aucpartial
+            if verbose > 2
+                println(io, "    Partial $(prt[1]) - $(prt[2]); from point $firstp to $lastp")
+                if stime < time_cp[firstp]
+                    println(io, "      Interpolation values: first = $firstpartc, last = $lastpartc")
+                end
+                if etime > time_cp[lastp]
+                    println(io, "      Interpolation parts: first = $firstpart, last = $lastpart")
+                end
+            end
+        end
+    end 
 ################################################################################
     # Verbose output
     if verbose > 0
@@ -705,7 +757,7 @@ function nca!(data::PKSubject{T, O}; adm = :ev, calcm = :lint, intpm = nothing, 
             time_cp .+= data.dosetime.time
         end
         hnames = [:Time, :Concentrtion, :AUC, :AUC_cum, :AUMC, :AUMC_cum, :Info]
-        mx = metida_table(collect(time_cp), collect(obs_cp), pushfirst!(aucpartl, 0.0),  pushfirst!(aucpartlsum, 0.0), pushfirst!(aumcpartl, 0.0),  pushfirst!(aumcpartlsum, 0.0), fill("", length(obs_cp));
+        mx = metida_table(time_cp, obs_cp, pushfirst!(aucpartl, 0.0),  pushfirst!(aucpartlsum, 0.0), pushfirst!(aumcpartl, 0.0),  pushfirst!(aumcpartlsum, 0.0), fill("", length(obs_cp));
         names = hnames)
         if cdoseins > 0
             mx[1, 7] = "D*"
@@ -751,6 +803,7 @@ function nca!(data::PKSubject{T, O}; adm = :ev, calcm = :lint, intpm = nothing, 
             println(io, "    AUMC final part: $(eaumcpartl)")
             println(io, "")
         end
+
         if verbose > 1
             println(io, "    Results:")
             PrettyTables.pretty_table(io, result; tf = PrettyTables.tf_compact, header = ["Parameter", "Value"], formatters = PrettyTables.ft_printf("%4.6g"))
@@ -828,7 +881,7 @@ Results:
 * HL
 * AUCinf
 """
-function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}; adm = :ev, calcm = :lint, intpm = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = identity) where S where E where O where VOL where V
+function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}; adm = :ev, calcm = :lint, intpm = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = identity, kwargs...) where S where E where O where VOL where V
 
     ptype  = promote_type(Float64, S, E, O, VOL)
     ttype  = promote_type(S, E)
