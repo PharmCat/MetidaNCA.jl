@@ -3,7 +3,7 @@
 """
     setbl!(data::T, bl) where T <: PDSubject
 
-Set `baseline` for subject `data`.
+Set `baseline` for pd subject `data`.
 """
 function setbl!(data::T, bl) where T <: PDSubject
     isnanormissing(bl) && error("Baseline can't be NaN or missing.")
@@ -13,6 +13,8 @@ end
 #DS ind Int
 """
     setbl!(data::DataSet{T}, bl, ind::Int) where T <: PDSubject
+
+Set baseline for subject `ind` in `data`.
 """
 function setbl!(data::DataSet{T}, bl, ind::Int) where T <: PDSubject
     setbl!(data[ind], bl)
@@ -21,6 +23,8 @@ end
 #DS iter Int
 """
     setbl!(data::DataSet{T}, bl, inds::Union{Vector{Int}, UnitRange{Int}, Tuple{Vararg{Int}}})
+ 
+Set baseline for all subjects in range or vector `ind` in `data`.
 """
 function setbl!(data::DataSet{T}, bl, inds::Union{Vector{Int}, UnitRange{Int}, Tuple{Vararg{Int}}}) where T <: PDSubject
     for i in inds
@@ -31,6 +35,8 @@ end
 #DS all
 """
     setbl!(data::DataSet{T}, bl) where T <: PDSubject
+
+Set `baseline` for all subjects in `data`.
 """
 function setbl!(data::DataSet{T}, bl) where T <: PDSubject
     for i = 1:length(data)
@@ -41,6 +47,8 @@ end
 #DS Dict
 """
     setbl!(data::DataSet{T}, bl, sort::Dict) where T <: PDSubject
+
+Set `baseline` only for subjects which `sort` ⊆ `id` is `true`.
 """
 function  setbl!(data::DataSet{T}, bl, sort::Dict; kelauto = false) where T <: PDSubject
     for i = 1:length(data)
