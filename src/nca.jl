@@ -706,7 +706,7 @@ function nca!(data::PKSubject{T, O}; adm = :ev, calcm = :lint, intpm = nothing, 
             suffix = "_"*string(stime)*"_"*string(etime)
             stime = stime - data.dosetime.time
             etime = etime - data.dosetime.time
-            if etime > last(time_cp) error("End time can't be greater than last time point!") end 
+            if etime > last(time_cp) error("End time can't be greater than last time point ($(last(time_cp)))!") end 
             #first point
             firstp = findfirst(x -> x >= stime, time_cp)
             #last point
