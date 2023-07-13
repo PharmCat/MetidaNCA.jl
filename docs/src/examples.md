@@ -29,6 +29,14 @@ dsnca = nca!(ds, adm = :ev, calcm = :lint)
 dsnca[:, :AUClast]
 ```
 
+# Partial AUC
+
+```@example ncaexample
+dsnca = nca!(ds, adm = :ev, calcm = :lint, partials = [(1, 7)])
+
+dsnca[:, :AUC_1_7]
+```
+
 
 ## Print output
 

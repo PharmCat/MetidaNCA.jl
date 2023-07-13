@@ -67,6 +67,9 @@ function checkvalues(timevals_sp, concvals_sp; warn = true)
     if !(eltype(concvals_sp) <: Union{Number, Missing})
         warn && @warn "Some concentration values maybe not a number, try to fix."
         concvals_sp_ = floatparse.(concvals_sp, warn)
+    elseif eltype(concvals_sp) <: Integer
+        warn && @warn "Concentration values transformed to float."
+        concvals_sp_ = float.(concvals_sp)
     else
         concvals_sp_ = identity.(concvals_sp)
     end

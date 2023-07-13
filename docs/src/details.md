@@ -54,7 +54,7 @@ Calculate steady-state parameters.
     If end of tau interval lies after all observation, than extrapolation used to compute Ctau and partial AUCs. Extrapolation based on using elimination parameters.
 
 
-## [Unitful details](@ref unitful_details)
+## [Unitful details](@id unitful_details)
 
 !!! warning
   **Unitful.jl**

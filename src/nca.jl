@@ -410,16 +410,16 @@ end
 
 Non-compartmental (NCA) analysis of PK/PD data.
 """
-function nca!(data::DataSet{Subj}; adm = :ev, calcm = :lint, intpm = nothing,  partials = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = identity) where Subj <: AbstractSubject
+function nca!(data::DataSet{Subj};  kwargs...) where Subj <: AbstractSubject
     result = Vector{NCAResult{Subj}}(undef, length(data))
     for i = 1:length(data)
-        result[i] = nca!(data[i]; adm = adm, calcm = calcm, intpm = intpm, partials = partials, verbose = verbose, warn = warn, io = io, modify! = modify!)
+        result[i] = nca!(data[i]; kwargs...)
     end
     DataSet(result)
 end
 
 """
-    nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing,  partials = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = nothing) where T where O
+    nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing,  partials = nothing, prtext = :err, verbose = 0, warn = true, io::IO = stdout, modify! = nothing) where T where O
 
 * `adm` - administration:
     - `:ev` - extra vascular;
@@ -434,7 +434,8 @@ end
     - `:luld` - linear up log down;
     - `:luldt` - linear up log down after Tmax;
     - `:logt` - log-trapezoidal after Tmax;
-* `partials` - calculate partial AUC vor vector of time intervals;
+* `partials` - calculate partial AUC vor vector of time intervals (`:err` (default) - throw error if end time > last oservation time; `:last` - no extrapolation; `:extr` - if `Kel` calculated used extrapolation or `NaN` if no `Kel`);
+* `prtext` - extrapolation rule for partials AUC;
 * `verbose` - print to `io`, 1: partial areas table, 2: 1, and results;
 * `warn` - show warnings;
 * `io` - output stream;
@@ -488,8 +489,9 @@ Steady-state parameters (tau used):
 * Vztau
 
 `partials` is a vector of vectors, tuples or pairs. Example: `partials = [(1,2), (3,4)]`, `partials = [[1,2], (3,4)]`
+
 """
-function nca!(data::PKSubject{T, O}; adm = :ev, calcm = :lint, intpm = nothing,  partials = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = identity) where T where O
+function nca!(data::PKSubject{T, O}; adm = :ev, calcm = :lint, intpm = nothing,  partials = nothing, prtext = :err, verbose = 0, warn = true, io::IO = stdout, modify! = identity) where T where O
 
     ptype  = promote_type(Float64, T, O)
 
@@ -706,7 +708,7 @@ function nca!(data::PKSubject{T, O}; adm = :ev, calcm = :lint, intpm = nothing, 
             suffix = "_"*string(stime)*"_"*string(etime)
             stime = stime - data.dosetime.time
             etime = etime - data.dosetime.time
-            if etime > last(time_cp) error("End time can't be greater than last time point!") end 
+            if etime > last(time_cp) && prtext == :err error("End time can't be greater than last time point ($(last(time_cp)))! Use keyword `prtext=:last` or `prtext=:extr`...") end 
             #first point
             firstp = findfirst(x -> x >= stime, time_cp)
             #last point
@@ -718,11 +720,21 @@ function nca!(data::PKSubject{T, O}; adm = :ev, calcm = :lint, intpm = nothing, 
                 firstpart += aucpart(stime, time_cp[firstp], firstpartc, obs_cp[firstp], calcm, stime > result[:Tmax])
                 #println("firstpartc = $firstpartc , firstpart = $firstpart")
             end
-            if etime > time_cp[lastp]
+            if etime > time_cp[lastp] && etime < last(time_cp) # if last time > etime -> interpolation
                 lastpartc  = interpolate(time_cp[lastp], time_cp[lastp + 1], etime, obs_cp[lastp], obs_cp[lastp + 1], intpm,  time_cp[lastp] > result[:Tmax])
                 lastpart +=  aucpart(time_cp[lastp], etime, obs_cp[lastp], lastpartc, calcm, time_cp[lastp] > result[:Tmax])
                 #println("lastpartc = $lastpartc , lastpart = $lastpart")
+            elseif etime > time_cp[lastp] && prtext == :last
+                lastpartc = zero(O)
+            elseif etime > time_cp[lastp] && prtext == :extr && !isnan(result[:Kel])
+                lastpartc = exp(result[:LZint] + result[:LZ] * etime)
+                lastpart += aucpart(time_cp[lastp], etime, obs_cp[end], lastpartc, calcm, time_cp[lastp] > result[:Tmax])
+            else
+                lastpartc = NaN
+                lastpart += lastpartc
             end
+
+
             aucpartial = zero(T)*zero(O)
             if firstp != lastp
                 aucpartn = lastp - firstp

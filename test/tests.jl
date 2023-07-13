@@ -1489,6 +1489,18 @@ end
     772.3366199961695
     1213.5372385701808
     969.4541441511578] atol=1E-6
+
+    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0.0, tau = 100))
+    sort!(ds, :Subject)
+
+    @test_throws ErrorException dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luld, partials = [(0.25, 100)], prtext = :err)
+
+    dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luld, partials = [(0, 100)], prtext = :last)
+    @test dsnca[:, :AUClast] ≈ dsnca[:, :AUC_0_100] atol=1E-6
+
+    dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luld, partials = [(0, 100)], prtext = :extr)
+    @test dsnca[:, :AUCtau] ≈ dsnca[:, :AUC_0_100] atol=1E-6
+
 end
 
 @testset "  set-get*! tests                                          " begin
