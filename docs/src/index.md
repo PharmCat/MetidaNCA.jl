@@ -24,7 +24,7 @@ Appendix 2: [Appendix2.1.pdf](./pdf/Appendix2.1.pdf), [Appendix2.2.pdf](./pdf/Ap
 
 ## Unitful
 
-See [Unitful details](@id unitful_details).
+See [Unitful details](@ref unitful_details).
 
 ## Contents
 
