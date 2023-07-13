@@ -24,6 +24,7 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 40
     steps:
+      - uses: actions/checkout@v3
       - uses: Ender-events/pandoc@master
       - uses: julia-actions/setup-julia@latest
         with:
