@@ -1,3 +1,28 @@
+0.5.6
+  - extend partials
+
+0.5.5
+  - partials
+
+0.5.4
+  - minor changes
+
+0.5.3
+  - minor fix precompile
+  - 1.9 support
+  - minor changes
+
+0.5.2
+  - minor fix pkimport
+  - minor changes
+
+0.5.2
+  - minor fix pkimport
+  - minor changes
+
+0.5.1
+  - minor changes
+
 0.5.0
   - change pkplot api
   - Minor changes
