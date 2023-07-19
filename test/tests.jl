@@ -1501,10 +1501,8 @@ end
     dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luld, partials = [(0, 100)], prtext = :extr)
     @test dsnca[:, :AUCtau] ≈ dsnca[:, :AUC_0_100] atol=1E-6
 
-
     dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luld, partials = [(0, 72)], prtext = :last)
     @test dsnca[:, :AUCall] ≈ dsnca[:, :AUC_0_72] atol=1E-6
-
 end
 
 @testset "  set-get*! tests                                          " begin
