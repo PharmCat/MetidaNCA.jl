@@ -724,7 +724,7 @@ function nca!(data::PKSubject{T, O}; adm = :ev, calcm = :lint, intpm = nothing, 
                 lastpartc  = interpolate(time_cp[lastp], time_cp[lastp + 1], etime, obs_cp[lastp], obs_cp[lastp + 1], intpm,  time_cp[lastp] > result[:Tmax])
                 lastpart +=  aucpart(time_cp[lastp], etime, obs_cp[lastp], lastpartc, calcm, time_cp[lastp] > result[:Tmax])
                 #println("lastpartc = $lastpartc , lastpart = $lastpart")
-            elseif etime > time_cp[lastp] && prtext == :last
+            elseif etime >= time_cp[lastp] && prtext == :last
                 lastpartc = zero(O)
             elseif etime > time_cp[lastp] && prtext == :extr && !isnan(result[:Kel])
                 lastpartc = exp(result[:LZint] + result[:LZ] * etime)
