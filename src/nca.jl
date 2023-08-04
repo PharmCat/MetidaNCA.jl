@@ -833,8 +833,12 @@ end
 function maxconc(subj::T) where T <: PKSubject
     maximum(subj.obs)
 end
-function minconc(subj::T) where T <: PKSubject
-    minimum(subj.obs)
+function minconc(subj::T, pos = false) where T <: PKSubject
+    if pos
+        return minimum(Iterators.filter(x-> x > zero(x), subj.obs))
+    else
+        return minimum(subj.obs)
+    end
 end
 
 function exrate(time::AbstractVector{Tuple{S, E}}, conc::AbstractVector{C}, vol::AbstractVector{V})  where S where E where C where V

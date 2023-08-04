@@ -192,13 +192,14 @@ function pkplot(subj::AbstractSubject; ls = false, elim = false, xticksn = :auto
                 elseif kwargs[:yscale] == :ln || kwargs[:yscale] == :log
                     b = ℯ
                 end
+                
                 t = collect(floor(log(b, minimum(obs))):ceil(log(b, maximum(obs))))
                 pushfirst!(t, first(t) - 1)
                 kwargs[:yticks] = b .^ t
-
+                
             end
             if !(:ylims in k)
-                kwargs[:ylims] = (b ^ floor(log(b, minimum(obs)*0.8)), maximum(obs)*1.3)
+                kwargs[:ylims] = (minimum(obs)*0.5, maximum(obs)*2.)
             end
         end
     else
@@ -280,10 +281,9 @@ function pkplot!(subj; ls = false, elim = false, xticksn = :auto, yticksn = :aut
                 t = collect(floor(log(b, minimum(obs))):ceil(log(b, maximum(obs))))
                 pushfirst!(t, first(t) - 1)
                 kwargs[:yticks] = b .^ t
-
             end
             if !(:ylims in k)
-                kwargs[:ylims] = (b ^ floor(log(b, minimum(obs)*0.8)), maximum(obs)*1.3)
+                kwargs[:ylims] = (minimum(obs)*0.5, maximum(obs)*2.)
             end
         end
     else
@@ -320,7 +320,13 @@ function pageplot(data, id, ulist; kwargs...)
     # Y lims
 
     if !(:ylims in k) && length(subdata) > 1
-        kwargs[:ylims] = (findmin(x->minconc(x), getdata(subdata))[1], findmax(x->maxconc(x), getdata(subdata))[1]*1.15)
+        ysc   = :yscale in k
+        ylmin = findmin(x->minconc(x, ysc), getdata(subdata))[1]
+        ylmax = findmax(x->maxconc(x), getdata(subdata))[1]*1.15
+        if ysc 
+            ylmax *= 5
+        end
+        kwargs[:ylims] = (ylmin, ylmax)
     end
     # Plotting subdata
     if length(subdata) > 1 kwargs[:elim] = false end
