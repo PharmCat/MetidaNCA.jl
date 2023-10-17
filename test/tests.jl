@@ -84,6 +84,9 @@ include("refdicts.jl")
     @test_nowarn MetidaNCA.plotstyle(40)
     pl = MetidaNCA.pkplot(ds[2])
     pl = MetidaNCA.pkplot!(ds[3]; yscale = :log10)
+    #Plot from NCA result DataSet
+    @test_nowarn MetidaNCA.pkplot(dsncafromds[1]; ylims = (0, 10), yscale = :log10, legend = false)
+    @test_nowarn MetidaNCA.pkplot(dsncafromds; typesort = :Subject, pagesort = :Formulation, elim = true, ls = true, title = "Plots")
     # Unknown typesort
     @test_nowarn pl = MetidaNCA.pkplot(ds; typesort = :unknown)
 

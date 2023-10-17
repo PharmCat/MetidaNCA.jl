@@ -204,6 +204,10 @@ function pkplot(subj::AbstractSubject; ls = false, elim = false, xticksn = :auto
             end
             if !(:ylims in k)
                 kwargs[:ylims] = (minimum(obs)*0.5, maximum(obs)*2.)
+            else
+                if kwargs[:ylims][1] <= 0
+                    kwargs[:ylims] = (minimum(obs)/b, kwargs[:ylims][2])
+                end
             end
         end
     else
@@ -288,6 +292,10 @@ function pkplot!(subj; ls = false, elim = false, xticksn = :auto, yticksn = :aut
             end
             if !(:ylims in k)
                 kwargs[:ylims] = (minimum(obs)*0.5, maximum(obs)*2.)
+            else
+                if kwargs[:ylims][1] <= 0
+                    kwargs[:ylims] = (minimum(obs)/b, kwargs[:ylims][2])
+                end
             end
         end
     else
@@ -448,4 +456,20 @@ function pkplot(data::DataSet{T};
         end
         return pageplot(data, nothing, typelist; ldict, kwargs...)
     end
+end
+
+
+"""
+    pkplot(data::DataSet{T}; kwargs...) where T <: NCAResult
+"""
+function pkplot(data::DataSet{T}; kwargs...) where T <: NCAResult
+    ds = map(x-> x.data, data)
+    pkplot(ds; kwargs...)
+end
+
+"""
+    pkplot(data::NCAResult; kwargs...) 
+"""
+function pkplot(data::NCAResult; kwargs...)
+    pkplot(data.data; kwargs...)
 end
