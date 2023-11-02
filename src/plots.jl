@@ -115,12 +115,16 @@ end
 end
 
 # Text label from ID
-function plotlabel(d)
+function plotlabel(d, ld = nothing)
     title = ""
     if isnothing(d) return title end
     if length(d) > 0
         for (k, v) in d
-            title *= "$(k) = $(v); "
+            kv = k
+            if !isnothing(ld) && haskey(ld, kv)
+                kv = ld[kv]
+            end
+            title *= "$(kv) = $(v); "
         end
     end
     return title
@@ -200,6 +204,10 @@ function pkplot(subj::AbstractSubject; ls = false, elim = false, xticksn = :auto
             end
             if !(:ylims in k)
                 kwargs[:ylims] = (minimum(obs)*0.5, maximum(obs)*2.)
+            else
+                if kwargs[:ylims][1] <= 0
+                    kwargs[:ylims] = (minimum(obs)/b, kwargs[:ylims][2])
+                end
             end
         end
     else
@@ -284,6 +292,10 @@ function pkplot!(subj; ls = false, elim = false, xticksn = :auto, yticksn = :aut
             end
             if !(:ylims in k)
                 kwargs[:ylims] = (minimum(obs)*0.5, maximum(obs)*2.)
+            else
+                if kwargs[:ylims][1] <= 0
+                    kwargs[:ylims] = (minimum(obs)/b, kwargs[:ylims][2])
+                end
             end
         end
     else
@@ -309,7 +321,7 @@ function pageplot(data, id, ulist; kwargs...)
     kwargs = Dict{Symbol, Any}(kwargs)
     k = keys(kwargs)
     if !(:title in k)
-        kwargs[:title] = plotlabel(id)
+        kwargs[:title] = plotlabel(id, kwargs[:ldict])
     end
 
     fst       = true
@@ -338,7 +350,7 @@ function pageplot(data, id, ulist; kwargs...)
                     if num ∈ labvec
                         kwargs[:label] = nothing
                     else
-                        kwargs[:label] = plotlabel(ulist[num])
+                        kwargs[:label] = plotlabel(ulist[num], kwargs[:ldict])
                         push!(labvec, num)
                     end
                 else
@@ -370,7 +382,8 @@ PK plot for subject set.
 * `typesort` - sort on page by this id key;
 * `pagesort` - different pages by this id key;
 * `filter` - use only subjects if filter ⊆ subject id;
-* `uylims` - same ylims for all dataset.
+* `uylims` - same ylims for all dataset;
+* `ldict` - Dict with labels for replace.
 
 Use `pagesort = MetidaNCA.NoPageSort()` to prevent page plotting.
 """
@@ -379,6 +392,7 @@ function pkplot(data::DataSet{T};
     pagesort::Union{Nothing, Symbol, AbstractVector{Symbol}, NoPageSort} = nothing,
     filter::Union{Nothing, Dict{Symbol}} = nothing,
     uylims::Bool = false,
+    ldict = nothing,
     kwargs...) where T <: AbstractSubject
 
     kwargs = Dict{Symbol, Any}(kwargs)
@@ -408,16 +422,15 @@ function pkplot(data::DataSet{T};
         end
         for subj in data
             if printtitle
-                kwargs[:title] = plotlabel(subj.id)
+                kwargs[:title] = plotlabel(subj.id, ldict)
             end
             if !(:legend in k)
                 kwargs[:legend] = false
             end
-            push!(p, pkplot(subj;  kwargs...))
+            push!(p, pkplot(subj; kwargs...))
         end
         return p
     end
-
 
     if !isnothing(typesort)
         if isa(typesort, Symbol) typesort = [typesort] end
@@ -434,13 +447,29 @@ function pkplot(data::DataSet{T};
         p = []
         pagelist = uniqueidlist(data, pagesort)
         for id in pagelist
-            push!(p, pageplot(data, id, typelist; kwargs...))
+            push!(p, pageplot(data, id, typelist; ldict, kwargs...))
         end
         return p
     else
         if !(:title in k) && !isnothing(filter)
             kwargs[:title] = plotlabel(filter)
         end
-        return pageplot(data, nothing, typelist; kwargs...)
+        return pageplot(data, nothing, typelist; ldict, kwargs...)
     end
+end
+
+
+"""
+    pkplot(data::DataSet{T}; kwargs...) where T <: NCAResult
+"""
+function pkplot(data::DataSet{T}; kwargs...) where T <: NCAResult
+    ds = map(x-> x.data, data)
+    pkplot(ds; kwargs...)
+end
+
+"""
+    pkplot(data::NCAResult; kwargs...) 
+"""
+function pkplot(data::NCAResult; kwargs...)
+    pkplot(data.data; kwargs...)
 end
