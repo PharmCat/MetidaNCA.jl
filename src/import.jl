@@ -103,6 +103,8 @@ keywords:
 
     If time column have non-unique values - last pair time-concentration will be used.
 
+
+See also: [`ElimRange`](@ref), [`DoseTime`](@ref), [`LimitRule`](@ref).
 """
 function pkimport(data, time, conc, sort; kelauto = true,  elimrange = ElimRange(), dosetime = nothing, limitrule::Union{Nothing, LimitRule} = nothing, warn = true, kwargs...)
     if isa(sort, String) sort = [Symbol(sort)] end
@@ -181,6 +183,7 @@ end
         kwargs...)
 
 Import PK data from time vector `time` and concentration vector `conc`.
+
 """
 function pkimport(time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true, kwargs...)
     timevals_sp, concvals_sp = checkvalues(time, conc, warn = warn)

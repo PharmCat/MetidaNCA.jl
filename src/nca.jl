@@ -392,6 +392,8 @@ Import data and perform NCA analysis.
 Syntax simillar to [`pkimport`](@ref)
 
 Applicable `kwargs` see  [`nca!`](@ref).
+
+See also: [`ElimRange`](@ref), [`DoseTime`](@ref), [`LimitRule`](@ref).
 """
 function nca(args...; type::Symbol = :bps, bl = 0, th = 0, kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), limitrule::Union{Nothing, LimitRule} = nothing, kwargs...)
     if !(type in (:bps, :ur, :pd)) error("Unknown type") end
@@ -411,11 +413,12 @@ end
 Non-compartmental (NCA) analysis of PK/PD data.
 """
 function nca!(data::DataSet{Subj};  kwargs...) where Subj <: AbstractSubject
-    result = Vector{NCAResult{Subj}}(undef, length(data))
-    for i = 1:length(data)
-        result[i] = nca!(data[i]; kwargs...)
-    end
-    DataSet(result)
+    #result = Vector{NCAResult{Subj}}(undef, length(data))
+    #for i = 1:length(data)
+    #    result[i] = nca!(data[i]; kwargs...)
+    #end
+    #DataSet(result)
+    map(x -> nca!(x; kwargs...), data)
 end
 
 """

@@ -393,6 +393,7 @@ function pkplot(data::DataSet{T};
     filter::Union{Nothing, Dict{Symbol}} = nothing,
     uylims::Bool = false,
     ldict = nothing,
+    savepng = nothing,
     kwargs...) where T <: AbstractSubject
 
     kwargs = Dict{Symbol, Any}(kwargs)
@@ -414,6 +415,16 @@ function pkplot(data::DataSet{T};
     end
     if !isnothing(filter) data = subset(data, filter) end
 
+    if !isnothing(typesort)
+        if isa(typesort, Symbol) typesort = [typesort] end
+        typelist = uniqueidlist(data, typesort)
+    else
+        typelist = nothing
+        if !(:legend in k)
+            kwargs[:legend] = false
+        end
+    end
+
     if isnothing(typesort) && isnothing(pagesort)
         p = []
         printtitle = false
@@ -430,19 +441,7 @@ function pkplot(data::DataSet{T};
             push!(p, pkplot(subj; kwargs...))
         end
         return p
-    end
-
-    if !isnothing(typesort)
-        if isa(typesort, Symbol) typesort = [typesort] end
-        typelist = uniqueidlist(data, typesort)
-    else
-        typelist = nothing
-        if !(:legend in k)
-            kwargs[:legend] = false
-        end
-    end
-
-    if !isnothing(pagesort) && !isa(pagesort, NoPageSort)  
+    elseif !isnothing(pagesort) && !isa(pagesort, NoPageSort)  
         if isa(pagesort, Symbol) pagesort = [pagesort] end
         p = []
         pagelist = uniqueidlist(data, pagesort)
