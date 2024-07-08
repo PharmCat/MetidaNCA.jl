@@ -1,5 +1,15 @@
 # Details
 
+## Using LimitRule
+
+```julia
+ll = LimitRule(;lloq = 0.1, btmax = 0.0, atmax = NaN, nan = NaN, rm = true)
+
+```
+
+It means that all values below `lloq` will be replaced by `btmax` before Tmax and replaced by `atmax` after Tmax; `NaN` values will be replaced by `nan`. If `rm` is `true`, all `NaN` values will be deleted. 
+
+
 ## Calculation steps for PK NCA
 
 ### Step 1
