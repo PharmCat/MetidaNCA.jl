@@ -71,7 +71,8 @@ end
 function Base.show(io::IO, obj::DataSet{ST}) where ST <: AbstractSubject
     println(io, "DataSet: $(subject_type_str(ST))")
     println(io, "Length: $(length(obj))")
-    for i = 1:length(obj)
+    lo = min(length(obj), 20)
+    for i = 1:lo
         print(io, "Subject $(i): ")
         if length(obj[i].id) > 0
             for (k, v) in obj[i].id
@@ -81,6 +82,9 @@ function Base.show(io::IO, obj::DataSet{ST}) where ST <: AbstractSubject
         else
             println(io, "-")
         end
+    end
+    if lo < length(obj) 
+        printstyled(io, "$(length(obj) - lo) subjects omitted... \n"; color = :blue)
     end
 end
 
@@ -92,7 +96,8 @@ end
 function Base.show(io::IO, obj::DataSet{Res}) where Res <: NCAResult
     println(io, "DataSet: PK/PD NCA result")
     println(io, "Length: $(length(obj))")
-    for i = 1:length(obj)
+    lo = min(length(obj), 20)
+    for i = 1:lo
         print(io, "Subject $(i): ")
         if length(obj[i].data.id) > 0
             for (k, v) in obj[i].data.id
@@ -102,5 +107,8 @@ function Base.show(io::IO, obj::DataSet{Res}) where Res <: NCAResult
         else
             println(io, "-")
         end
+    end
+    if lo < length(obj) 
+        printstyled(io, "$(length(obj) - lo) subjects omitted... \n"; color = :blue)
     end
 end
