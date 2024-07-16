@@ -9,11 +9,13 @@ version = "0.5.11"
 
 MetidaBase = "075456b7-4006-432f-9324-2f8453996c49"
 RecipesBase = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
+Requires = "ae029012-a4dd-5104-9daa-d747884805df"
 
 [compat]
 
 MetidaBase = "0.11.2, 0.11.3, 0.12"
 RecipesBase = "1"
+Requires = "1"
 julia = "1"
 
 [extras]
