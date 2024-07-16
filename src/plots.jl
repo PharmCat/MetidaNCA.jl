@@ -375,6 +375,9 @@ end
     pagesort::Union{Nothing, Symbol, AbstractVector{Symbol}, NoPageSort} = nothing,
     filter::Union{Nothing, Dict{Symbol}} = nothing,
     uylims::Bool = false,
+    ldict = nothing,
+    savepath::Union{Nothing, AbstractString} = nothing,
+    namepref::Union{Nothing, AbstractString} = nothing,
     kwargs...) where T <: AbstractSubject
 
 PK plot for subject set.
@@ -383,7 +386,9 @@ PK plot for subject set.
 * `pagesort` - different pages by this id key;
 * `filter` - use only subjects if filter ⊆ subject id;
 * `uylims` - same ylims for all dataset;
-* `ldict` - Dict with labels for replace.
+* `ldict` - Dict with labels for replace;
+* `savepath` - path for plot saving;
+* `namepref` - name prefix for saving files.
 
 Use `pagesort = MetidaNCA.NoPageSort()` to prevent page plotting.
 """
@@ -393,7 +398,8 @@ function pkplot(data::DataSet{T};
     filter::Union{Nothing, Dict{Symbol}} = nothing,
     uylims::Bool = false,
     ldict = nothing,
-    savepng = nothing,
+    savepath::Union{Nothing, AbstractString} = nothing,
+    namepref::Union{Nothing, AbstractString} = nothing,
     kwargs...) where T <: AbstractSubject
 
     kwargs = Dict{Symbol, Any}(kwargs)
@@ -424,9 +430,8 @@ function pkplot(data::DataSet{T};
             kwargs[:legend] = false
         end
     end
-
+    p = []
     if isnothing(typesort) && isnothing(pagesort)
-        p = []
         printtitle = false
         if !(:title in k)
             printtitle = true
@@ -440,20 +445,38 @@ function pkplot(data::DataSet{T};
             end
             push!(p, pkplot(subj; kwargs...))
         end
-        return p
     elseif !isnothing(pagesort) && !isa(pagesort, NoPageSort)  
         if isa(pagesort, Symbol) pagesort = [pagesort] end
-        p = []
         pagelist = uniqueidlist(data, pagesort)
         for id in pagelist
             push!(p, pageplot(data, id, typelist; ldict, kwargs...))
         end
-        return p
     else
         if !(:title in k) && !isnothing(filter)
             kwargs[:title] = plotlabel(filter)
         end
-        return pageplot(data, nothing, typelist; ldict, kwargs...)
+        push!(p,pageplot(data, nothing, typelist; ldict, kwargs...))
+    end
+
+    if !isnothing(savepath)
+        if @isdefined savefig
+            if isfile(savepath)
+                error("File found on this path...")
+            elseif !isdir(savepath)
+                mkpath(savepath)
+            end
+            if isnothing(namepref) namepref = "plot" end
+            for i = 1: length(p) 
+                savefig(p[i], joinpath(savepath, namepref*"_$(i).png"))
+            end
+        else
+            @warn "savefig not defined, install Plots.jl for plot writing... plots NOT saved..."
+        end
+    end
+    if length(p) > 1
+        return p
+    else
+        return p[1]
     end
 end
 

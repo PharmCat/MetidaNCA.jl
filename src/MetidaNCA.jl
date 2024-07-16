@@ -22,12 +22,20 @@ uniqueidlist,
 indsdict!,
 subset
 
+using MetidaBase.Requires
+
 export pkimport, upkimport, pdimport, nca!, nca, DoseTime, ElimRange, LimitRule, NoPageSort,
 auc_sparse,
 setdosetime!, setkelauto!, setkelrange!, applylimitrule!, setbl!, setth!,
 pkplot,
 getkeldata, getkelauto, getkelrange, getdosetime, getbl, getth, subset
 metida_table
+
+function __init__()
+    @require Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80" begin
+        import Plots:savefig
+    end
+end
 
 const LOG2 = log(2)
 
