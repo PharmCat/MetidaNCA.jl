@@ -76,11 +76,11 @@ png(p, "plot2.png")
 
 p = pkplot(ds; elim = true, ls = true)
 
-png(p[1], "plot3.png")
+png(p[1][2], "plot3.png")
 
 p = pkplot(ds; typesort = :Subject, pagesort = :Formulation)
 
-png(p[1], "plot4.png")
+png(p[1][2], "plot4.png")
 ```
 
 #### Plot 1
