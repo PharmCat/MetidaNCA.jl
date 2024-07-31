@@ -29,13 +29,29 @@ dsnca = nca!(ds, adm = :ev, calcm = :lint)
 dsnca[:, :AUClast]
 ```
 
-# Partial AUC
+## Partial AUC
 
 ```@example ncaexample
 dsnca = nca!(ds, adm = :ev, calcm = :lint, partials = [(1, 7)])
 
 dsnca[:, :AUC_1_7]
 ```
+
+## Result modification or custom parameter function 
+
+```@example ncaexample
+
+# Define modify! function for new parameter
+function newparam(data)
+    data.result[:AUChalf] = data.result[:AUClast] / 2
+end
+
+dsncanp = nca!(ds, modify!  = newparam)
+
+dsncanp[1][:AUChalf]
+```
+
+Function `newparam` applyed to [`NCAResult`](@ref).
 
 
 ## Print output

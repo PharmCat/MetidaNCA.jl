@@ -52,6 +52,19 @@ MetidaNCA.ElimRange
 MetidaNCA.LimitRule
 ```
 
+### MetidaNCA.PKSubject
+
+```@docs
+MetidaNCA.PKSubject
+```
+
+### MetidaNCA.NCAResult
+
+```@docs
+MetidaNCA.NCAResult
+```
+
+
 ## Functions
 
 ### applylimitrule!

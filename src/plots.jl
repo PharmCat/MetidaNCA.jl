@@ -450,7 +450,7 @@ function pkplot(data::DataSet{T};
         if isa(pagesort, Symbol) pagesort = [pagesort] end
         pagelist = uniqueidlist(data, pagesort)
         for id in pagelist
-            push!(p, pageplot(data, id, typelist; ldict, kwargs...))
+            push!(p, id => pageplot(data, id, typelist; ldict, kwargs...))
         end
     else
         if !(:title in k) && !isnothing(filter)

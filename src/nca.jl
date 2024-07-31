@@ -442,7 +442,7 @@ end
 * `verbose` - print to `io`, 1: partial areas table, 2: 1, and results;
 * `warn` - show warnings;
 * `io` - output stream;
-* `modify!` - function to modify output paramaters, call `modify!(data, result)` if difined.
+* `modify!` - function to modify output paramaters, call `modify!(ncaresult)` if difined.
 
 Results:
 
