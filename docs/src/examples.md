@@ -76,7 +76,9 @@ png(p, "plot2.png")
 
 p = pkplot(ds; elim = true, ls = true)
 
-png(p[1][2], "plot3.png")
+png(p[1], "plot3.png")
+
+# If pagesort used - return pairs with `Page ID` => `Plot`
 
 p = pkplot(ds; typesort = :Subject, pagesort = :Formulation)
 
