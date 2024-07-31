@@ -28,12 +28,13 @@ export pkimport, upkimport, pdimport, nca!, nca, DoseTime, ElimRange, LimitRule,
 auc_sparse,
 setdosetime!, setkelauto!, setkelrange!, applylimitrule!, setbl!, setth!,
 pkplot,
-getkeldata, getkelauto, getkelrange, getdosetime, getbl, getth, subset
-metida_table
+getkeldata, getkelauto, getkelrange, getdosetime, getbl, getth, subset,
+metida_table,
+PKSubject, UPKSubject, PDSubject, NCAResult
 
 function __init__()
     @require Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80" begin
-        import Plots:savefig
+        savefig = Plots.savefig
     end
 end
 

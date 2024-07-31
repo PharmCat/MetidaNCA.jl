@@ -12,6 +12,31 @@ It means that all values below `lloq` will be replaced by `btmax` before Tmax an
 
 See also: [`applylimitrule!`](@ref).
 
+## Using DoseTime
+
+```julia
+
+dt = DoseTime(dose = 200.0, time = 0.0)
+
+```
+
+DoseTime can be appliet to each subject or dataset and can be used with [`pkimport`](@ref).  
+
+
+```julia
+
+ds = pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = dt)
+
+```
+
+DoseTime for staedy-state PK:
+
+```julia
+dt = DoseTime(dose = 100.0, time = 0.25, tau = 9.0)
+```
+
+See also: [`setdosetime!`](@ref).
+
 
 ## Calculation steps for PK NCA
 

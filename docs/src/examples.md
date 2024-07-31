@@ -29,13 +29,29 @@ dsnca = nca!(ds, adm = :ev, calcm = :lint)
 dsnca[:, :AUClast]
 ```
 
-# Partial AUC
+## Partial AUC
 
 ```@example ncaexample
 dsnca = nca!(ds, adm = :ev, calcm = :lint, partials = [(1, 7)])
 
 dsnca[:, :AUC_1_7]
 ```
+
+## Result modification or custom parameter function 
+
+```@example ncaexample
+
+# Define modify! function for new parameter
+function newparam(data)
+    data.result[:AUChalf] = data.result[:AUClast] / 2
+end
+
+dsncanp = nca!(ds, modify!  = newparam)
+
+dsncanp[1][:AUChalf]
+```
+
+Function `newparam` applyed to [`NCAResult`](@ref).
 
 
 ## Print output
@@ -62,9 +78,11 @@ p = pkplot(ds; elim = true, ls = true)
 
 png(p[1], "plot3.png")
 
+# If pagesort used - return pairs with `Page ID` => `Plot`
+
 p = pkplot(ds; typesort = :Subject, pagesort = :Formulation)
 
-png(p[1], "plot4.png")
+png(p[1][2], "plot4.png")
 ```
 
 #### Plot 1

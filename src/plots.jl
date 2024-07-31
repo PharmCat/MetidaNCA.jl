@@ -391,6 +391,8 @@ PK plot for subject set.
 * `namepref` - name prefix for saving files.
 
 Use `pagesort = MetidaNCA.NoPageSort()` to prevent page plotting.
+
+If pagesort used - return vector of pairs: `Page ID` => `Plot`
 """
 function pkplot(data::DataSet{T};
     typesort::Union{Nothing, Symbol, AbstractVector{Symbol}} = nothing,
@@ -450,13 +452,13 @@ function pkplot(data::DataSet{T};
         if isa(pagesort, Symbol) pagesort = [pagesort] end
         pagelist = uniqueidlist(data, pagesort)
         for id in pagelist
-            push!(p, pageplot(data, id, typelist; ldict, kwargs...))
+            push!(p, id => pageplot(data, id, typelist; ldict, kwargs...))
         end
     else
         if !(:title in k) && !isnothing(filter)
             kwargs[:title] = plotlabel(filter)
         end
-        push!(p,pageplot(data, nothing, typelist; ldict, kwargs...))
+        push!(p, pageplot(data, nothing, typelist; ldict, kwargs...))
     end
 
     if !isnothing(savepath)
@@ -467,8 +469,12 @@ function pkplot(data::DataSet{T};
                 mkpath(savepath)
             end
             if isnothing(namepref) namepref = "plot" end
-            for i = 1: length(p) 
-                savefig(p[i], joinpath(savepath, namepref*"_$(i).png"))
+            for i = 1:length(p) 
+                if isa(p[i], Pair)
+                    savefig(p[i][2], joinpath(savepath, namepref*"_$(i).png"))
+                else
+                    savefig(p[i], joinpath(savepath, namepref*"_$(i).png"))
+                end
             end
         else
             @warn "savefig not defined, install Plots.jl for plot writing... plots NOT saved..."

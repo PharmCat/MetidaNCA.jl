@@ -105,6 +105,22 @@ struct DoseTime{D <: Number, T <: Number, TAU <: Number}
 end
 
 # PK subject
+"""
+    PKSubject(time::Vector{T}, conc::Vector{O}, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, keldata::KelData, sort::Dict{Symbol, V} = Dict{Symbol, Any}()) where T <: Number where O <: Union{Number, Missing} where V
+
+Pharmacokinetic subject.
+
+Fields:
+
+* time::Vector{T} - time values;
+* obs::Vector{O} - observations;
+* kelauto::Bool 
+* kelrange::ElimRange
+* dosetime::DoseTime
+* keldata::KelData
+* id::Dict{Symbol, V}
+
+"""
 mutable struct PKSubject{T <: Number, O <: Union{Number, Missing}, V <: Any} <: AbstractSubject
     time::Vector{T}
     obs::Vector{O}
@@ -136,7 +152,17 @@ function Base.length(obj::T) where T <: AbstractSubject
     length(obj.time)
 end
 
+"""
+    NCAResult(subject::T, options, result::Dict{Symbol, U}) where T <: AbstractSubject where U
 
+NCA resulst.
+
+Fields:
+
+* data::T
+* options::Dict{Symbol}
+* result::Dict{Symbol, U}
+"""
 struct NCAResult{T, U} <: AbstractSubjectResult{T}
     data::T
     options::Dict{Symbol}
@@ -167,6 +193,8 @@ Rule for PK subject.
 * STEP 1 (NaN step): replace all `NaN` and `missing` values with nan keyword value (if `nan` not NaN);
 * STEP 2 (LLOQ step): replace values below `lloq` with `btmax` value if this value befor Tmax or with atmax if this value after Tmax (if `lloq` not NaN);
 * STEP 3 (remove NaN): `rm` == true, then remove all `NaN` and `missing` values.
+
+See also: [`applylimitrule!`](@ref)
 """
 struct LimitRule{T<:Real}
     lloq::T
