@@ -456,7 +456,7 @@ function pkplot(data::DataSet{T};
         if !(:title in k) && !isnothing(filter)
             kwargs[:title] = plotlabel(filter)
         end
-        push!(p,pageplot(data, nothing, typelist; ldict, kwargs...))
+        push!(p, pageplot(data, nothing, typelist; ldict, kwargs...))
     end
 
     if !isnothing(savepath)
@@ -467,8 +467,8 @@ function pkplot(data::DataSet{T};
                 mkpath(savepath)
             end
             if isnothing(namepref) namepref = "plot" end
-            for i = 1: length(p) 
-                savefig(p[i], joinpath(savepath, namepref*"_$(i).png"))
+            for i = 1:length(p) 
+                savefig(p[i][2], joinpath(savepath, namepref*"_$(i).png"))
             end
         else
             @warn "savefig not defined, install Plots.jl for plot writing... plots NOT saved..."
