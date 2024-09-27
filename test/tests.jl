@@ -72,18 +72,53 @@ include("refdicts.jl")
     @test dsnca[:, :AUClast] == dsncafromds[:, :AUClast]
 
     # Plotting
-    @test_nowarn MetidaNCA.pkplot(ds; typesort = :Subject, pagesort = nothing, sort = Dict(:Formulation => "R"))
-    @test_nowarn MetidaNCA.pkplot(ds; typesort = :Formulation, pagesort = nothing, legend = true)
-    @test_nowarn pl = MetidaNCA.pkplot(ds; elim = true, ls = true)
-    @test_nowarn pl = MetidaNCA.pkplot(ds; typesort = :Subject, pagesort = :Formulation, elim = true, ls = true, title = "Plots")
-    @test_nowarn pl = MetidaNCA.pkplot(ds; typesort = :Formulation, pagesort = :Subject, xticksn = 8, yticksn = 10)
-    @test_nowarn pl = MetidaNCA.pkplot(ds; pagesort = MetidaNCA.NoPageSort(), xticksn = 8, yticksn = 10)
-    @test_nowarn pl = MetidaNCA.pkplot(ds; pagesort = [:Subject, :Formulation], legend = false)
-    @test_nowarn pl = MetidaNCA.pkplot(ds[1]; ylims = (0, 10), yscale = :log10, legend = false)
+    # If  typesort defined and NoPageSort() return one plot
+    pl = @test_nowarn MetidaNCA.pkplot(ds; typesort = :Subject, pagesort = MetidaNCA.NoPageSort(), sort = Dict(:Formulation => "R"))
+    @test isa(pl, Plots.Plot) == true
+    pl = @test_nowarn MetidaNCA.pkplot(ds; typesort = :Formulation, pagesort = MetidaNCA.NoPageSort(), legend = true)
+    @test isa(pl, Plots.Plot) == true
+
+    pl = @test_nowarn MetidaNCA.pkplot(ds; typesort = :Subject, sort = Dict(:Formulation => "R"), legend = true)
+    @test length(pl) == 10
+    pl = @test_nowarn MetidaNCA.pkplot(ds; typesort = :Formulation, legend = true)
+    @test length(pl) == 10
+
+
+    # If no typesort and no pagesort returns array of pairs id => plot
+    pl = @test_nowarn  MetidaNCA.pkplot(ds; elim = true, ls = true)
+    @test length(pl) == 10
+
+    pl = @test_nowarn MetidaNCA.pkplot(ds; typesort = :Subject, pagesort = :Formulation, elim = true, ls = true, title = "Plots")
+    @test length(pl) == 2
+
+    pl = @test_nowarn  MetidaNCA.pkplot(ds; typesort = :Formulation, pagesort = :Subject, xticksn = 8, yticksn = 10)
+    @test length(pl) == 10
+    # If MetidaNCA.NoPageSort() return one plot
+    pl = @test_nowarn  MetidaNCA.pkplot(ds; pagesort = MetidaNCA.NoPageSort(), xticksn = 8, yticksn = 10)
+    @test isa(pl, Plots.Plot) == true
+
+    pl = @test_nowarn MetidaNCA.pkplot(ds; pagesort = [:Subject, :Formulation], legend = false)
+    @test length(pl) == 10
+
+    pl = @test_nowarn MetidaNCA.pkplot(ds; typesort = [:Subject, :Formulation], legend = true)
+    @test length(pl) == 10
+
+    pl = @test_nowarn MetidaNCA.pkplot(ds; typesort = [:Subject, :Formulation], pagesort = MetidaNCA.NoPageSort(), legend = true)
+    @test isa(pl, Plots.Plot) == true
+
+    # Return plot for PKSubject
+    @test_nowarn pl = MetidaNCA.pkplot(ds[1]; ylims = (0, 250), yscale = :log10, legend = false)
     @test_nowarn pl = MetidaNCA.pkplot(ds[1]; elim = true, ls = false)
     @test_nowarn MetidaNCA.plotstyle(40)
-    pl = MetidaNCA.pkplot(ds[2])
-    pl = MetidaNCA.pkplot!(ds[3]; yscale = :log10)
+    pl = MetidaNCA.pkplot(ds[3])
+    pl = MetidaNCA.pkplot!(ds[2]; yscale = :log10)
+
+    kr =  MetidaNCA.ElimRange(kelstart = 4, kelend = 12, kelexcl = Int[5,6])
+    MetidaNCA.setkelrange!(ds, kr, [1,2,3])
+    dsnca = MetidaNCA.nca!(ds)
+    pl = @test_nowarn MetidaNCA.pkplot(ds[1]; elim = true)
+    MetidaNCA.setkelauto!(ds, true)
+
     #Plot from NCA result DataSet
     @test_nowarn MetidaNCA.pkplot(dsncafromds[1]; ylims = (0, 10), yscale = :log10, legend = false)
     @test_nowarn MetidaNCA.pkplot(dsncafromds; typesort = :Subject, pagesort = :Formulation, elim = true, ls = true, title = "Plots")

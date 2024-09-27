@@ -44,6 +44,7 @@ end
 
 @userplot PKPlot
 @userplot PKElimpPlot
+@userplot PKElimpDrop
 @userplot PdHLine
 
 function luceil(x)
@@ -108,6 +109,16 @@ end
     (x, y)
 end
 
+@recipe function f(subj::PKElimpDrop)
+    x, y = subj.args
+    seriestype        --> :scatter
+    legend            --> false
+    markersize        --> 4
+    markercolor       --> :red
+    markershape       --> :xcross
+    (x, y)
+end
+
 @recipe function f(subj::PdHLine)
     x, y = subj.args
     seriestype        --> :straightline
@@ -158,9 +169,6 @@ function pkplot(subj::AbstractSubject; ls = false, elim = false, xticksn = :auto
         kwargs[:linestyle], kwargs[:linecolor], kwargs[:markershape],  kwargs[:markercolor]  = PKPLOTSTYLE[1]
     else
         kwargs[:linestyle], kwargs[:linecolor], kwargs[:markershape],  kwargs[:markercolor]  = kwargs[:plotstyle]
-    end
-    if !(:title in k)
-        kwargs[:title] = plotlabel(subj.id)
     end
     if !(:drawbl in k)
         kwargs[:drawbl] = false
@@ -228,7 +236,7 @@ function pkplot(subj::AbstractSubject; ls = false, elim = false, xticksn = :auto
     p = pkplot(time, obs;  lcd = yticksn, tcd = xticksn, kwargs...)
     if elim
         if length(subj.keldata) > 0
-            rsq, rsqn = findmax(subj.keldata.ar)
+            arsq, rsqn = findmax(subj.keldata.ar)
             lz        = subj.keldata.a[rsqn]
             lzint     = subj.keldata.b[rsqn]
             ts        = subj.keldata.s[rsqn]
@@ -240,7 +248,10 @@ function pkplot(subj::AbstractSubject; ls = false, elim = false, xticksn = :auto
                 x = collect(ts:(te-ts)/100:te)
                 y = exp.(lzint .+ lz .* x)
             end
-            pkelimpplot!(p, x, y)
+            pkelimpplot!(p, x, y; title = kwargs[:title]*"\n($(round(lzint, sigdigits = 4)) + $(round(lz, sigdigits = 4)) * Time; aR² = $(round(arsq, sigdigits = 4))) ")
+            if length(subj.kelrange.kelexcl) > 0
+                pkelimpdrop!(p, time[subj.kelrange.kelexcl], obs[subj.kelrange.kelexcl])
+            end
         end
     end
     if isa(subj, PDSubject)
@@ -378,6 +389,7 @@ end
     ldict = nothing,
     savepath::Union{Nothing, AbstractString} = nothing,
     namepref::Union{Nothing, AbstractString} = nothing,
+    onlyplots = false,
     kwargs...) where T <: AbstractSubject
 
 PK plot for subject set.
@@ -389,10 +401,10 @@ PK plot for subject set.
 * `ldict` - Dict with labels for replace;
 * `savepath` - path for plot saving;
 * `namepref` - name prefix for saving files.
+* `onlyplots` - if `true` return only vetor of plots;
+Use `pagesort = MetidaNCA.NoPageSort()` to prevent page plotting (return single plot).
 
-Use `pagesort = MetidaNCA.NoPageSort()` to prevent page plotting.
-
-If pagesort used - return vector of pairs: `Page ID` => `Plot`
+Return vector of pairs: `Page ID` => `Plot`.
 """
 function pkplot(data::DataSet{T};
     typesort::Union{Nothing, Symbol, AbstractVector{Symbol}} = nothing,
@@ -402,7 +414,7 @@ function pkplot(data::DataSet{T};
     ldict = nothing,
     savepath::Union{Nothing, AbstractString} = nothing,
     namepref::Union{Nothing, AbstractString} = nothing,
-
+    onlyplots = false,
     kwargs...) where T <: AbstractSubject
 
     kwargs = Dict{Symbol, Any}(kwargs)
@@ -446,7 +458,21 @@ function pkplot(data::DataSet{T};
             if !(:legend in k)
                 kwargs[:legend] = false
             end
-            push!(p, pkplot(subj; kwargs...))
+            push!(p, subj.id => pkplot(subj; kwargs...))
+        end
+    elseif !isnothing(typesort) && isnothing(pagesort)
+        printtitle = false
+        if !(:title in k)
+            printtitle = true
+        end
+        for subj in data
+            if printtitle
+                kwargs[:title] = plotlabel(subj.id, ldict)
+            end
+            if !(:legend in k)
+                kwargs[:legend] = false
+            end
+            push!(p, subj.id =>  pageplot(data, subj.id, typelist; ldict, kwargs...))
         end
     elseif !isnothing(pagesort) && !isa(pagesort, NoPageSort)  
         if isa(pagesort, Symbol) pagesort = [pagesort] end
@@ -480,11 +506,13 @@ function pkplot(data::DataSet{T};
             @warn "savefig not defined, install Plots.jl for plot writing... plots NOT saved..."
         end
     end
-    if length(p) > 1
-        return p
-    else
+    if isa(pagesort, NoPageSort)
         return p[1]
     end
+
+    if onlyplots return  getindex.(p, 2) end
+    return p
+
 end
 
 

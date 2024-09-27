@@ -52,7 +52,7 @@ Elimination settings for PK subject.
 
 * `kelstart` - start point;
 * `kelend` - end point;
-* `kelexcl` - excluded points.
+* `kelexcl` - excluded points (not time value).
 """
 mutable struct ElimRange{Symbol}
     kelstart::Int
