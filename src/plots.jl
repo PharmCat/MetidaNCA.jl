@@ -402,6 +402,7 @@ PK plot for subject set.
 * `savepath` - path for plot saving;
 * `namepref` - name prefix for saving files.
 * `onlyplots` - if `true` return only vetor of plots;
+
 Use `pagesort = MetidaNCA.NoPageSort()` to prevent page plotting (return single plot).
 
 Return vector of pairs: `Page ID` => `Plot`.
