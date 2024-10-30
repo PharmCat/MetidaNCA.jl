@@ -833,10 +833,10 @@ function nca!(data::PKSubject{T, O}; adm = :ev, calcm = :lint, intpm = nothing, 
     return ncares
 end
 
-function maxconc(subj::T) where T <: PKSubject
+function maxconc(subj::T) where T <: AbstractSubject
     maximum(subj.obs)
 end
-function minconc(subj::T, pos = false) where T <: PKSubject
+function minconc(subj::T, pos = false) where T <: AbstractSubject
     if pos
         return minimum(Iterators.filter(x-> x > zero(x), subj.obs))
     else

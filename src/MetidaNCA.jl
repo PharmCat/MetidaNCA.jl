@@ -5,6 +5,8 @@ module MetidaNCA
 
 using RecipesBase
 
+import RecipesBase: plot!, plot
+
 import Base: length, length, push!, resize!
 import MetidaBase
 import MetidaBase: Tables, StatsBase, PrecompileTools,

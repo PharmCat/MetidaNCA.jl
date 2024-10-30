@@ -175,6 +175,22 @@ MetidaNCA.nca!(pd[1])
 p = MetidaNCA.pkplot(pd[1], drawth = true, drawbl = true)
 
 png(p, "plot6.png")
+
+# Plot DoseTime (can be used for PK plots)
+
+dt = DoseTime(dose = 200, time = 1.5)
+setdosetime!(pd, dt)
+
+p = MetidaNCA.pkplot(pd[1], drawdt = true)
+
+
+png(p, "plot7.png")
 ```
 
+##### Plot 6
+
 ![](plot6.png)
+
+##### Plot 7
+
+![](plot7.png)
