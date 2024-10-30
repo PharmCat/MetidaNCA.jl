@@ -1,20 +1,20 @@
 #Subject
 """
-    setdosetime!(data::T, dosetime::DoseTime) where T <: PKSubject
+    setdosetime!(data::T, dosetime::DoseTime) where T <: AbstractSubject
 
 Set dose time `dosetime` for subject `data`.
 """
-function setdosetime!(data::PKSubject, dosetime::DoseTime)
+function setdosetime!(data::AbstractSubject, dosetime::DoseTime)
     data.dosetime = dosetime
     data
 end
 #DS ind Int
 """
-    setdosetime!(data::DataSet{T}, dosetime::DoseTime, ind::Int) where T <: PKSubject
+    setdosetime!(data::DataSet{T}, dosetime::DoseTime, ind::Int) where T <: AbstractSubject
 
 * `ind` - index in DataSet.
 """
-function setdosetime!(data::DataSet{<:PKSubject}, dosetime::DoseTime, ind::Int)
+function setdosetime!(data::DataSet{<:AbstractSubject}, dosetime::DoseTime, ind::Int)
     setdosetime!(data[ind], dosetime)
     data
 end
@@ -24,7 +24,7 @@ end
 
 * `inds` - indexes in DataSet.
 """
-function setdosetime!(data::DataSet{<:PKSubject}, dosetime::DoseTime, inds::Union{Vector{Int}, UnitRange{Int}, Tuple{Vararg{Int}}})
+function setdosetime!(data::DataSet{<:AbstractSubject}, dosetime::DoseTime, inds::Union{Vector{Int}, UnitRange{Int}, Tuple{Vararg{Int}}})
     for i in inds
         setdosetime!(data[i], dosetime)
     end
@@ -32,11 +32,11 @@ function setdosetime!(data::DataSet{<:PKSubject}, dosetime::DoseTime, inds::Unio
 end
 #DS all
 """
-    setdosetime!(data::DataSet{T}, dosetime::DoseTime) where T <: PKSubject
+    setdosetime!(data::DataSet{T}, dosetime::DoseTime) where T <: AbstractSubject
 
 For all subjects in DataSet.
 """
-function setdosetime!(data::DataSet{<:PKSubject}, dosetime::DoseTime)
+function setdosetime!(data::DataSet{<:AbstractSubject}, dosetime::DoseTime)
     for i = 1:length(data)
         setdosetime!(data[i], dosetime)
     end
@@ -44,11 +44,11 @@ function setdosetime!(data::DataSet{<:PKSubject}, dosetime::DoseTime)
 end
 #DS Dict
 """
-    setdosetime!(data::DataSet{T}, dosetime::DoseTime, sort::Dict) where T <: PKSubject
+    setdosetime!(data::DataSet{T}, dosetime::DoseTime, sort::Dict) where T <: AbstractSubject
 
 Set dose time `dosetime` for subjects if `sort` ⊆ subject's `id`.
 """
-function setdosetime!(data::DataSet{<:PKSubject}, dosetime::DoseTime, sort::Dict)
+function setdosetime!(data::DataSet{<:AbstractSubject}, dosetime::DoseTime, sort::Dict)
     for i = 1:length(data)
         if sort ⊆ data[i].id setdosetime!(data[i], dosetime) end
     end
@@ -60,7 +60,7 @@ end
 
 Return dosetime.
 """
-function getdosetime(data::PKSubject)
+function getdosetime(data::AbstractSubject)
     data.dosetime
 end
 

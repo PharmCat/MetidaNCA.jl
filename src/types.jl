@@ -106,7 +106,7 @@ end
 
 # PK subject
 """
-    PKSubject(time::Vector{T}, conc::Vector{O}, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, keldata::KelData, sort::Dict{Symbol, V} = Dict{Symbol, Any}()) where T <: Number where O <: Union{Number, Missing} where V
+    PKSubject(time::Vector{T}, conc::Vector{O}, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, keldata::KelData, id::Dict{Symbol, V} = Dict{Symbol, Any}()) where T <: Number where O <: Union{Number, Missing} where V
 
 Pharmacokinetic subject.
 
@@ -129,11 +129,11 @@ mutable struct PKSubject{T <: Number, O <: Union{Number, Missing}, V <: Any} <: 
     dosetime::DoseTime
     keldata::KelData
     id::Dict{Symbol, V}
-    function PKSubject(time::Vector{T}, conc::Vector{O}, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, keldata::KelData, sort::Dict{Symbol, V} = Dict{Symbol, Any}()) where T <: Number where O <: Union{Number, Missing} where V
-        new{T, O, V}(time, conc, kelauto, kelrange, dosetime, keldata, sort)::PKSubject
+    function PKSubject(time::Vector{T}, conc::Vector{O}, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, keldata::KelData, id::Dict{Symbol, V} = Dict{Symbol, Any}()) where T <: Number where O <: Union{Number, Missing} where V
+        new{T, O, V}(time, conc, kelauto, kelrange, dosetime, keldata, id)::PKSubject
     end
-    function PKSubject(time::Vector{T}, conc::Vector{O}, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, sort::Dict{Symbol, V}) where T where O where V
-        PKSubject(time, conc, kelauto, kelrange, dosetime, KelData(T[], T[], Float64[], Float64[], Float64[], Float64[], Int[]), sort)
+    function PKSubject(time::Vector{T}, conc::Vector{O}, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, id::Dict{Symbol, V}) where T where O where V
+        PKSubject(time, conc, kelauto, kelrange, dosetime, KelData(T[], T[], Float64[], Float64[], Float64[], Float64[], Int[]), id)
     end
     #=
     function PKSubject(time::Vector, conc::Vector, sort::Dict)
@@ -240,12 +240,13 @@ mutable struct PDSubject{T <: Number, O <: Union{Number, Missing}, V <: Any} <: 
     obs::Vector{O}
     bl::Float64
     th::Float64
+    dosetime::DoseTime
     id::Dict{Symbol, V}
-    function PDSubject(time::Vector{T}, conc::Vector{O}, bl, th, sort::Dict{Symbol, V} = Dict{Symbol, Any}()) where T <: Number where O <: Union{Number, Missing} where V
-        new{T, O, V}(time, conc, bl, th, sort)::PDSubject
+    function PDSubject(time::Vector{T}, conc::Vector{O}, bl, th, dosetime::DoseTime, id::Dict{Symbol, V} = Dict{Symbol, Any}()) where T <: Number where O <: Union{Number, Missing} where V
+        new{T, O, V}(time, conc, bl, th, dosetime, id)::PDSubject
     end
-    function PDSubject(time::Vector, conc::Vector, bl, th, sort::Dict{Symbol, V}) where V
-        PDSubject(time, conc, bl, th, sort)
+    function PDSubject(time::Vector, conc::Vector, bl, th, id::Dict{Symbol, V}) where V
+        PDSubject(time, conc, bl, th, DoseTime(), id)
     end
 end
 
