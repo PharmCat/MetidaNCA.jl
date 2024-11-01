@@ -45,7 +45,7 @@ end
 @userplot PKPlot
 @userplot PKElimpPlot
 @userplot PKElimpDrop
-@userplot PdHLine
+#@userplot PdHLine
 
 function luceil(x)
     fl = Int(floor(log10(x)))
@@ -119,12 +119,13 @@ end
     (x, y)
 end
 
+#=
 @recipe function f(subj::PdHLine)
     x, y = subj.args
     seriestype        --> :straightline
     (x, [y, y])
 end
-
+=#
 # Text label from ID
 function plotlabel(d, ld = nothing)
     title = ""
@@ -260,10 +261,10 @@ function pkplot(subj::AbstractSubject; ls = false, elim = false, xticksn = :auto
     end
     if isa(subj, PDSubject)
         if kwargs[:drawth] == true
-            pdhline!(p, [minimum(subj.time), maximum(subj.time)], getth(subj), lc = :blue, label = "TH")
+            plot!(p, [minimum(subj.time), maximum(subj.time)], [getth(subj), getth(subj)], lc = kwargs[:linecolor], ls = :dashdot, label = "TH")
         end
         if kwargs[:drawbl] == true
-            pdhline!(p, [minimum(subj.time), maximum(subj.time)], getbl(subj), lc = :red, label = "BL")
+            plot!(p, [minimum(subj.time), maximum(subj.time)], [getbl(subj), getbl(subj)], lc = kwargs[:linecolor], ls = :dash, label = "BL")
         end
     end
     if kwargs[:drawdt] == true && !isnan(subj.dosetime.time) 
@@ -336,6 +337,14 @@ function pkplot!(subj; ls = false, elim = false, xticksn = :auto, yticksn = :aut
 
     p = pkplot!(time, obs;  lcd = yticksn, tcd = xticksn, kwargs...)
 
+    if isa(subj, PDSubject)
+        if kwargs[:drawth] == true
+            plot!(p, [minimum(subj.time), maximum(subj.time)], [getth(subj), getth(subj)], lc = kwargs[:linecolor], ls = :dashdot, label = "TH")
+        end
+        if kwargs[:drawbl] == true
+            plot!(p, [minimum(subj.time), maximum(subj.time)], [getbl(subj), getbl(subj)], lc = kwargs[:linecolor], ls = :dash, label = "BL")
+        end
+    end
     if kwargs[:drawdt] == true && !isnan(subj.dosetime.time) 
         plot!(p, [subj.dosetime.time, subj.dosetime.time], [minimum(subj.obs),  maximum(subj.obs)], label = "DoseTime", ls = :dot, lc = kwargs[:linecolor])
     end

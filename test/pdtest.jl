@@ -126,4 +126,19 @@ end
     @test  pd_rds[1,:TABL] ≈ pd_rds[1,:TABLtau] atol=1E-6
     @test  pd_rds[1,:TBBL] - 1 ≈ pd_rds[1,:TBBLtau] atol=1E-6
 
+    pddata2 = deepcopy(pddata)
+    deleteat!(pddata2, 1)
+    pd2 =  MetidaNCA.pdimport(pddata2, :time, :obs, :subj; bl = 1.5, th = 5.0, dosetime = MetidaNCA.DoseTime(dose = 100, time = 0.0, tau = 9.0))
+    pd_rds2 = MetidaNCA.nca!(pd2)
+
+    @test  pd_rds2[1,:AUCATH] ≈ pd_rds2[1,:AUCATHtau] atol=1E-6
+    @test  pd_rds2[1,:AUCBTH] + 4.5 ≈ pd_rds2[1,:AUCBTHtau] atol=1E-6
+    @test  pd_rds2[1,:AUCABL] ≈ pd_rds2[1,:AUCABLtau] atol=1E-6
+    @test  pd_rds2[1,:AUCBBL] + 1 ≈ pd_rds2[1,:AUCBBLtau] atol=1E-6
+    @test  pd_rds2[1,:AUCBTW] ≈ pd_rds2[1,:AUCBTWtau] atol=1E-6
+    @test  pd_rds2[1,:TATH] ≈ pd_rds2[1,:TATHtau] atol=1E-6
+    @test  pd_rds2[1,:TBTH] + 1 ≈ pd_rds2[1,:TBTHtau] atol=1E-6
+    @test  pd_rds2[1,:TABL] ≈ pd_rds2[1,:TABLtau] atol=1E-6
+    @test  pd_rds2[1,:TBBL] + 1 ≈ pd_rds2[1,:TBBLtau] atol=1E-6
+
 end
