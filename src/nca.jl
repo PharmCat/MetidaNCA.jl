@@ -833,10 +833,10 @@ function nca!(data::PKSubject{T, O}; adm = :ev, calcm = :lint, intpm = nothing, 
     return ncares
 end
 
-function maxconc(subj::T) where T <: PKSubject
+function maxconc(subj::T) where T <: AbstractSubject
     maximum(subj.obs)
 end
-function minconc(subj::T, pos = false) where T <: PKSubject
+function minconc(subj::T, pos = false) where T <: AbstractSubject
     if pos
         return minimum(Iterators.filter(x-> x > zero(x), subj.obs))
     else
@@ -1136,6 +1136,78 @@ function nca!(data::PDSubject{T,O}; calcm = :lint, intpm = nothing, verbose = 0,
         result[:TIMEBTW] = result[:TBTH] - result[:TBBL]
     else
         result[:TIMEBTW] = result[:TBBL] - result[:TBTH]
+    end
+
+   
+    # Tau parameters
+    if data.dosetime.tau > zero(data.dosetime.tau)
+        taufirstp = findfirst(x -> x >= data.dosetime.time, time_cp)
+        taulastp  = findlast(x -> x <= data.dosetime.time + data.dosetime.tau, time_cp)
+        taupn = taulastp - taufirstp
+
+        aucpartabl_tau  = Array{ptype, 1}(undef, taupn)
+        aucpartbbl_tau  = Array{ptype, 1}(undef, taupn)
+        aucpartath_tau  = Array{ptype, 1}(undef, taupn)
+        aucpartbth_tau  = Array{ptype, 1}(undef, taupn)
+        tpartabl_tau    = Array{ptype, 1}(undef, taupn)
+        tpartbbl_tau    = Array{ptype, 1}(undef, taupn)
+        tpartath_tau    = Array{ptype, 1}(undef, taupn)
+        tpartbth_tau    = Array{ptype, 1}(undef, taupn)
+        aucpartbtw_tau  = Array{ptype, 1}(undef, taupn)
+
+        for i = taufirstp:taulastp-1
+            j = i - taufirstp + 1
+            aucpartabl_tau[j], aucpartbbl_tau[j], tpartabl_tau[j], tpartbbl_tau[j], aucpartath_tau[j], aucpartbth_tau[j], tpartath_tau[j], tpartbth_tau[j], aucpartbtw_tau[j] = auctblth(obs_cp[i], obs_cp[i + 1], time_cp[i], time_cp[i + 1], data.bl, data.th, calcm)
+        end
+        # before first responce point
+        if data.dosetime.time < time_cp[taufirstp]
+            if taufirstp > 1
+                # Interpolate responce between observations
+                intpmr  = interpolate(time_cp[taufirstp-1], time_cp[taufirstp], data.dosetime.time, obs_cp[taufirstp-1], obs_cp[taufirstp], calcm, true)
+                aucpartabl_, aucpartbbl_, tpartabl_, tpartbbl_, aucpartath_, aucpartbth_, tpartath_, tpartbth_, aucpartbtw_ = auctblth(intpmr, obs_cp[taufirstp], data.dosetime.time, time_cp[taufirstp], data.bl, data.th, calcm)
+            else # else set first point to zero
+                aucpartabl_, aucpartbbl_, tpartabl_, tpartbbl_, aucpartath_, aucpartbth_, tpartath_, tpartbth_, aucpartbtw_ = auctblth(0, obs_cp[taufirstp], data.dosetime.time, time_cp[taufirstp], data.bl, data.th, calcm)
+            end
+            pushfirst!(aucpartabl_tau, aucpartabl_)
+            pushfirst!(aucpartbbl_tau, aucpartbbl_)
+            pushfirst!(aucpartath_tau, aucpartath_)
+            pushfirst!(aucpartbth_tau, aucpartbth_)
+            pushfirst!(tpartabl_tau, tpartabl_)
+            pushfirst!(tpartbbl_tau, tpartbbl_)
+            pushfirst!(tpartath_tau, tpartath_)
+            pushfirst!(tpartbth_tau, tpartbth_)
+            pushfirst!(aucpartbtw_tau, aucpartbtw_)
+        end
+        # after last responce point
+        if data.dosetime.time + data.dosetime.tau > time_cp[taulastp]
+            if  taulastp < length(time_cp)
+                # Interpolate responce between observations
+                intpmr  = interpolate(time_cp[taulastp], time_cp[taulastp+1], data.dosetime.time + data.dosetime.tau, obs_cp[taulastp], obs_cp[taulastp+1], calcm, true)
+
+                aucpartabl_, aucpartbbl_, tpartabl_, tpartbbl_, aucpartath_, aucpartbth_, tpartath_, tpartbth_, aucpartbtw_ = auctblth(obs_cp[taulastp], intpmr, time_cp[taulastp], data.dosetime.time + data.dosetime.tau, data.bl, data.th, calcm)
+            else # else set first point to zero
+                aucpartabl_, aucpartbbl_, tpartabl_, tpartbbl_, aucpartath_, aucpartbth_, tpartath_, tpartbth_, aucpartbtw_ =  auctblth(obs_cp[taulastp], 0, time_cp[taulastp], data.dosetime.time + data.dosetime.tau, data.bl, data.th, calcm)
+            end
+            push!(aucpartabl_tau, aucpartabl_)
+            push!(aucpartbbl_tau, aucpartbbl_)
+            push!(aucpartath_tau, aucpartath_)
+            push!(aucpartbth_tau, aucpartbth_)
+            push!(tpartabl_tau, tpartabl_)
+            push!(tpartbbl_tau, tpartbbl_)
+            push!(tpartath_tau, tpartath_)
+            push!(tpartbth_tau, tpartbth_)
+            push!(aucpartbtw_tau, aucpartbtw_)
+        end
+
+        result[:AUCABLtau] = sum(aucpartabl_tau)
+        result[:AUCBBLtau] = sum(aucpartbbl_tau)
+        result[:AUCATHtau] = sum(aucpartath_tau)
+        result[:AUCBTHtau] = sum(aucpartbth_tau)
+        result[:TABLtau]   = sum(tpartabl_tau)
+        result[:TBBLtau]   = sum(tpartbbl_tau)
+        result[:TATHtau]   = sum(tpartath_tau)
+        result[:TBTHtau]   = sum(tpartbth_tau)
+        result[:AUCBTWtau] = sum(aucpartbtw_tau)
     end
 
     # Verbose output

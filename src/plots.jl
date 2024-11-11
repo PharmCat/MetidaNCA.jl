@@ -45,7 +45,7 @@ end
 @userplot PKPlot
 @userplot PKElimpPlot
 @userplot PKElimpDrop
-@userplot PdHLine
+#@userplot PdHLine
 
 function luceil(x)
     fl = Int(floor(log10(x)))
@@ -119,12 +119,13 @@ end
     (x, y)
 end
 
+#=
 @recipe function f(subj::PdHLine)
     x, y = subj.args
     seriestype        --> :straightline
     (x, [y, y])
 end
-
+=#
 # Text label from ID
 function plotlabel(d, ld = nothing)
     title = ""
@@ -157,6 +158,7 @@ Plot for subject
 * `plotstyle` - predefined plot style from PKPLOTSTYLE;
 * `drawbl` (`false`) - draw baseline, only for PDSubject;
 * `drawth` (`false`) - draw threshold, only for PDSubject;
+* `drawdt` (`false`) - draw drawdose time;
 
 """
 function pkplot(subj::AbstractSubject; ls = false, elim = false, xticksn = :auto, yticksn = :auto, kwargs...)
@@ -169,6 +171,9 @@ function pkplot(subj::AbstractSubject; ls = false, elim = false, xticksn = :auto
         kwargs[:linestyle], kwargs[:linecolor], kwargs[:markershape],  kwargs[:markercolor]  = PKPLOTSTYLE[1]
     else
         kwargs[:linestyle], kwargs[:linecolor], kwargs[:markershape],  kwargs[:markercolor]  = kwargs[:plotstyle]
+    end
+    if !(:drawdt in k)
+        kwargs[:drawdt] = false
     end
     if !(:drawbl in k)
         kwargs[:drawbl] = false
@@ -256,11 +261,14 @@ function pkplot(subj::AbstractSubject; ls = false, elim = false, xticksn = :auto
     end
     if isa(subj, PDSubject)
         if kwargs[:drawth] == true
-            pdhline!(p, [minimum(subj.time), maximum(subj.time)], getth(subj), lc = :blue, label = "TH")
+            plot!(p, [minimum(subj.time), maximum(subj.time)], [getth(subj), getth(subj)], lc = kwargs[:linecolor], ls = :dashdot, label = "TH")
         end
         if kwargs[:drawbl] == true
-            pdhline!(p, [minimum(subj.time), maximum(subj.time)], getbl(subj), lc = :red, label = "BL")
+            plot!(p, [minimum(subj.time), maximum(subj.time)], [getbl(subj), getbl(subj)], lc = kwargs[:linecolor], ls = :dash, label = "BL")
         end
+    end
+    if kwargs[:drawdt] == true && !isnan(subj.dosetime.time) 
+        plot!(p, [subj.dosetime.time, subj.dosetime.time], [minimum(subj.obs),  maximum(subj.obs)], label = "DoseTime", ls = :dot, lc = kwargs[:linecolor])
     end
     return p
 end
@@ -276,6 +284,9 @@ function pkplot!(subj; ls = false, elim = false, xticksn = :auto, yticksn = :aut
         kwargs[:linestyle], kwargs[:linecolor], kwargs[:markershape],  kwargs[:markercolor]  = kwargs[:plotstyle]
     end
 
+    if !(:drawdt in k)
+        kwargs[:drawdt] = false
+    end
     if !(:legend in k)
         kwargs[:legend] = true
     end
@@ -325,6 +336,18 @@ function pkplot!(subj; ls = false, elim = false, xticksn = :auto, yticksn = :aut
     end
 
     p = pkplot!(time, obs;  lcd = yticksn, tcd = xticksn, kwargs...)
+
+    if isa(subj, PDSubject)
+        if kwargs[:drawth] == true
+            plot!(p, [minimum(subj.time), maximum(subj.time)], [getth(subj), getth(subj)], lc = kwargs[:linecolor], ls = :dashdot, label = "TH")
+        end
+        if kwargs[:drawbl] == true
+            plot!(p, [minimum(subj.time), maximum(subj.time)], [getbl(subj), getbl(subj)], lc = kwargs[:linecolor], ls = :dash, label = "BL")
+        end
+    end
+    if kwargs[:drawdt] == true && !isnan(subj.dosetime.time) 
+        plot!(p, [subj.dosetime.time, subj.dosetime.time], [minimum(subj.obs),  maximum(subj.obs)], label = "DoseTime", ls = :dot, lc = kwargs[:linecolor])
+    end
     return p
 end
 

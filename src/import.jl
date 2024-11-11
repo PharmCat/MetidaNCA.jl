@@ -327,11 +327,13 @@ Keywords:
 * `warn` - warning supress if `false`.
 
 """
-function pdimport(data, time, obs, sort; bl = 0, th = 0, limitrule::Union{Nothing, LimitRule} = nothing, warn = true)
+function pdimport(data, time, obs, sort; bl = 0, th = 0, dosetime::Union{Nothing, DoseTime} = nothing, limitrule::Union{Nothing, LimitRule} = nothing, warn = true)
     if isa(sort, String) sort = [Symbol(sort)] end
     if isa(sort, Symbol) sort = [sort] end
 
     Tables.istable(data) || error("Data not a table!")
+
+    
 
     cols   = Tables.columns(data)
     cdata  = Tuple(Tables.getcolumn(cols, y) for y in sort)
@@ -340,6 +342,8 @@ function pdimport(data, time, obs, sort; bl = 0, th = 0, limitrule::Union{Nothin
 
     timec = Tables.getcolumn(data, time)
     obsc  = Tables.getcolumn(data, obs)
+
+    if isnothing(dosetime) dosetime = DoseTime(NaN, zero(eltype(timec)), NaN) end
 
     any(isnanormissing, timec) && error("Some time values is NaN or Missing!")
 
@@ -372,7 +376,7 @@ function pdimport(data, time, obs, sort; bl = 0, th = 0, limitrule::Union{Nothin
         timevals_spv = view(timevals, sp)
         obsvals_spv = view(obsvals, sp)
         timevals_sp, obsvals_sp = checkvalues(timevals_spv, obsvals_spv, warn = warn)
-        sdata[i] = PDSubject(timevals_sp, obsvals_sp, bl, th, Dict(sort .=> k))
+        sdata[i] = PDSubject(timevals_sp, obsvals_sp, bl, th, dosetime, Dict(sort .=> k))
         i += one(Int)
     end
     ds = DataSet(identity.(sdata))

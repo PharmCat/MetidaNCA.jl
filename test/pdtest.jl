@@ -76,3 +76,69 @@
     #
     pd_rds = MetidaNCA.nca!(pd; calcm = :luld)
 end
+
+
+@testset "  #7 Pharmacodynamics data; Linear-trapezoidal rule; Tau   " begin
+
+    io = IOBuffer();
+
+    pd =  MetidaNCA.pdimport(pddata, :time, :obs, :subj; bl = 1.5, th = 5.0)
+
+    dt = MetidaNCA.DoseTime(dose = 100, time = 0.0, tau = 9.0)
+    MetidaNCA.setdosetime!(pd, dt)
+    pd_rds = MetidaNCA.nca!(pd)
+
+    @test  pd_rds[1,:AUCATH] ≈ pd_rds[1,:AUCATHtau] atol=1E-6
+    @test  pd_rds[1,:AUCBTH] ≈ pd_rds[1,:AUCBTHtau] atol=1E-6
+    @test  pd_rds[1,:AUCABL] ≈ pd_rds[1,:AUCABLtau] atol=1E-6
+    @test  pd_rds[1,:AUCBBL] ≈ pd_rds[1,:AUCBBLtau] atol=1E-6
+    @test  pd_rds[1,:AUCBTW] ≈ pd_rds[1,:AUCBTWtau] atol=1E-6
+    @test  pd_rds[1,:TATH] ≈ pd_rds[1,:TATHtau] atol=1E-6
+    @test  pd_rds[1,:TBTH] ≈ pd_rds[1,:TBTHtau] atol=1E-6
+    @test  pd_rds[1,:TABL] ≈ pd_rds[1,:TABLtau] atol=1E-6
+    @test  pd_rds[1,:TBBL] ≈ pd_rds[1,:TBBLtau] atol=1E-6
+
+
+    dt = MetidaNCA.DoseTime(dose = 100, time = 1.0, tau = 7.0)
+    MetidaNCA.setdosetime!(pd, dt)
+    pd_rds = MetidaNCA.nca!(pd)
+    @test  pd_rds[1,:AUCATH] ≈ pd_rds[1,:AUCATHtau] atol=1E-6
+    @test  pd_rds[1,:AUCBTH] - 8.5 ≈ pd_rds[1,:AUCBTHtau] atol=1E-6
+    @test  pd_rds[1,:AUCABL] ≈ pd_rds[1,:AUCABLtau] atol=1E-6
+    @test  pd_rds[1,:AUCBBL] - 1.5 ≈ pd_rds[1,:AUCBBLtau] atol=1E-6
+    @test  pd_rds[1,:AUCBTW] ≈ pd_rds[1,:AUCBTWtau] atol=1E-6
+    @test  pd_rds[1,:TATH] ≈ pd_rds[1,:TATHtau] atol=1E-6
+    @test  pd_rds[1,:TBTH] - 2 ≈ pd_rds[1,:TBTHtau] atol=1E-6
+    @test  pd_rds[1,:TABL] ≈ pd_rds[1,:TABLtau] atol=1E-6
+    @test  pd_rds[1,:TBBL] - 2 ≈ pd_rds[1,:TBBLtau] atol=1E-6
+
+
+    dt = MetidaNCA.DoseTime(dose = 100, time = 0.5, tau = 8.0)
+    MetidaNCA.setdosetime!(pd, dt)
+    pd_rds = MetidaNCA.nca!(pd)
+    @test  pd_rds[1,:AUCATH] ≈ pd_rds[1,:AUCATHtau] atol=1E-6
+    @test  pd_rds[1,:AUCBTH] - 4.375 ≈ pd_rds[1,:AUCBTHtau] atol=1E-6
+    @test  pd_rds[1,:AUCABL] ≈ pd_rds[1,:AUCABLtau] atol=1E-6
+    @test  pd_rds[1,:AUCBBL] - 0.875 ≈ pd_rds[1,:AUCBBLtau] atol=1E-6
+    @test  pd_rds[1,:AUCBTW] ≈ pd_rds[1,:AUCBTWtau] atol=1E-6
+    @test  pd_rds[1,:TATH] ≈ pd_rds[1,:TATHtau] atol=1E-6
+    @test  pd_rds[1,:TBTH] - 1 ≈ pd_rds[1,:TBTHtau] atol=1E-6
+    @test  pd_rds[1,:TABL] ≈ pd_rds[1,:TABLtau] atol=1E-6
+    @test  pd_rds[1,:TBBL] - 1 ≈ pd_rds[1,:TBBLtau] atol=1E-6
+
+    pddata2 = deepcopy(pddata)
+    deleteat!(pddata2, 1)
+    pd2 =  MetidaNCA.pdimport(pddata2, :time, :obs, :subj; bl = 1.5, th = 5.0, dosetime = MetidaNCA.DoseTime(dose = 100, time = 0.0, tau = 9.0))
+    pd_rds2 = MetidaNCA.nca!(pd2)
+
+    @test  pd_rds2[1,:AUCATH] ≈ pd_rds2[1,:AUCATHtau] atol=1E-6
+    @test  pd_rds2[1,:AUCBTH] + 4.5 ≈ pd_rds2[1,:AUCBTHtau] atol=1E-6
+    @test  pd_rds2[1,:AUCABL] ≈ pd_rds2[1,:AUCABLtau] atol=1E-6
+    @test  pd_rds2[1,:AUCBBL] + 1 ≈ pd_rds2[1,:AUCBBLtau] atol=1E-6
+    @test  pd_rds2[1,:AUCBTW] ≈ pd_rds2[1,:AUCBTWtau] atol=1E-6
+    @test  pd_rds2[1,:TATH] ≈ pd_rds2[1,:TATHtau] atol=1E-6
+    @test  pd_rds2[1,:TBTH] + 1 ≈ pd_rds2[1,:TBTHtau] atol=1E-6
+    @test  pd_rds2[1,:TABL] ≈ pd_rds2[1,:TABLtau] atol=1E-6
+    @test  pd_rds2[1,:TBBL] + 1 ≈ pd_rds2[1,:TBBLtau] atol=1E-6
+
+end
