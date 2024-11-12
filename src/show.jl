@@ -59,13 +59,13 @@ function Base.show(io::IO, obj::PDSubject)
     PrettyTables.pretty_table(io, metida_table(obj.time, obj.obs; names = (:Time, :Observation)); tf = PrettyTables.tf_compact)
 end
 
-function subject_type_str(subj::Type{<:PKSubject})
+function subject_type_str(subj::Type{PKS}) where PKS <: PKSubject
     "Pharmacokinetics subject"
 end
-function subject_type_str(subj::Type{<:UPKSubject})
+function subject_type_str(subj::Type{UPKS}) where UPKS <: UPKSubject
     "Pharmacokinetics subject (urine)"
 end
-function subject_type_str(subj::Type{<:PDSubject})
+function subject_type_str(subj::Type{PDS}) where PDS <: PDSubject
     "Pharmacodynamics subject"
 end
 function Base.show(io::IO, obj::DataSet{ST}) where ST <: AbstractSubject
