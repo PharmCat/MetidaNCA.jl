@@ -37,6 +37,7 @@ PKSubject, UPKSubject, PDSubject, NCAResult
 function __init__()
     @require Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80" begin
         savefig = Plots.savefig
+        current = Plots.current
     end
 end
 

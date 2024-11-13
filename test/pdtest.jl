@@ -6,6 +6,9 @@
 
     @test_nowarn MetidaNCA.pkplot(pd)
     @test_nowarn MetidaNCA.pkplot(pd[1], drawth = true, drawbl = true)
+    p = plot()
+    @test_nowarn MetidaNCA.pkplot!(pd[1], drawth = true, drawbl = true)
+
 
     pd_res = MetidaNCA.nca!(pd[1])
     pd_rds = MetidaNCA.nca!(pd)

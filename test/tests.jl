@@ -75,6 +75,9 @@ include("refdicts.jl")
     # If  typesort defined and NoPageSort() return one plot
     pl = @test_nowarn MetidaNCA.pkplot(ds; typesort = :Subject, pagesort = MetidaNCA.NoPageSort(), sort = Dict(:Formulation => "R"))
     @test isa(pl, Plots.Plot) == true
+   #@test_throws "There is no pkplot! methods for DataSet, use pkplot or pkplot! for each subject separately." MetidaNCA.pkplot!(ds; typesort = :Subject, pagesort = MetidaNCA.NoPageSort(), sort = Dict(:Formulation => "R"))
+   
+
     pl = @test_nowarn MetidaNCA.pkplot(ds; typesort = :Formulation, pagesort = MetidaNCA.NoPageSort(), legend = true)
     @test isa(pl, Plots.Plot) == true
 
@@ -107,11 +110,25 @@ include("refdicts.jl")
     @test isa(pl, Plots.Plot) == true
 
     # Return plot for PKSubject
+
+    @test_nowarn MetidaNCA.pkplot(ds[1].time, ds[1].obs)
+    @test_nowarn MetidaNCA.pkplot!(ds[1].time, ds[1].obs)
+    p = plot()
+    @test_nowarn MetidaNCA.pkplot!(p, ds[1].time, ds[1].obs)
+    p = plot()
+    @test_nowarn MetidaNCA.pkplot!(ds[1])
+    #p = plot()
+    #@test_nowarn MetidaNCA.pkplot!(ds[1])
+
     @test_nowarn pl = MetidaNCA.pkplot(ds[1]; ylims = (0, 250), yscale = :log10, legend = false)
     @test_nowarn pl = MetidaNCA.pkplot(ds[1]; elim = true, ls = false)
     @test_nowarn MetidaNCA.plotstyle(40)
     pl = MetidaNCA.pkplot(ds[3])
     pl = MetidaNCA.pkplot!(ds[2]; yscale = :log10)
+
+    p = plot()
+    MetidaNCA.pkplot!(ds[1]; ylims = (0, 250), yscale = :log10, legend = false)
+    #MetidaNCA.pkplot!(p, ds[1]; ylims = (0, 250), yscale = :log10, legend = false)
 
     kr =  MetidaNCA.ElimRange(kelstart = 4, kelend = 12, kelexcl = Int[5,6])
     MetidaNCA.setkelrange!(ds, kr, [1,2,3])

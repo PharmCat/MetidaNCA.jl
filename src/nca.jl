@@ -1100,7 +1100,14 @@ function nca!(data::PDSubject{T,O}; calcm = :lint, intpm = nothing, verbose = 0,
 ################################################################################
     result[:Obsnum] = obsnum = length(obs_cp)
 
+    result[:BL] = data.bl
+ 
+    result[:TH] = data.th
+
+
     result[:Rmax], result[:Tmax], tmaxn = ctmax(time_cp, obs_cp, length(obs_cp))
+
+
     
     # ALL NAN AND MISSING VALUES LINEAR INTERPOLATED
     step_2_interpolate!(time_cp, obs_cp, einds, 1, :lint)
