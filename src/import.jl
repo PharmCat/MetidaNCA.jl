@@ -2,6 +2,32 @@
 
 nonunique(v) = [k for (k, v) in StatsBase.countmap(v) if v > 1]
 
+parse_gkw(s::String) = [Symbol(s)]
+parse_gkw(s::Symbol) = [s]
+parse_gkw(s::AbstractVector{<:AbstractString}) = Symbol.(s)
+parse_gkw(s::AbstractVector{Symbol}) = s
+
+function floatparse(data::Missing, warn) 
+    warn && @warn "Value $data parsed as `NaN`"
+    return NaN
+end
+
+function floatparse(data::Nothing, warn) 
+    warn && @warn "Value $data parsed as `NaN`"
+    return NaN
+end
+
+floatparse(data::AbstractFloat, ::Any) = data
+
+function floatparse(data::AbstractString, warn) 
+    tp = tryparse(Float64, data)
+    warn && isnothing(tp) && @warn "Value $data parsed as `NaN`"
+    floatparse(tp, false) 
+end
+function floatparse(data::Int, warn)
+    float(data) 
+end
+#=
 function floatparse(data, warn)
     if !isa(data, AbstractFloat) && !ismissing(data)
         if isa(data, AbstractString)
@@ -25,7 +51,7 @@ function floatparse(data, warn)
         return data
     end
 end
-
+=#
 
 #=
 function floatparse(data::AbstractVector)
@@ -107,8 +133,8 @@ keywords:
 See also: [`ElimRange`](@ref), [`DoseTime`](@ref), [`LimitRule`](@ref).
 """
 function pkimport(data, time, conc, sort; kelauto = true,  elimrange = ElimRange(), dosetime = nothing, limitrule::Union{Nothing, LimitRule} = nothing, warn = true, kwargs...)
-    if isa(sort, String) sort = [Symbol(sort)] end
-    if isa(sort, Symbol) sort = [sort] end
+    
+    sort = parse_gkw(sort)
 
     Tables.istable(data) || error("Data not a table!")
 
@@ -216,8 +242,8 @@ Import urine PK data from table `data`.
 * `sort` - subject sorting columns.
 """
 function upkimport(data, stime, etime, conc, vol, sort; kelauto = true,  elimrange = ElimRange(), dosetime = nothing)
-    if isa(sort, String) sort = [Symbol(sort)] end
-    if isa(sort, Symbol) sort = [sort] end
+    
+    sort = parse_gkw(sort)
 
     cols   = Tables.columns(data)
     cdata  = Tuple(Tables.getcolumn(cols, y) for y in sort)
@@ -328,8 +354,8 @@ Keywords:
 
 """
 function pdimport(data, time, obs, sort; bl = 0, th = 0, dosetime::Union{Nothing, DoseTime} = nothing, limitrule::Union{Nothing, LimitRule} = nothing, warn = true)
-    if isa(sort, String) sort = [Symbol(sort)] end
-    if isa(sort, Symbol) sort = [sort] end
+    
+    sort = parse_gkw(sort)
 
     Tables.istable(data) || error("Data not a table!")
 
