@@ -395,7 +395,7 @@ Applicable `kwargs` see  [`nca!`](@ref).
 
 See also: [`ElimRange`](@ref), [`DoseTime`](@ref), [`LimitRule`](@ref).
 """
-function nca(args...; type::Symbol = :bps, bl = 0, th = 0, kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), limitrule::Union{Nothing, LimitRule} = nothing, kwargs...)
+function nca(args...; type::Symbol = :bps, bl = 0, th = 0, kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), limitrule::Union{Nothing, LimitRule} = nothing, io = stdout, wm = false, kwargs...)
     if !(type in (:bps, :ur, :pd)) error("Unknown type") end
     if type == :bps
         pki    = pkimport(args...; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime, limitrule = limitrule, kwargs...)
@@ -404,21 +404,40 @@ function nca(args...; type::Symbol = :bps, bl = 0, th = 0, kelauto = true,  elim
     elseif type == :pd
         pki    = pdimport(args...; th = th, bl = bl, limitrule = limitrule, kwargs...)
     end
-    nca!(pki; kwargs...)
+    nca!(pki; io = io, wm = wm, kwargs...)
 end
 
 """
-    nca!(data::DataSet{Subj}; adm = :ev, calcm = :lint, intpm = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = identity) where Subj <: AbstractSubject
+    nca!(data::DataSet{Subj}; adm = :ev, calcm = :lint, intpm = nothing, verbose = 0, warn = true, wm::Bool = false, io::IO = stdout, modify! = identity) where Subj <: AbstractSubject
+
+* `wm` - write output to DataSet metadata (`:ncalog` index).
 
 Non-compartmental (NCA) analysis of PK/PD data.
 """
-function nca!(data::DataSet{Subj};  kwargs...) where Subj <: AbstractSubject
+function nca!(data::DataSet{Subj};  wm::Bool = false, io = stdout, kwargs...) where Subj <: AbstractSubject
     #result = Vector{NCAResult{Subj}}(undef, length(data))
     #for i = 1:length(data)
     #    result[i] = nca!(data[i]; kwargs...)
     #end
     #DataSet(result)
-    map(x -> nca!(x; kwargs...), data)
+    writetostdout = false
+    if wm
+        if io == stdout
+            io = IOBuffer()
+            writetostdout = true
+        end
+    end
+
+    ds = map(x -> nca!(x; io = io, kwargs...), data)
+    
+    if wm
+        io2 = deepcopy(io)
+        ds.metadata[:ncalog] = String(take!(io2))
+        if writetostdout 
+            write(stdout, String(take!(io))) 
+        end
+    end
+    ds
 end
 
 """
@@ -494,7 +513,17 @@ Steady-state parameters (tau used):
 `partials` is a vector of vectors, tuples or pairs. Example: `partials = [(1,2), (3,4)]`, `partials = [[1,2], (3,4)]`
 
 """
-function nca!(data::PKSubject{T, O}; adm = :ev, calcm = :lint, intpm = nothing,  partials = nothing, prtext = :err, verbose = 0, warn = true, io::IO = stdout, modify! = identity) where T where O
+function nca!(data::PKSubject{T, O}; 
+    adm = :ev, calcm = :lint, 
+    intpm = nothing,  
+    partials = nothing, 
+    prtext = :err, 
+    verbose = 0, 
+    warn = true, 
+    io::IO = stdout, 
+    modify! = identity,
+    kwargs...) where T where O
+
 
     ptype  = promote_type(Float64, T, O)
 
