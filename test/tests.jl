@@ -1523,7 +1523,7 @@ end
 
 
 @testset "  Partials                                                 " begin
-
+    io = IOBuffer()
     ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0.25, tau = 9))
     sort!(ds, :Subject)
     dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luld, partials = [(0.25, 9.25)])
@@ -1758,6 +1758,9 @@ end
     @test_nowarn show(io, pd_res)
     @test_nowarn show(io, pd_rds)
 
+    io = IOBuffer();
+    pd_rds = MetidaNCA.nca!(pd; calcm = :luldt, verbose = 2, io = io, wm = true)
+    @test pd_rds.metadata[:ncalog] == String(take!(io))
 end
 
 
