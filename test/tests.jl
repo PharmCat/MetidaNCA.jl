@@ -67,6 +67,9 @@ include("refdicts.jl")
     mtdst = Table(ds)
     @test size(mtds, 1) == size(pkdata2, 1)
 
+    @test_nowarn MetidaNCA.pkimport(mtds;  time = :time, conc = :obs, sort = [:Subject, :Formulation])
+    @test_nowarn MetidaNCA.pkimport(mtdst;  time = :time, conc = :obs, sort = [:Subject, :Formulation])
+
     dsncafromds = MetidaNCA.nca(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
     sort!(dsncafromds, :Subject)
     @test dsnca[:, :AUClast] == dsncafromds[:, :AUClast]
@@ -175,11 +178,12 @@ include("refdicts.jl")
     @test  sbj[:AUClast]  ≈ dsncafromds[:AUClast]
     auc048 = dsncafromds[:AUCtau]
 
-
     missingpkl = deepcopy(missingpk)
     missingpkl[18, :Concentration] = missing
     dsncafromds =  MetidaNCA.nca(missingpkl, :Time, :Concentration, io = io, verbose = 2)
     @test auc048  ≈ dsncafromds[:AUClast]
+
+    @test_nowarn MetidaNCA.pkplot(dsncafromds.data)
 
 
     # Missing string LLOQ
