@@ -863,13 +863,13 @@ function nca!(data::PKSubject{T, O};
 end
 
 function maxconc(subj::T) where T <: AbstractSubject
-    maximum(subj.obs)
+    maximum(Iterators.filter(x-> !(ismissing(x) || isnan(x)), subj.obs))
 end
 function minconc(subj::T, pos = false) where T <: AbstractSubject
     if pos
         return minimum(Iterators.filter(x-> x > zero(x), subj.obs))
     else
-        return minimum(subj.obs)
+        return minimum(Iterators.filter(x-> !(ismissing(x) || isnan(x)), subj.obs))
     end
 end
 

@@ -1,0 +1,283 @@
+
+---
+title: MetidaNCA: Руковоство по эксплуатации
+author: Владимир Арнаутов
+date: `j import Dates; Dates.Date(Dates.now())`
+---
+
+
+```julia; echo = false
+using Dates, DataFrames, CSV, PrettyTables, Latexify
+```
+
+# Введение
+
+## MetidaNCA
+
+MetidaNCA позволяет проводить пакетное вычисление фармакокинетических (ФК) параметров 
+с использованием некомпартментных методов (NCA – Non-Compartmental Analysis). 
+Данный метод обработки данных выполняется в хоте анализа результатов клинических исследований лекарственных средств. 
+MetidaNCA обеспечивает:
+
+* Импорт данных (фармакокинетический профилей);
+* Вычисление фармакокинетических параметров: площадь под кривой концентрация-время (AUC), максимальная концентрация (Cmax), время достижения максимальной концентрации (Tmax), константа элиминации (Kel), период полувыведения (HL), среднее время удержания (MRT) и др.;
+* Вычисление фармакокинетических параметров для исследования концентраций в моче: количество выведенного препарата (AR), площадь под кривой концентрация-время (AUC), максимальная концентрация (Cmax), время достижения максимальной концентрации (Tmax);
+* Вычисление фармакодинамических параметров;
+* Вывод графиков;
+* Вывод данных в табличном виде.
+
+Пакет MetidaNCA может применяться на всех системах, которые поддерживаются языком Julia: x86-64, ARMv8, i686.
+
+Язык программирования: Julia.
+
+Автоматически обновляемая докуентация доступна по ссылкам:
+
+  * Версия в разработке: [https://pharmcat.github.io/MetidaNCA.jl/dev/](https://pharmcat.github.io/MetidaNCA.jl/dev/)
+  * SСтабильный релиз: [https://pharmcat.github.io/MetidaNCA.jl/stable/](https://pharmcat.github.io/MetidaNCA.jl/stable/)
+
+## Julia
+
+Julia — высокоуровневый свободный язык программирования с динамической типизацией, созданный для математических вычислений, 
+имеет встроенную поддержку многопоточности и распределённых вычислений, реализованные в том числе в стандартных конструкциях. 
+Julia применяется как язык программирования и среда вычисления на различных платформах, таких как Российская платформа математических вычислений
+и динамического моделирования Engee и др.
+
+Сайт: https://julialang.org/
+
+# Требования
+
+* Установленная Julia 1.8 (и выше) для Операционной системы/Архитектуры в Тир 1 (Tier 1) списке 
+(см. [Supported platforms](https://julialang.org/downloads/#supported_platforms)).
+
+*Tier 1: Julia is guaranteed to build from source and pass all tests on these platforms when built with the default options. 
+  Official binaries are always available and CI is run on every commit to ensure support is actively maintained.*
+
+Для использования MetidaNCA могут потребоваться пакеты для работы с табличными данными (DataFrames), 
+CSV таблицами (CSV) и графиками (Plots). При этом пакеты DataFrames и CSV не являются зависимостями для MetidaNCA. 
+Предполагается, что MetidaNCA работоспособна с пакетами, которые поддерживают
+интерфейс Tables (для таблиц) и RecipeBase (для графиков). 
+
+## Цикл разработки MetidaNCA
+
+Обычный выпуск обновлений выполняется следующим образом:
+
+  * Разработка
+  * Разработка тестировочных процедур
+  * Проверка на локальной машине
+  * Релиз ветви разработчика
+  * Pull request в основную ветвь
+  * Проведение тестировочных процедур при помощи GitHub Actions
+  * При успешном тестировании слияние с основной ветвью (при необходимости)
+  * Релиз новой версии (при необходимости)
+
+## Версии
+
+  * X.Y.Z - patch release (без критических изменений, нет значимых функциональных изменений если X != 0)
+  * X.Y.0 - minor release (возможны критические изменения если X = 0)
+  * X.0.0 - major release (критические изменения, возможны изменения API)
+  * 0.#.# - данные версии не гарантируют неизменность API
+  * 1.#.# or higher - стабильный публичный API (переход на слкдующую версию не гарантирует полное сохранение API, 
+  тем не менее стабильность API является приоритетов при разработке последующих релизов)
+
+## Поддержка
+
+Тестироваочные процедуры с использованием GitHub Actions выполняются для следующих комбинаций версий Julia/Операционной системы/Архитектуры: 
+
+* julia-version: 1.8, 1
+* julia-arch: x64
+* os: ubuntu-latest, macOS-latest, windows-latest
+
+Где "1" - последняя стабильная версия Julia.  Проведение тестироваочных процедур для версии "1.8" не исключает, 
+что MetidaNCA не будет работоспособна на более ранних версиях. Однако, тестирование MetidaNCA для систем не включенных
+в список полностью в зоне ответственности пользователя. 
+
+\pagebreak
+
+# Установка
+
+## Установка Julia
+
+Установка Julia зависит от операционной системы ползователя согласно руководству:  [Install julia](https://julialang.org/downloads/#install_julia)
+
+## Установка MetidaNCA
+
+MetidaNCA устанавливается путем выполнения следующей команды в REPL:
+
+```julia; eval = false
+import Pkg; Pkg.add("MetidaNCA")
+```
+## Пользовательская валидация
+
+MetidaNCA поставляется с набором валидационных (тестировочных) процедур, 
+которые направлены на проверку работоспособности программы в конкретном окружении. 
+
+При проведении тестирования выполняются стандартные функции пакета MetidaNCA с 
+последующим сравнением с заранее известными значениями (значения вычисленных параметров 
+получены с использованием других программных продуктов предназначенных для вычисления 
+фармакокинетических параметров: Phoenix WinNonlin). 
+
+Для запуска валидационных процедур выполнить:
+
+```julia; eval = false
+import Pkg; Pkg.test("MetidaNCA")
+```
+
+## Покрытие
+
+Покрытие кода тестами контролируется с использованием ресурса: [Codecov.io](https://app.codecov.io/gh/PharmCat/MetidaNCA.jl)
+
+* Цель: покрытие >= 90.0%
+
+## Данные для тестирования
+
+Поставляются с пакетом (./test/csv/*.csv).
+
+# Описание фармакокинетических параметров
+
+Следующие фармакокинетические параметры могут быть получены в ходе анализа ФК профилей:
+
+```julia; echo = false, results = "tex"
+
+dfn = DataFrame(
+["Cmax" "Maximum concentration" "Максимальная концентрация"
+"Tmax" "Time at Cmax" "Время достижения Cmax"
+"Cdose" "Concentration at dose time" "Концентрация в момент дозирования"
+"Clast" "Last non-zero concentration" "Последняя ненулевая концентрация"
+"AUClast" "AUC to Clast" "AUC до Clast"
+"AUMClast" "AUMC to Clast" "AUMC до Clast"
+"AUCall" "AUC with all values" "AUC с включением всех концентраций"
+"Rsq" "r square" "Коэффициент r квадрат"
+"ARsq" "Adjusted r square" "Коэффициент r квадрат с поправкой"
+"Kel" "Terminal elimination constant" "Терминальная константа элиминации"
+"HL" "Half live or T1/2" "Период полувыведения"
+"LZint" "Intercept" "Intercept (свободный член)"
+"Clast_pred" "Predicted Clast" "Предсказанная Clast"
+"AUCinf" "AUC extrapolated to infinity" "AUC экстраполированная до бесконечности"
+"AUCpct" "Percentage AUClast from AUCinf" "Доля AUClast в AUCinf (%)"
+"MRTlast" "Mean Residence Time (last)" "Среднее время удержания (Clast)"
+"MRTinf" "Mean Residence Time (inf)" "Среднее время удержания (inf)"
+"Clinf" "Clearence" "Клиренс (кажущийся)"
+"Vzinf" "Volume of distribution" "Объем распределения (кажущийся)"
+"AUCtau" "AUC in Tau range" "AUC в границах Tau"
+"AUMCtau" "AUMC in Tau range" "AUMC в границах Tau"
+"MRTtauinf" "MRT based on Tau" "MRT в границах Tau"
+"Cltau" "Clearence in Tau range" "Клиренс в границах Tau"
+"Vztau" "Volume of distribution in Tau range" "Объем распределения Tau"], ["Название", "Описание(EN)", "Описание(RU)"])
+
+pkdata2  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "pkdata2.csv")) |> DataFrame
+upkdata  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "upkdata.csv")) |> DataFrame
+pddata   = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "pddata.csv")) |> DataFrame
+ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; 
+dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
+sort!(ds, :Subject)
+#pretty_table(dfn; tf = tf_ascii_rounded)
+show(latexify(dfn; latex=false))
+```
+Table: Parameter description
+
+\pagebreak
+
+# Работа с пакетом MetidaNCA
+
+Стандартные сценарии использования пакета MetidaNCA обычно предполагают следующие этапы:
+
+* Импорт данных
+* Модификация импортированных данных (при необходимости)
+* Получение параметров
+* Построение графиков
+* Экспорт результатов
+
+Пример загрузки табличных данных:
+
+```julia; eval = false
+pkdata2  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "pkdata2.csv")) |> DataFrame
+```
+
+Подробная информация о работе с табличными данными при помощи пакета DataFrames: [Codecov.io](https://)
+
+Пример табличных данных:
+
+```julia; echo = true; wrap = false; line_width = 75
+pkdata2[1:15, :]
+```
+
+## Импорт данных
+
+Для пакетного импорта данных таблица должна содержать следующие поля:
+
+* Время (Float64) - уникальное в пределах SubjectID;
+* Концентрация (Float64);
+* Уникальный идентификатор субъекта (SubjectID) (если субъектов > 1) - одно или несколько полей.
+
+```julia; eval = false
+pkdata2  = CSV.File(
+joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "pkdata2.csv")
+) |> DataFrame
+ds = pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation];
+dosetime = DoseTime(dose = 100, time = 0))
+sort!(ds, :Subject)
+```
+
+## Выполнение вычислений
+
+```julia; echo = true; wrap = false; line_width = 75
+MetidaNCA.nca!(ds[1], adm = :ev, calcm = :lint, verbose = 1)
+```
+
+## Построение графиков
+
+## Экспорт результатов
+
+# Дополнительные функции
+
+## LimitRule
+
+## DoseTime
+
+## ElimRange
+
+
+\pagebreak
+
+# Глоссарий
+
+  * Installation qualification (IQ) - Establishing confidence that process equipment and ancillary systems are compliant with appropriate codes and approved design intentions, and that manufacturer's recommendations are suitably considered.
+  * Operational qualification (OQ) Establishing confidence that process equipment and sub-systems are capable of consistently operating within established limits and tolerances.
+  * Product performance qualification (PQ) - Establishing confidence through appropriate testing that the finished product produced by a specified process meets all release requirements for functionality and safety.
+  * Repository - GitHub repository: https://github.com/PharmCat/MetidaNCA.jl
+  * Master branch - main branch on GitHub ([link](https://github.com/PharmCat/MetidaNCA.jl/tree/main)).
+  * Current machine - pc that used for validation report generating.
+  * REPL (от англ. read-eval-print loop — «цикл "чтение — вычисление — вывод"») — форма организации простой интерактивной среды программирования в рамках средств интерфейса командной строки.
+  * AUC - площадь под фармакокинетической кривой — кривой «концентрация—время».
+  * AUMC - площадь под кривой «произведение времени на концентрацию препарата tC».
+  * Tau - интервал дозирования
+
+# Ссылки
+
+* [General Principles of Software Validation; Final Guidance for Industry and FDA Staff](https://www.fda.gov/media/73141/download)
+* [Guidance for Industry Process Validation: General Principles and Practices](https://www.fda.gov/files/drugs/published/Process-Validation--General-Principles-and-Practices.pdf)
+* [Glossary of Computer System Software Development Terminology](https://www.fda.gov/inspections-compliance-enforcement-and-criminal-investigations/inspection-guides/glossary-computer-system-software-development-terminology-895)
+
+\pagebreak
+
+
+
+## Системная информация
+
+ * Julia version: `j Sys.VERSION`
+ * Current machine: `j Sys.MACHINE`
+
+
+## Версия MetidaNCA
+
+```julia; echo = false; results = "hidden"
+using MetidaNCA, Pkg
+pkgversion(m::Module) = Pkg.TOML.parsefile(joinpath(dirname(string(first(methods(m.eval)).file)), "..", "Project.toml"))["version"]
+ver = pkgversion(MetidaNCA)
+```
+
+Current package version:
+```julia; echo = false; results = "tex"
+ver
+```
+

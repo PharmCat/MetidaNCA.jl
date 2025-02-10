@@ -27,7 +27,7 @@ implemented through software can be consistently fulfilled.
 
 ## Requirements
 
-  * Julia 1.6 (or higher) installed for Operating System/OS Version/Architecture in Tier 1 list
+  * Julia 1.8 (or higher) installed for Operating System/OS Version/Architecture in Tier 1 list
 
   *Tier 1: Julia is guaranteed to build from source and pass all tests on these platforms when built with the default options. 
   Official binaries are always available and CI is run on every commit to ensure support is actively maintained.*
@@ -56,7 +56,7 @@ implemented through software can be consistently fulfilled.
 
 ### Tier 1
 
-  * julia-version: 1.6, 1.7, 1.8
+  * julia-version: 1.8, 1
   * julia-arch: x64
   * os: ubuntu-latest, macOS-latest, windows-latest
 

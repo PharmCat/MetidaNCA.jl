@@ -67,6 +67,9 @@ include("refdicts.jl")
     mtdst = Table(ds)
     @test size(mtds, 1) == size(pkdata2, 1)
 
+    @test_nowarn MetidaNCA.pkimport(mtds;  time = :time, conc = :obs, sort = [:Subject, :Formulation])
+    @test_nowarn MetidaNCA.pkimport(mtdst;  time = :time, conc = :obs, sort = [:Subject, :Formulation])
+
     dsncafromds = MetidaNCA.nca(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
     sort!(dsncafromds, :Subject)
     @test dsnca[:, :AUClast] == dsncafromds[:, :AUClast]
@@ -175,11 +178,12 @@ include("refdicts.jl")
     @test  sbj[:AUClast]  ≈ dsncafromds[:AUClast]
     auc048 = dsncafromds[:AUCtau]
 
-
     missingpkl = deepcopy(missingpk)
     missingpkl[18, :Concentration] = missing
     dsncafromds =  MetidaNCA.nca(missingpkl, :Time, :Concentration, io = io, verbose = 2)
     @test auc048  ≈ dsncafromds[:AUClast]
+
+    @test_nowarn MetidaNCA.pkplot(dsncafromds.data)
 
 
     # Missing string LLOQ
@@ -206,7 +210,7 @@ include("refdicts.jl")
     pd = MetidaNCA.pdimport(pddata, :time, :obs; bl = 3.0, th = 1.5, id = Dict(:subj => 1))
     # draw PD
     pl = @test_nowarn MetidaNCA.pkplot(pd; legend = true, drawbl = true, drawth = true, drawdt = true)
-
+    pl = @test_nowarn MetidaNCA.pkplot!(pd; legend = true, drawbl = true, drawth = true, drawdt = true)
     # Multiple time
 
     @test_logs (:warn,"Not all time values is unique ([96.0, 4.0, 2.5]), last observation used! ((1,))") (:warn,"Some concentration values maybe not a number, try to fix.") ds = MetidaNCA.pkimport(multtimepk, :Time, :Concentration, :Subject)

@@ -225,7 +225,7 @@ function pkplot(subj::AbstractSubject; ls = false, elim = false, xticksn = :auto
         end
     else
         if !(:ylims in k)
-            kwargs[:ylims] = (minimum(subj.obs), maximum(subj.obs)*1.15)
+            kwargs[:ylims] = (minconc(subj), maxconc(subj)*1.15)
         end
     end
 
@@ -268,7 +268,7 @@ function pkplot(subj::AbstractSubject; ls = false, elim = false, xticksn = :auto
         end
     end
     if kwargs[:drawdt] == true && !isnan(subj.dosetime.time) 
-        plot!(p, [subj.dosetime.time, subj.dosetime.time], [minimum(subj.obs),  maximum(subj.obs)], label = "DoseTime", ls = :dot, lc = kwargs[:linecolor])
+        plot!(p, [subj.dosetime.time, subj.dosetime.time], [minconc(subj),  maxconc(subj)], label = "DoseTime", ls = :dot, lc = kwargs[:linecolor])
     end
     return p
 end
@@ -322,7 +322,7 @@ function pkplot!(subj; ls = false, elim = false, xticksn = :auto, yticksn = :aut
         end
     else
         if !(:ylims in k)
-            kwargs[:ylims] = (minimum(subj.obs), maximum(subj.obs)*1.15)
+            kwargs[:ylims] = (minconc(subj), maxconc(subj)*1.15)
         end
     end
 
@@ -346,7 +346,7 @@ function pkplot!(subj; ls = false, elim = false, xticksn = :auto, yticksn = :aut
         end
     end
     if kwargs[:drawdt] == true && !isnan(subj.dosetime.time) 
-        plot!(p, [subj.dosetime.time, subj.dosetime.time], [minimum(subj.obs),  maximum(subj.obs)], label = "DoseTime", ls = :dot, lc = kwargs[:linecolor])
+        plot!(p, [subj.dosetime.time, subj.dosetime.time], [minconc(subj),  maxconc(subj)], label = "DoseTime", ls = :dot, lc = kwargs[:linecolor])
     end
     return p
 end
@@ -376,6 +376,7 @@ function pageplot(data, id, ulist; kwargs...)
     end
     # Plotting subdata
     if length(subdata) > 1 kwargs[:elim] = false end
+
     for subj in subdata
             if !isnothing(ulist)
                 num = findfirst(x-> x ⊆ subj.id, ulist)
