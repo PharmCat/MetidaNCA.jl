@@ -210,7 +210,7 @@ include("refdicts.jl")
     pd = MetidaNCA.pdimport(pddata, :time, :obs; bl = 3.0, th = 1.5, id = Dict(:subj => 1))
     # draw PD
     pl = @test_nowarn MetidaNCA.pkplot(pd; legend = true, drawbl = true, drawth = true, drawdt = true)
-
+    pl = @test_nowarn MetidaNCA.pkplot!(pd; legend = true, drawbl = true, drawth = true, drawdt = true)
     # Multiple time
 
     @test_logs (:warn,"Not all time values is unique ([96.0, 4.0, 2.5]), last observation used! ((1,))") (:warn,"Some concentration values maybe not a number, try to fix.") ds = MetidaNCA.pkimport(multtimepk, :Time, :Concentration, :Subject)
