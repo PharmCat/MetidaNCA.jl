@@ -42,7 +42,7 @@ function plotstyle(n)
     (linestyle[a], linecolor[b], markershape[c], markercolor[d])
 end
 
-@userplot PKPlot
+@userplot Subjectplot
 @userplot PKElimpPlot
 @userplot PKElimpDrop
 #@userplot PdHLine
@@ -53,7 +53,7 @@ function luceil(x)
     ceil(x/10^fl)*10^fl
 end
 
-@recipe function f(subj::PKPlot; lcd = :auto, tcd = :auto)
+@recipe function f(subj::Subjectplot; lcd = :auto, tcd = :auto)
     x, y = subj.args
 
     if isa(lcd, Real)
@@ -142,7 +142,96 @@ function plotlabel(d, ld = nothing)
     return title
 end
 
+function _subjplot(subj, kwargs, ls)
+    k = keys(kwargs)
+    if :yscale in k
+        if kwargs[:yscale] in [:ln, :log, :log2, :log10]
+            ls = false
+            if !(:minorticks in k) kwargs[:minorticks] = true end
 
+            inds = findall(x-> x > 0, subj.obs)
+            time = subj.time[inds]
+            obs  = subj.obs[inds]
+            if !(:yticks in k)
+                if kwargs[:yscale] == :log10
+                    b = 10
+                elseif kwargs[:yscale] == :log2
+                    b = 2
+                elseif kwargs[:yscale] == :ln || kwargs[:yscale] == :log
+                    b = ℯ
+                end
+                
+                t = collect(floor(log(b, minimum(obs))):ceil(log(b, maximum(obs))))
+                pushfirst!(t, first(t) - 1)
+                kwargs[:yticks] = b .^ t
+                
+            end
+            if !(:ylims in k)
+                kwargs[:ylims] = (minimum(obs)*0.5, maximum(obs)*2.)
+            else
+                if kwargs[:ylims][1] <= 0
+                    kwargs[:ylims] = (minimum(obs)/b, kwargs[:ylims][2])
+                end
+            end
+        end
+    else
+        time = subj.time
+        obs  = subj.obs
+        if !(:ylims in k)
+            kwargs[:ylims] = (minconc(subj), maxconc(subj)*1.15)
+        end
+    end
+
+    if ls == true
+        inds = findall(x-> x > 0, subj.obs)
+        time = subj.time[inds]
+        obs = log.(subj.obs[inds])
+        if (:ylims in k)
+            kwargs[:ylims] = (0, log(kwargs[:ylims][2]))
+        end
+    end
+    return time, obs
+end
+
+
+function _elimplot!(p, subj, time, obs, kwargs, elim, ls)
+    if elim
+        if length(subj.keldata) > 0
+            arsq, rsqn = findmax(subj.keldata.ar)
+            lz        = subj.keldata.a[rsqn]
+            lzint     = subj.keldata.b[rsqn]
+            ts        = subj.keldata.s[rsqn]
+            te        = subj.keldata.e[rsqn]
+            if ls true
+                x = [ts, te]
+                y = [lzint + lz * x[1], lzint + lz * x[2]]
+            else
+                x = collect(ts:(te-ts)/100:te)
+                y = exp.(lzint .+ lz .* x)
+            end
+            pkelimpplot!(p, x, y; title = kwargs[:title]*"\n($(round(lzint, sigdigits = 4)) + $(round(lz, sigdigits = 4)) * Time; aR² = $(round(arsq, sigdigits = 4))) ")
+            if length(subj.kelrange.kelexcl) > 0
+                pkelimpdrop!(p, time[subj.kelrange.kelexcl], obs[subj.kelrange.kelexcl])
+            end
+        end
+    end
+    return p
+end
+
+function _pddtplot!(p, subj, kwargs)
+    if isa(subj, PDSubject)
+        if kwargs[:drawth] == true
+            plot!(p, [minimum(subj.time), maximum(subj.time)], [getth(subj), getth(subj)], lc = kwargs[:linecolor], ls = :dashdot, label = "TH")
+        end
+        if kwargs[:drawbl] == true
+            plot!(p, [minimum(subj.time), maximum(subj.time)], [getbl(subj), getbl(subj)], lc = kwargs[:linecolor], ls = :dash, label = "BL")
+        end
+    end
+    if kwargs[:drawdt] == true && !isnan(subj.dosetime.time) 
+        plot!(p, [subj.dosetime.time, subj.dosetime.time], [minconc(subj),  maxconc(subj)], label = "DoseTime", ls = :dot, lc = kwargs[:linecolor])
+    end
+    return p
+end
 """
     pkplot(subj; ls = false, elim = false, xticksn = :auto, yticksn = :auto, kwargs...)
 
@@ -162,11 +251,9 @@ Plot for subject
 
 """
 function pkplot(subj::AbstractSubject; ls = false, elim = false, xticksn = :auto, yticksn = :auto, kwargs...)
-    time = subj.time
-    obs  = subj.obs
+
     kwargs = Dict{Symbol, Any}(kwargs)
     k = keys(kwargs)
-
     if !(:plotstyle in k)
         kwargs[:linestyle], kwargs[:linecolor], kwargs[:markershape],  kwargs[:markercolor]  = PKPLOTSTYLE[1]
     else
@@ -193,83 +280,15 @@ function pkplot(subj::AbstractSubject; ls = false, elim = false, xticksn = :auto
     if !(:xlims in k)
         kwargs[:xlims] = (minimum(subj.time), maximum(subj.time)*1.1)
     end
-    if :yscale in k
-        if kwargs[:yscale] in [:ln, :log, :log2, :log10]
-            ls = false
-            if !(:minorticks in k) kwargs[:minorticks] = true end
+   
+    time, obs = _subjplot(subj, kwargs, ls)
 
-            inds = findall(x-> x > 0, subj.obs)
-            time = subj.time[inds]
-            obs  = subj.obs[inds]
-            if !(:yticks in k)
-                if kwargs[:yscale] == :log10
-                    b = 10
-                elseif kwargs[:yscale] == :log2
-                    b = 2
-                elseif kwargs[:yscale] == :ln || kwargs[:yscale] == :log
-                    b = ℯ
-                end
-                
-                t = collect(floor(log(b, minimum(obs))):ceil(log(b, maximum(obs))))
-                pushfirst!(t, first(t) - 1)
-                kwargs[:yticks] = b .^ t
-                
-            end
-            if !(:ylims in k)
-                kwargs[:ylims] = (minimum(obs)*0.5, maximum(obs)*2.)
-            else
-                if kwargs[:ylims][1] <= 0
-                    kwargs[:ylims] = (minimum(obs)/b, kwargs[:ylims][2])
-                end
-            end
-        end
-    else
-        if !(:ylims in k)
-            kwargs[:ylims] = (minconc(subj), maxconc(subj)*1.15)
-        end
-    end
+    p = subjectplot(time, obs;  lcd = yticksn, tcd = xticksn, kwargs...)
 
-    if ls == true
-        inds = findall(x-> x > 0, subj.obs)
-        time = subj.time[inds]
-        obs = log.(subj.obs[inds])
-        if (:ylims in k)
-            kwargs[:ylims] = (0, log(kwargs[:ylims][2]))
-        end
-    end
+    _elimplot!(p, subj, time, obs, kwargs, elim, ls)
+    
+    _pddtplot!(p, subj, kwargs)
 
-    p = pkplot(time, obs;  lcd = yticksn, tcd = xticksn, kwargs...)
-    if elim
-        if length(subj.keldata) > 0
-            arsq, rsqn = findmax(subj.keldata.ar)
-            lz        = subj.keldata.a[rsqn]
-            lzint     = subj.keldata.b[rsqn]
-            ts        = subj.keldata.s[rsqn]
-            te        = subj.keldata.e[rsqn]
-            if ls true
-                x = [ts, te]
-                y = [lzint + lz * x[1], lzint + lz * x[2]]
-            else
-                x = collect(ts:(te-ts)/100:te)
-                y = exp.(lzint .+ lz .* x)
-            end
-            pkelimpplot!(p, x, y; title = kwargs[:title]*"\n($(round(lzint, sigdigits = 4)) + $(round(lz, sigdigits = 4)) * Time; aR² = $(round(arsq, sigdigits = 4))) ")
-            if length(subj.kelrange.kelexcl) > 0
-                pkelimpdrop!(p, time[subj.kelrange.kelexcl], obs[subj.kelrange.kelexcl])
-            end
-        end
-    end
-    if isa(subj, PDSubject)
-        if kwargs[:drawth] == true
-            plot!(p, [minimum(subj.time), maximum(subj.time)], [getth(subj), getth(subj)], lc = kwargs[:linecolor], ls = :dashdot, label = "TH")
-        end
-        if kwargs[:drawbl] == true
-            plot!(p, [minimum(subj.time), maximum(subj.time)], [getbl(subj), getbl(subj)], lc = kwargs[:linecolor], ls = :dash, label = "BL")
-        end
-    end
-    if kwargs[:drawdt] == true && !isnan(subj.dosetime.time) 
-        plot!(p, [subj.dosetime.time, subj.dosetime.time], [minconc(subj),  maxconc(subj)], label = "DoseTime", ls = :dot, lc = kwargs[:linecolor])
-    end
     return p
 end
 
@@ -293,61 +312,13 @@ function pkplot!(subj; ls = false, elim = false, xticksn = :auto, yticksn = :aut
     if !(:xlims in k)
         kwargs[:xlims] = (minimum(subj.time), maximum(subj.time)*1.1)
     end
-    if :yscale in k
-        if kwargs[:yscale] in [:ln, :log, :log2, :log10]
-            ls = false
-            if !(:minorticks in k) kwargs[:minorticks] = true end
-            inds = findall(x-> x > 0, subj.obs)
-            time = subj.time[inds]
-            obs  = subj.obs[inds]
-            if !(:yticks in k)
-                if kwargs[:yscale] == :log10
-                    b = 10
-                elseif kwargs[:yscale] == :log2
-                    b = 2
-                elseif kwargs[:yscale] == :ln || kwargs[:yscale] == :log
-                    b = ℯ
-                end
-                t = collect(floor(log(b, minimum(obs))):ceil(log(b, maximum(obs))))
-                pushfirst!(t, first(t) - 1)
-                kwargs[:yticks] = b .^ t
-            end
-            if !(:ylims in k)
-                kwargs[:ylims] = (minimum(obs)*0.5, maximum(obs)*2.)
-            else
-                if kwargs[:ylims][1] <= 0
-                    kwargs[:ylims] = (minimum(obs)/b, kwargs[:ylims][2])
-                end
-            end
-        end
-    else
-        if !(:ylims in k)
-            kwargs[:ylims] = (minconc(subj), maxconc(subj)*1.15)
-        end
-    end
+    
+    time, obs = _subjplot(subj, kwargs, ls)
 
-    if ls == true
-        inds = findall(x-> x > 0, subj.obs)
-        time = subj.time[inds]
-        obs = log.(subj.obs[inds])
-        if (:ylims in k)
-            kwargs[:ylims] = (0, log(kwargs[:ylims][2]))
-        end
-    end
+    p = subjectplot!(time, obs;  lcd = yticksn, tcd = xticksn, kwargs...)
 
-    p = pkplot!(time, obs;  lcd = yticksn, tcd = xticksn, kwargs...)
+    _pddtplot!(p, subj, kwargs)
 
-    if isa(subj, PDSubject)
-        if kwargs[:drawth] == true
-            plot!(p, [minimum(subj.time), maximum(subj.time)], [getth(subj), getth(subj)], lc = kwargs[:linecolor], ls = :dashdot, label = "TH")
-        end
-        if kwargs[:drawbl] == true
-            plot!(p, [minimum(subj.time), maximum(subj.time)], [getbl(subj), getbl(subj)], lc = kwargs[:linecolor], ls = :dash, label = "BL")
-        end
-    end
-    if kwargs[:drawdt] == true && !isnan(subj.dosetime.time) 
-        plot!(p, [subj.dosetime.time, subj.dosetime.time], [minconc(subj),  maxconc(subj)], label = "DoseTime", ls = :dot, lc = kwargs[:linecolor])
-    end
     return p
 end
 
