@@ -114,10 +114,10 @@ include("refdicts.jl")
 
     # Return plot for PKSubject
 
-    @test_nowarn MetidaNCA.pkplot(ds[1].time, ds[1].obs)
-    @test_nowarn MetidaNCA.pkplot!(ds[1].time, ds[1].obs)
+    @test_nowarn MetidaNCA.subjectplot(ds[1].time, ds[1].obs)
+    @test_nowarn MetidaNCA.subjectplot!(ds[1].time, ds[1].obs)
     p = plot()
-    @test_nowarn MetidaNCA.pkplot!(p, ds[1].time, ds[1].obs)
+    @test_nowarn MetidaNCA.subjectplot!(p, ds[1].time, ds[1].obs)
     p = plot()
     @test_nowarn MetidaNCA.pkplot!(ds[1])
     #p = plot()
