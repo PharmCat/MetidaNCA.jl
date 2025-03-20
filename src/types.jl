@@ -121,19 +121,23 @@ Fields:
 * id::Dict{Symbol, V}
 
 """
-mutable struct PKSubject{T <: Number, O <: Union{Number, Missing}, V <: Any} <: AbstractSubject
+mutable struct PKSubject{T <: Number, O <: Union{Number, Missing}, C <: Any, V <: Any} <: AbstractSubject
     time::Vector{T}
     obs::Vector{O}
+    covars::C
     kelauto::Bool
     kelrange::ElimRange
     dosetime::DoseTime
     keldata::KelData
     id::Dict{Symbol, V}
-    function PKSubject(time::Vector{T}, conc::Vector{O}, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, keldata::KelData, id::Dict{Symbol, V} = Dict{Symbol, Any}()) where T <: Number where O <: Union{Number, Missing} where V
-        new{T, O, V}(time, conc, kelauto, kelrange, dosetime, keldata, id)::PKSubject
+    function PKSubject(time::Vector{T}, conc::Vector{O}, covars::C, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, keldata::KelData, id::Dict{Symbol, V} = Dict{Symbol, Any}()) where T <: Number where O <: Union{Number, Missing} where C where V
+        new{T, O, C, V}(time, conc, covars, kelauto, kelrange, dosetime, keldata, id)::PKSubject
     end
     function PKSubject(time::Vector{T}, conc::Vector{O}, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, id::Dict{Symbol, V}) where T where O where V
-        PKSubject(time, conc, kelauto, kelrange, dosetime, KelData(T[], T[], Float64[], Float64[], Float64[], Float64[], Int[]), id)
+        PKSubject(time, conc, nothing, kelauto, kelrange, dosetime, KelData(T[], T[], Float64[], Float64[], Float64[], Float64[], Int[]), id)
+    end
+    function PKSubject(time::Vector{T}, conc::Vector{O}, covars, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, id::Dict{Symbol, V}) where T where O where V
+        PKSubject(time, conc, covars, kelauto, kelrange, dosetime, KelData(T[], T[], Float64[], Float64[], Float64[], Float64[], Int[]), id)
     end
     #=
     function PKSubject(time::Vector, conc::Vector, sort::Dict)

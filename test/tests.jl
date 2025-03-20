@@ -263,8 +263,27 @@ include("refdicts.jl")
     missingpk.ConcentrationStr = string.(missingpk.Concentration)
     @test_logs (:warn, "Some concentration values maybe not a number, try to fix.") (:warn, "Value missing parsed as `NaN`") pkiw = MetidaNCA.pkimport(missingpk, :Time, :ConcentrationStr)
 
+    # import covariates
 
-
+    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; covars = [:Concentration, :Subject, :Formulation], dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
+    @test all(x-> x == 2, ds[1].covars.Subject)
+    @test all(x-> x == "R", ds[1].covars.Formulation)
+    @test ds[1].covars.Concentration == [ 0.0
+    62.222
+   261.177
+   234.063
+   234.091
+   222.881
+   213.896
+   196.026
+   199.634
+   196.037
+   213.352
+   200.088
+   196.035
+   160.338
+   110.28
+    85.241]
 end
 
 @testset "  #1 Linear trapezoidal, Dose 100, Dosetime 0, no tau      " begin
