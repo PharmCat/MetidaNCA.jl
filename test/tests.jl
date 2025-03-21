@@ -213,7 +213,7 @@ include("refdicts.jl")
     pl = @test_nowarn MetidaNCA.pkplot!(pd; legend = true, drawbl = true, drawth = true, drawdt = true)
     # Multiple time
 
-    @test_logs (:warn,"Not all time values is unique ([96.0, 4.0, 2.5]), last observation used! ((1,))") (:warn,"Some concentration values maybe not a number, try to fix.") ds = MetidaNCA.pkimport(multtimepk, :Time, :Concentration, :Subject)
+    @test_logs (:warn,"Subject: (1,), Not all time values is unique ([96.0, 4.0, 2.5]), function 'last' used to get observation!") (:warn,"Some concentration values maybe not a number, try to fix.") ds = MetidaNCA.pkimport(multtimepk, :Time, :Concentration, :Subject)
     dsmultt = MetidaNCA.pdimport(multtimepk, :Time, :Concentration, :Subject; warn = false)
     @test MetidaNCA.gettime(dsmultt[1]) ≈ [0.0
     0.5
@@ -263,8 +263,27 @@ include("refdicts.jl")
     missingpk.ConcentrationStr = string.(missingpk.Concentration)
     @test_logs (:warn, "Some concentration values maybe not a number, try to fix.") (:warn, "Value missing parsed as `NaN`") pkiw = MetidaNCA.pkimport(missingpk, :Time, :ConcentrationStr)
 
+    # import covariates
 
-
+    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; covars = [:Concentration, :Subject, :Formulation], dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
+    @test all(x-> x == 2, ds[1].covars.Subject)
+    @test all(x-> x == "R", ds[1].covars.Formulation)
+    @test ds[1].covars.Concentration == [ 0.0
+    62.222
+   261.177
+   234.063
+   234.091
+   222.881
+   213.896
+   196.026
+   199.634
+   196.037
+   213.352
+   200.088
+   196.035
+   160.338
+   110.28
+    85.241]
 end
 
 @testset "  #1 Linear trapezoidal, Dose 100, Dosetime 0, no tau      " begin
