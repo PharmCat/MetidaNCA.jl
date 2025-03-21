@@ -213,7 +213,7 @@ include("refdicts.jl")
     pl = @test_nowarn MetidaNCA.pkplot!(pd; legend = true, drawbl = true, drawth = true, drawdt = true)
     # Multiple time
 
-    @test_logs (:warn,"Not all time values is unique ([96.0, 4.0, 2.5]), last observation used! ((1,))") (:warn,"Some concentration values maybe not a number, try to fix.") ds = MetidaNCA.pkimport(multtimepk, :Time, :Concentration, :Subject)
+    @test_logs (:warn,"Subject: (1,), Not all time values is unique ([96.0, 4.0, 2.5]), function 'last' used to get observation!") (:warn,"Some concentration values maybe not a number, try to fix.") ds = MetidaNCA.pkimport(multtimepk, :Time, :Concentration, :Subject)
     dsmultt = MetidaNCA.pdimport(multtimepk, :Time, :Concentration, :Subject; warn = false)
     @test MetidaNCA.gettime(dsmultt[1]) ≈ [0.0
     0.5

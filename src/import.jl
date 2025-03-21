@@ -123,7 +123,9 @@ keywords:
 * `elimrange` - set elimination range settings;
 * `dosetime` - set dose and dose time, by default dosetime = 0, dose is `NaN`;
 * `limitrule` - apply limitrule to subject;
-* `warn` - false for warnings supress.
+* `warn` - false for warnings supress;
+* checktime (true) - check uniqueness of time values; 
+* nutcfunk (last) - function used to chose concentration value for identical time (if checktime == `true`).
 
 !!! note
 
@@ -139,6 +141,8 @@ function pkimport(data, time, conc, sort;
     dosetime = nothing, 
     limitrule::Union{Nothing, LimitRule} = nothing, 
     warn = true, 
+    checktime = true,
+    nutcfunk = last,
     kwargs...)
     
     sort = parse_gkw(sort)
@@ -166,32 +170,37 @@ function pkimport(data, time, conc, sort;
     @inbounds for (k, v) in d
         timevals = view(timec, v)
 
-        if !allunique(timevals)
-            nuv  = nonunique(timevals)
-            warn && @warn "Not all time values is unique ($nuv), last observation used! ($k)"
-            # maybe it should be optimized
-            nuvinds = findall(x -> x == first(nuv), timevals)
-            resize!(nuvinds, length(nuvinds) - 1)
-            if length(nuv) > 1
-                for cnt = 2:length(nuv)
-                    nuvinds_ = findall(x -> x == nuv[cnt], timevals)
-                    resize!(nuvinds_, length(nuvinds_) - 1)
-                    append!(nuvinds, nuvinds_)
-                end
-            end
-            sort!(nuvinds)
-            deleteat!(v, nuvinds)
-            timevals = view(timec, v)
-        end
+        if checktime && !allunique(timevals)
+            
+            concvals = concc[v]
 
-        v_sp = view(v, sortperm(timevals))
-        
-        timevals_spv = view(timec, v_sp)
-        concvals_spv = view(concc, v_sp)
+            nuv      = nonunique(timevals) # non unique values
+            warn && @warn "Subject: $k, Not all time values is unique ($nuv), function '$(nutcfunk)' used to get observation!"
+            # maybe it should be optimized
+            delinds = Int[]
+            for nu in nuv
+                nuvinds = findall(x -> x == nu, timevals)   # non unique indexex
+            
+                concvals[first(nuvinds)] = nutcfunk(view(concvals, nuvinds)) # replace first nu value with result of nutcfunk
+                append!(delinds, view(nuvinds, 2:length(nuvinds)))
+            end
+            sort!(delinds)
+            deleteat!(v, delinds)
+            deleteat!(concvals, delinds)   
+            timevals = view(timec, v)
+            spt      = sortperm(timevals)
+            concvals_spv = permute!(concvals, spt)
+            permute!(v, spt)
+            timevals_spv = view(timec, v)
+        else
+            permute!(v, sortperm(timevals))
+            timevals_spv = view(timec, v)
+            concvals_spv = view(concc, v)
+        end
         timevals_sp, concvals_sp = checkvalues(timevals_spv, concvals_spv; warn = warn)
 
         if length(covars) > 0
-            covars_v = (; zip(covars, [Tables.getcolumn(data, y)[v_sp] for y in covars])...)
+            covars_v = (; zip(covars, [Tables.getcolumn(data, y)[v] for y in covars])...)
         else
             covars_v = nothing
         end
