@@ -9,8 +9,8 @@ function dropfunction(f::Function, subj::PKSubject)
     return dropfunction!(f, deepcopy(subj))
 end
 
-dropnanormissinf!(subj::PKSubject)    =  dropfunction!(isnanormissing, subj)
-dropnanormissinf(subj::PKSubject)     =  dropfunction(isnanormissing, subj)
+dropnanormissing!(subj::PKSubject)    =  dropfunction!(isnanormissing, subj)
+dropnanormissing(subj::PKSubject)     =  dropfunction(isnanormissing, subj)
 
 dropnan!(subj::PKSubject)    =  dropfunction!(isnan, subj)
 dropnan(subj::PKSubject)     =  dropfunction(isnan, subj)

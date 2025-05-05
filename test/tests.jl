@@ -288,6 +288,16 @@ include("refdicts.jl")
     85.241]
     @test length(ds[1].covars.Formulation) == 1
     @test length(ds[1].covars.Concentration) == 16
+
+    # Drop functions 
+    @test_nowarn MetidaNCA.dropnanormissing!(ds[1])   
+    @test_nowarn MetidaNCA.dropnanormissing(ds[1])    
+
+    @test_nowarn MetidaNCA.dropnan!(ds[1])   
+    @test_nowarn MetidaNCA.dropnan(ds[1])   
+    
+    @test_nowarn MetidaNCA.dropmissing!(ds[1]) 
+    @test_nowarn MetidaNCA.dropmissing(ds[1])  
 end
 
 @testset "  #1 Linear trapezoidal, Dose 100, Dosetime 0, no tau      " begin
