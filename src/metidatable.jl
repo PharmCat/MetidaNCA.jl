@@ -23,13 +23,13 @@ function metida_table_all(obj::DataSet{T}) where T <: Union{PKSubject, PDSubject
         end
     end
     mt1 = metida_table_((fill(getid(obj, 1, c), length(obj[1])) for c in idset)...; names = idset)
-    mt2 = metida_table_(deepcopy(obj[1].time), deepcopy(obj[1].obs); names = [:time, :obs])
+    mt2 = metida_table_(deepcopy(gettime(obj[1])), deepcopy(getobs(obj[1])); names = [:time, :obs])
     mtm = merge(mt1, mt2)
     if length(obj) > 1
         
         for i = 2:length(obj)
             mt1 = metida_table_((fill(getid(obj, i, c), length(obj[i])) for c in idset)...; names = idset)
-            mt2 = metida_table_(obj[i].time, obj[i].obs; names = [:time, :obs])
+            mt2 = metida_table_(gettime(obj[i]), getobs(obj[i]); names = [:time, :obs])
             amtm = merge(mt1, mt2)
             for n in keys(mtm)
                 append!(mtm[n], amtm[n])
@@ -40,11 +40,11 @@ function metida_table_all(obj::DataSet{T}) where T <: Union{PKSubject, PDSubject
 end
 
 function metida_table_obstime(obj::DataSet{T}) where T <: Union{PKSubject, PDSubject}
-    mtm = metida_table_(deepcopy(obj[1].time), deepcopy(obj[1].obs); names = [:time, :obs])
+    mtm = metida_table_(deepcopy(gettime(obj[1])), deepcopy(getobs(obj[1])); names = [:time, :obs])
     if length(obj) > 1
         for i = 2:length(obj)
-            append!(mtm[:time], obj[i].time)
-            append!(mtm[:obs], obj[i].obs)
+            append!(mtm[:time], gettime(obj[i]))
+            append!(mtm[:obs], getobs(obj[i]))
         end
     end
     mtm

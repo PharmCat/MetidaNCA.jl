@@ -67,18 +67,18 @@ function ctmax(time::AbstractVector, obs::AbstractVector)
     return cmax, time[tmaxn], tmaxn
 end
 function ctmax(data::PKSubject)
-    fobs = firstobs(data.time, data.obs, data.dosetime.time)
+    fobs = firstobs(gettime(data), getobs(data), data.dosetime.time)
     if  data.dosetime.tau > 0
-        taulastp = findlast(x -> x <= data.dosetime.time + data.dosetime.tau, data.time)
+        taulastp = findlast(x -> x <= data.dosetime.time + data.dosetime.tau, gettime(data))
     else
-        taulastp = length(data.obs)
+        taulastp = length(data)
     end
-    cmax  = data.obs[fobs]
+    cmax  = getobs(data)[fobs]
     tmaxn = fobs
-    if length(data.obs) - fobs == 0 return cmax, data.time[fobs], tmaxn end
-    @inbounds for i = fobs + 1:length(data.obs)
-        if !isnanormissing(data.obs[i]) && data.obs[i] > cmax
-            cmax  = data.obs[i]
+    if length(data) - fobs == 0 return cmax, gettime(data)[fobs], tmaxn end
+    @inbounds for i = fobs + 1:length(data)
+        if !isnanormissing(getobs(data)[i]) && getobs(data)[i] > cmax
+            cmax  = getobs(data)[i]
             tmaxn = i
         end
     end
@@ -550,8 +550,8 @@ function nca!(data::PKSubject{T, O};
     end
 ################################################################################
     # STEP 1 FILTER ALL BEFORE DOSETIME AND ALL NAN OR MISSING VALUES
-    if validobsn(data.time, data.obs) == 0 return NCAResult(data, options, result) end
-    time_cp, obs_cp, einds = step_1_filterpksubj(data.time, data.obs, data.dosetime.time)
+    if validobsn(gettime(data), getobs(data)) == 0 return NCAResult(data, options, result) end
+    time_cp, obs_cp, einds = step_1_filterpksubj(gettime(data), getobs(data), data.dosetime.time)
     if length(obs_cp) < 2
         return NCAResult(data, options, result)
     end
@@ -584,7 +584,7 @@ function nca!(data::PKSubject{T, O};
         end
     end
 
-    keldata, excltime, tlastn, tlast = step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, data.time, data.keldata)
+    keldata, excltime, tlastn, tlast = step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, gettime(data), data.keldata)
     # C last and T last
     result[:Tlast]   = time_cp[tlastn]
     result[:Clast]   = obs_cp[tlastn]
@@ -953,13 +953,13 @@ function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}; adm = :ev, calcm = :lint
     if isnothing(intpm) intpm = calcm end
 
 
-    time, obs, vol = step_1_filterupksubj(data.time, data.obs, data.vol, data.dosetime.time)
+    time, obs, vol = step_1_filterupksubj(gettime(data), getobs(data), data.vol, data.dosetime.time)
 
     mtime  = map(x-> (x[1]+x[2])/2, time)
 
     exr  = exrate(time, obs, vol)
 
-    result[:AR]   = data.obs' * data.vol
+    result[:AR]   = getobs(data)' * data.vol
     result[:Vol]  = sum(vol)
 
     if time[1][1] > data.dosetime.time
@@ -1117,12 +1117,12 @@ function nca!(data::PDSubject{T,O}; calcm = :lint, intpm = nothing, verbose = 0,
         println(io, "    Method: $(calcm);")
     end
 
-    auctype  = promote_type(eltype(data.time), eltype(data.obs))
+    auctype  = promote_type(eltype(gettime(data)), eltype(getobs(data)))
 
 ################################################################################
     # STEP 1 FILTER ALL BEFORE DOSETIME AND ALL NAN OR MISSING VALUES
-    if validobsn(data.time, data.obs) == 0 return NCAResult(data, options, result) end
-    time_cp, obs_cp, einds = step_1_filterpksubj(data.time, data.obs, first(data.time))
+    if validobsn(gettime(data), getobs(data)) == 0 return NCAResult(data, options, result) end
+    time_cp, obs_cp, einds = step_1_filterpksubj(gettime(data), getobs(data), first(gettime(data)))
     if length(obs_cp) < 2
         return NCAResult(data, options, result)
     end
