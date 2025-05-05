@@ -244,14 +244,14 @@ end
 ################################################################################
 # 1
 # Make observation vector and time vector, no points befor Dosetime and nopoints after last nonmissing concentration
-function step_1_filterpksubj(_time::AbstractVector{T}, _obs, dosetime) where T
+function step_1_filterpksubj(_time::AbstractVector{T1}, _obs::AbstractVector{T2}, dosetime) where T1 where T2
     fobs     = firstobs(_time, _obs, dosetime)
     li       = findlast(!isnanormissing, _obs)
     n        = li - fobs + 1
-    obstype  = typeof(zero(eltype(_obs)))
-    nanobst  = NaN * zero(eltype(_obs))
+    obstype  = typeof(zero(T2))
+    nanobst  = NaN * zero(T2)
 
-    time     = Vector{T}(undef, n)
+    time     = Vector{T1}(undef, n)
     obs      = Vector{obstype}(undef, n)
     inds     = Vector{Int}(undef, 0)
 

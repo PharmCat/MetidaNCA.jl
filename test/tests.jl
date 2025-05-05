@@ -112,6 +112,8 @@ include("refdicts.jl")
     pl = @test_nowarn MetidaNCA.pkplot(ds; typesort = [:Subject, :Formulation], pagesort = MetidaNCA.NoPageSort(), legend = true)
     @test isa(pl, Plots.Plot) == true
 
+    pl = @test_nowarn MetidaNCA.vpcplot(ds)
+
     # Return plot for PKSubject
 
     @test_nowarn MetidaNCA.subjectplot(ds[1].time, ds[1].obs)
@@ -1876,6 +1878,21 @@ include("pdtest.jl")
     @test_nowarn pd_rds = MetidaNCA.nca!(pd);
     #pd_rds = MetidaNCA.nca!(pd, io = io, verbose = 2)
     
+end
+
+@testset "  DataFrames                                               " begin
+    ds    = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject])
+    dsnca = MetidaNCA.nca!(ds)
+    dsdf =   @test_nowarn DataFrame(ds)
+    @test size(dsdf) == (160, 3)
+    @test dsdf[8, :time] == 4.0
+    @test dsdf[8, :obs] == 169.334
+    @test dsdf[8, :Subject] == 5
+    dsdf =   @test_nowarn DataFrame(ds; obstime = true)
+    @test size(dsdf) == (160, 2)
+    @test dsdf[8, :time] == 4.0
+    dsdf =   @test_nowarn DataFrame(dsnca)
+    @test dsdf[1, :Cmax] == 169.334 
 end
 
 @testset "  Precompile                                               " begin

@@ -526,3 +526,57 @@ end
 function pkplot(data::NCAResult; kwargs...)
     pkplot(data.data; kwargs...)
 end
+
+function qf(x, alpha)
+    (quantile(x, alpha), quantile(x, 1-alpha))
+end
+
+"""
+    vpcplot(data::DataSet{T}; timef = identity, meanf = mean, intf = x->qf(x, 0.05), kwargs...) where T <: Union{PKSubject, PDSubject}
+
+Plot means in each time point with 0.05 - 0.95 quantile area.
+
+`timef` - Function, can be used to transform time points.
+
+`meanf` - `mean` by default, any other statistic function can be used.
+
+`intf` - function to calculate upper and lower bounds for each time point, by default used:
+
+```
+qf(x, alpha) = (quantile(x, alpha), quantile(x, 1-alpha))
+```
+
+Any other keywords pass to `plot` function.
+"""
+function vpcplot(data::DataSet{T}; timef = identity, meanf = mean, intf = x->qf(x, 0.05), kwargs...) where T <: Union{PKSubject, PDSubject}
+    kwargs = Dict{Symbol, Any}(kwargs)
+
+    d = getdata(data)
+    dict = Dict{Float64, Vector{Float64}}()
+    for i = 1:length(d)
+        s = d[i]
+        for j = 1:length(s)
+            @inbounds time = timef(s.time[j])
+            @inbounds  obs = s.obs[j]
+            ind = ht_keyindex(dict, time)
+            if ind > 0
+                push!(dict.vals[ind], obs)
+            else
+                dict[time] = Float64[obs]
+            end
+        end
+    end
+    k = sort!(collect(keys(dict)))
+    means = [meanf(dict[x]) for x in k ]
+    
+    if !isnothing(intf) && !(:ribbon in keys(kwargs))
+        ub = zeros(length(k))
+        lb = zeros(length(k))
+        for i = 1:length(k)
+            ub[i], lb[i] = intf(dict[k[i]])
+        end
+        kwargs[:kwargs] = (ub .- means, means .- lb)
+    end
+    p = plot(k, means; kwargs...)
+    return p
+end

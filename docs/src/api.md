@@ -115,6 +115,12 @@ MetidaNCA.getth
 MetidaNCA.pkplot
 ```
 
+### vpcplot
+
+```@docs
+MetidaNCA.vpcplot
+```
+
 ### setbl!
 
 ```@docs

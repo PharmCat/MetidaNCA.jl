@@ -66,23 +66,36 @@ dsnca = nca!(ds[1], adm = :ev, calcm = :lint, verbose = 2);
 ```@example ncaexample
 using Plots
 
+# plot 1
+
 p = pkplot(ds; typesort = :Subject, pagesort = NoPageSort(), filter = Dict(:Formulation => "R"))
 
 png(p, "plot1.png")
+
+# plot 2
 
 p = pkplot(ds; typesort = :Formulation, pagesort = NoPageSort(), legend = true)
 
 png(p, "plot2.png")
 
+# plot 3
+
 p = pkplot(ds; elim = true, ls = true)
 
 png(p[1][2], "plot3.png")
 
+# plot 4
 # If pagesort used - return pairs with `Page ID` => `Plot`
 
 p = pkplot(ds; typesort = :Subject, pagesort = :Formulation)
 
 png(p[1][2], "plot4.png")
+
+# plot 5
+
+p = vpcplot(ds)
+
+png(p, "plot5.png")
 ```
 
 #### Plot 1
@@ -100,6 +113,10 @@ png(p[1][2], "plot4.png")
 #### Plot 4
 
 ![](plot4.png)
+
+#### Plot 5
+
+![](plot5.png)
 
 ## Set dose time
 
