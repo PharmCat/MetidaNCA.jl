@@ -266,10 +266,12 @@ include("refdicts.jl")
     @test_logs (:warn, "Some concentration values maybe not a number, try to fix.") (:warn, "Value missing parsed as `NaN`") pkiw = MetidaNCA.pkimport(missingpk, :Time, :ConcentrationStr)
 
     # import covariates
+    @test MetidaNCA.makecovariate([2])[1] == 2
+    @test MetidaNCA.makecovariate([3,3])[1] == 3
+    @test MetidaNCA.makecovariate([3,4])[2] == 4
 
     ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; covars = [:Concentration, :Subject, :Formulation], dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
     @test MetidaNCA.value(ds[1].covars.Subject) == 2
-    @test ds[1].covars.Formulation[1] == "R"
     @test MetidaNCA.value(ds[1].covars.Concentration) == [ 0.0
     62.222
    261.177
@@ -286,6 +288,8 @@ include("refdicts.jl")
    160.338
    110.28
     85.241]
+    @test ds[1].covars.Formulation[1] == "R"
+    @test ds[1].covars.Concentration[2] == 62.222
     @test length(ds[1].covars.Formulation) == 1
     @test length(ds[1].covars.Concentration) == 16
 
