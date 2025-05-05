@@ -71,6 +71,29 @@ mutable struct ElimRange{Symbol}
     end
 end
 
+abstract type AbstractCovariate end
+
+struct ConstantCovariate{T} <: AbstractCovariate
+    val::T
+end
+struct TimeVaryingCovariate{T} <: AbstractCovariate
+    val::T
+end
+function makecovariate(v::AbstractVector)
+    if length(v) == 1
+        return ConstantCovariate(first(v))
+    elseif all(x-> first(v) == x, v)
+        return ConstantCovariate(first(v))
+    else
+        return TimeVaryingCovariate(v)
+    end
+end
+value(v::AbstractCovariate) = v.val
+Base.getindex(v::ConstantCovariate, ::Any) = v.val
+Base.getindex(v::TimeVaryingCovariate, i) = v.val[i]
+Base.length(::ConstantCovariate) = 1
+Base.length(v::TimeVaryingCovariate) = length(value(v))
+
 # Dose settings
 """
     DoseTime(dose::D, time::T, tau::TAU) where D <: Number where T <: Number where TAU <: Number

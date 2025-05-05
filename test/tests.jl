@@ -268,9 +268,9 @@ include("refdicts.jl")
     # import covariates
 
     ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; covars = [:Concentration, :Subject, :Formulation], dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
-    @test all(x-> x == 2, ds[1].covars.Subject)
-    @test all(x-> x == "R", ds[1].covars.Formulation)
-    @test ds[1].covars.Concentration == [ 0.0
+    @test MetidaNCA.value(ds[1].covars.Subject) == 2
+    @test ds[1].covars.Formulation[1] == "R"
+    @test MetidaNCA.value(ds[1].covars.Concentration) == [ 0.0
     62.222
    261.177
    234.063
@@ -286,6 +286,8 @@ include("refdicts.jl")
    160.338
    110.28
     85.241]
+    @test length(ds[1].covars.Formulation) == 1
+    @test length(ds[1].covars.Concentration) == 16
 end
 
 @testset "  #1 Linear trapezoidal, Dose 100, Dosetime 0, no tau      " begin

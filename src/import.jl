@@ -200,7 +200,7 @@ function pkimport(data, time, conc, sort;
         timevals_sp, concvals_sp = checkvalues(timevals_spv, concvals_spv; warn = warn)
 
         if length(covars) > 0
-            covars_v = (; zip(covars, [Tables.getcolumn(data, y)[v] for y in covars])...)
+            covars_v = (; zip(covars, [makecovariate(Tables.getcolumn(data, y)[v]) for y in covars])...)
         else
             covars_v = nothing
         end
