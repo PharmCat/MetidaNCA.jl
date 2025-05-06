@@ -164,6 +164,11 @@ function pkimport(data, time, conc, sort;
 
     if isnothing(dosetime) dosetime = DoseTime(NaN, zero(eltype(timec)), NaN) end
 
+    if !checkdosetime(dosetime)
+        @warn "DoseTime sorted..."
+        sort!(dosetime, by = x -> x.time)
+    end
+
     any(isnanormissing, timec) && error("Some time values is NaN or Missing!")
 
     sdata = Vector{PKSubject}(undef, length(d))

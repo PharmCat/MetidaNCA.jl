@@ -133,6 +133,29 @@ end
 function Base.convert(::Type{<: DoseTime{D,T,TAU,R,RO}}, x::DT) where D <: Number where T <: Number where TAU <: Number where R <: Number where RO where DT <: DoseTime
     DoseTime(one(D)*x.dose, one(T)*x.time, one(TAU)*x.tau, one(R)*x.rate, x.route)
 end
+
+function Base.convert(::Type{<: Union{Main.MetidaNCA.DoseTime, Vector{Main.MetidaNCA.DoseTime}}}, x::Vector{DT}) where DT <: DoseTime
+    return Vector{DoseTime}(x)
+end
+
+Base.first(x::DoseTime) = x
+
+function checkdosetime(dt::DoseTime)
+    true
+end
+function checkdosetime(dt::Vector{<:DoseTime})
+    if length(dt) == 0 
+        error("DoseTime can't be empty.") 
+    elseif length(dt) == 1 
+        return true
+    else
+        for i = 2:length(dt)
+            if dt[i].time < dt[i-1].time return false end
+        end
+        return true
+    end
+end
+
 # PK subject
 """
     PKSubject(time::Vector{T}, conc::Vector{O}, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, keldata::KelData, id::Dict{Symbol, V} = Dict{Symbol, Any}()) where T <: Number where O <: Union{Number, Missing} where V
@@ -160,6 +183,7 @@ mutable struct PKSubject{T <: Number, O <: Union{Number, Missing}, C <: Any, V <
     keldata::KelData
     id::Dict{Symbol, V}
     function PKSubject(time::Vector{T}, conc::Vector{O}, covars::C, kelauto::Bool, kelrange::ElimRange, dosetime, keldata::KelData, id::Dict{Symbol, V} = Dict{Symbol, Any}())  where T <: Number where O <: Union{Number, Missing} where C  where V
+        if !checkdosetime(dosetime) error("DoseTime Vector should be sorted.") end
         new{T, O, C, V}(time, conc, covars, kelauto, kelrange, dosetime, keldata, id)::PKSubject
     end
     function PKSubject(time::Vector{T}, conc::Vector{O}, kelauto::Bool, kelrange::ElimRange, dosetime, id::Dict{Symbol, V})  where T where O where V

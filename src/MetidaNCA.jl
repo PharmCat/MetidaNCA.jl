@@ -7,7 +7,7 @@ using RecipesBase
 
 import RecipesBase: plot!, plot
 import Statistics: mean, quantile
-import Base: length, length, push!, resize!, ht_keyindex
+import Base: length, push!, resize!, ht_keyindex, convert, first
 import MetidaBase
 import MetidaBase: Tables, StatsBase, PrecompileTools,
 PrettyTables,

@@ -1919,9 +1919,28 @@ end
 end
 
 @testset "  Development                                              " begin
+    io = IOBuffer();
+
     pki  = @test_nowarn MetidaNCA.pkimport(pkdata2, :Time, :Concentration, :Subject; 
     dosetime = MetidaNCA.DoseTime(dose = 100, time = 0, tau = 5.5, rate = 1.0),
     units = MetidaNCA.NCAUnits(u"hr", u"ng/ml", u"m", nothing))
+
+    dtvec = [MetidaNCA.DoseTime(dose = 100, time = 0),
+    MetidaNCA.DoseTime(dose = 100, time = 1)
+    ]
+    pki  = @test_nowarn MetidaNCA.pkimport(pkdata2, :Time, :Concentration, :Subject; 
+    dosetime = dtvec)
+
+    @test_nowarn show(io, pki[1])
+
+    dtvec = [MetidaNCA.DoseTime(dose = 100, time = 1),
+    MetidaNCA.DoseTime(dose = 100, time = 0)
+    ]
+    pki  = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, :Subject; 
+    dosetime = dtvec)
+
+    
+    @test_nowarn MetidaNCA.nca!(pki)
 
     @test_nowarn convert(typeof(MetidaNCA.DoseTime(dose = 100.0, time = 0.0, tau = 9)), MetidaNCA.DoseTime(dose = 100, time = 1, tau = 9))
 end
