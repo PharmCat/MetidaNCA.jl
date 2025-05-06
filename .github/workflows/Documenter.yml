@@ -36,7 +36,7 @@ jobs:
       - name: Update
         run: sudo apt-get update
       - name: Install Pandoc
-        run: sudo apt-get install pandoc texlive-latex-recommended texlive-xetex texlive-luatex pandoc-citeproc texlive-latex-extra
+        run: sudo apt-get install pandoc texlive-latex-recommended texlive-xetex texlive-luatex texlive-latex-extra
       - uses: julia-actions/setup-julia@v2
         with:
           version: '1'
