@@ -1944,5 +1944,8 @@ end
     @test_nowarn MetidaNCA.nca!(pki)
 
     @test_nowarn convert(typeof(MetidaNCA.DoseTime(dose = 100.0, time = 0.0, tau = 9)), MetidaNCA.DoseTime(dose = 100, time = 1, tau = 9))
+
+    @test_nowarn options = MetidaNCA.NCAOptions() 
+
 end
 

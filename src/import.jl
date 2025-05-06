@@ -250,11 +250,11 @@ function pkimport(data, time, obs, sort;
     return ds
 end
 """
-    pkimport(data, time, conc;
+    pkimport(data, time, obs;
         warn = true,
         kwargs...)
 
-Import PK data from tabular data `data`, `time` - time column, `conc` - concentration column.
+Import PK data from tabular data `data`, `time` - time column, `obs` - concentration column.
 """
 function pkimport(data, time, obs; kelauto = true,  elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true, kwargs...)
     obs   = parse_gkw(obs)
@@ -272,7 +272,7 @@ function pkimport(data, time, obs; kelauto = true,  elimrange = ElimRange(), dos
     pks
 end
 """
-    pkimport(time, conc;
+    pkimport(time, obs;
         kelauto = true,
         elimrange = ElimRange(),
         dosetime = DoseTime(),
@@ -281,7 +281,7 @@ end
         warn = true,
         kwargs...)
 
-Import PK data from time vector `time` and concentration vector `conc`.
+Import PK data from time vector `time` and concentration vector `obs`.
 
 """
 function pkimport(time, obs; kelauto = true,  elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true, kwargs...)

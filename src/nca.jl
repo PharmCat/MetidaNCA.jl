@@ -383,11 +383,11 @@ end
 """
     nca(args...; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), kwargs...)
 
-    nca(data, time, conc, sort; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), kwargs...)
+    nca(data, time, obs, sort; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), kwargs...)
 
-    nca(data, time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), kwargs...)
+    nca(data, time, obs; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), kwargs...)
 
-    nca(time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), kwargs...)
+    nca(time, obs; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), kwargs...)
 
 Import data and perform NCA analysis.
 
@@ -458,6 +458,7 @@ end
     - `:luld` - linear up log down;
     - `:luldt` - linear up log down after Tmax;
     - `:logt` - log-trapezoidal after Tmax;
+    - `:calcm` - same as `calcm`;
 * `partials` - calculate partial AUC vor vector of time intervals (`:err` (default) - throw error if end time > last oservation time; `:last` - no extrapolation; `:extr` - if `Kel` calculated used extrapolation or `NaN` if no `Kel`);
 * `prtext` - extrapolation rule for partials AUC;
 * `verbose` - print to `io`, 1: partial areas table, 2: 1, and results;
@@ -517,7 +518,7 @@ Steady-state parameters (tau used):
 """
 function nca!(data::PKSubject{T, OBS}; 
     adm = :ev, calcm = :lint, 
-    intpm = nothing,  
+    intpm = :calcm,  
     partials = nothing, 
     prtext = :err, 
     verbose = 0, 
@@ -532,7 +533,7 @@ function nca!(data::PKSubject{T, OBS};
 
     result   = Dict{Symbol, ptype}()
 
-    if isnothing(intpm) intpm = calcm end
+    if intpm == :calcm intpm = calcm end
 
     options =  Dict(:type => :bps, :adm => adm, :calcm => calcm, :intpm => intpm, :verbose => verbose, :warn => warn, :modify! => modify!)
 
@@ -944,7 +945,7 @@ function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}; adm = :ev, calcm = :lint
     ptype  = promote_type(Float64, S, E, O, VOL)
     ttype  = promote_type(S, E)
     result   = Dict{Symbol, ptype}()
-
+    
     options =  Dict(:type => :urine, :adm => adm, :calcm => calcm, :intpm => intpm, :verbose => verbose, :warn => warn, :modify! => modify!)
 
     if verbose > 0

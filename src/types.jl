@@ -212,6 +212,25 @@ function Base.length(obj::T) where T <: AbstractSubject
     length(obj.time)
 end
 
+
+struct NCAOptions{P <: Union{AbstractVector, Nothing}}
+    adm::Symbol
+    calcm::Symbol
+    intpm::Symbol
+    partials::P
+    prtext::Symbol
+    verbose::Int
+    warn::Bool
+    io::IO
+    modify!::Function
+    function NCAOptions(adm, calcm, intpm, partials::P, prtext, verbose, warn, io, modify!) where P
+        new{P}(adm, calcm, intpm, partials, prtext, verbose, warn, io, modify!)
+    end
+    function NCAOptions(;adm = :ev, calcm = :lint, intpm = :calcm, partials = nothing, prtext = :err, verbose  = 0, warn = true, io = stdout, modify! = identity)
+        NCAOptions(adm, calcm, intpm, partials, prtext, verbose, warn, io, modify!) 
+    end
+end
+
 """
     NCAResult(subject::T, options, result::Dict{Symbol, U}) where T <: AbstractSubject where U
 
@@ -323,16 +342,6 @@ function getobs(subj::T) where T <: AbstractSubject
     getobs_(getfield(subj, :obs)) # !!! workaround !!!
 end
 
-
-struct NCAOptions
-    adm::Symbol
-    calcm::Symbol
-    intpm::Symbol
-    verbose::Int
-    warn::Bool
-    io::IO
-    modify!::Function
-end
 
 struct NCAUnits{T, O, D, V}
     time::T
