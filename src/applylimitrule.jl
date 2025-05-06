@@ -9,7 +9,7 @@ Apply rule to PK subject .
 * STEP 3 (remove NaN): `rm` == true, then remove all `NaN` and `missing` values.
 """
 function applylimitrule!(data::Union{PKSubject, PDSubject}, rule::LimitRule)
-    applylimitrule!(data.time, data.obs, rule)
+    applylimitrule!(data.time, getobs(data), rule)
     data
 end
 """

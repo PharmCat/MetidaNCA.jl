@@ -8,10 +8,10 @@ function timefilter(subj::PKSubject, time::AbstractRange)
     subj_ = deepcopy(subj)
     inds = Int[]
     for n = 1:length(subj_)
-        if !(subj_.time[n] in time) push!(inds, n) end
+        if !(gettime(subj_)[n] in time) push!(inds, n) end
     end
-    deleteat!(subj_.time, inds)
-    deleteat!(subj_.obs, inds)
+    deleteat!(gettime(subj_), inds)
+    deleteat!(getobs(subj_), inds)
     resize!(subj_.keldata, 0)
     if !(subj_.kelrange.kelstart in time) || !(subj_.kelrange.kelend in time) || any(x-> !(x in time), subj_.kelrange.kelexcl)
         subj_.kelrange = ElimRange()

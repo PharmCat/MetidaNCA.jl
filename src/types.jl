@@ -134,13 +134,16 @@ function Base.convert(::Type{<: DoseTime{D,T,TAU,R,RO}}, x::DT) where D <: Numbe
     DoseTime(one(D)*x.dose, one(T)*x.time, one(TAU)*x.tau, one(R)*x.rate, x.route)
 end
 
-function Base.convert(::Type{<: Union{Main.MetidaNCA.DoseTime, Vector{Main.MetidaNCA.DoseTime}}}, x::Vector{DT}) where DT <: DoseTime
+function Base.convert(::Type{<: Union{DoseTime, Vector{DoseTime}}}, x::Vector{DT}) where DT <: DoseTime
     return Vector{DoseTime}(x)
 end
 
 Base.first(x::DoseTime) = x
 
 function checkdosetime(dt::DoseTime)
+    true
+end
+function checkdosetime(::Nothing)
     true
 end
 function checkdosetime(dt::Vector{<:DoseTime})
@@ -173,23 +176,23 @@ Fields:
 * id::Dict{Symbol, V}
 
 """
-mutable struct PKSubject{T <: Number, O <: Union{Number, Missing}, C <: Any, V <: Any} <: AbstractSubject
+mutable struct PKSubject{T <: Number, O, C <: Any, V <: Any} <: AbstractSubject
     time::Vector{T}
-    obs::Vector{O}
+    obs::O
     covars::C
     kelauto::Bool
     kelrange::ElimRange
     dosetime::Union{DoseTime, Vector{DoseTime}}
     keldata::KelData
     id::Dict{Symbol, V}
-    function PKSubject(time::Vector{T}, conc::Vector{O}, covars::C, kelauto::Bool, kelrange::ElimRange, dosetime, keldata::KelData, id::Dict{Symbol, V} = Dict{Symbol, Any}())  where T <: Number where O <: Union{Number, Missing} where C  where V
+    function PKSubject(time::Vector{T}, conc::O, covars::C, kelauto::Bool, kelrange::ElimRange, dosetime, keldata::KelData, id::Dict{Symbol, V} = Dict{Symbol, Any}())  where T <: Number where O where C  where V
         if !checkdosetime(dosetime) error("DoseTime Vector should be sorted.") end
         new{T, O, C, V}(time, conc, covars, kelauto, kelrange, dosetime, keldata, id)::PKSubject
     end
-    function PKSubject(time::Vector{T}, conc::Vector{O}, kelauto::Bool, kelrange::ElimRange, dosetime, id::Dict{Symbol, V})  where T where O where V
+    function PKSubject(time::Vector{T}, conc, kelauto::Bool, kelrange::ElimRange, dosetime, id)  where T 
         PKSubject(time, conc, nothing, kelauto, kelrange, dosetime, KelData(T[], T[], Float64[], Float64[], Float64[], Float64[], Int[]), id)
     end
-    function PKSubject(time::Vector{T}, conc::Vector{O}, covars, kelauto::Bool, kelrange::ElimRange, dosetime, id::Dict{Symbol, V})  where T where O  where V
+    function PKSubject(time::Vector{T}, conc, covars, kelauto::Bool, kelrange::ElimRange, dosetime, id)  where T 
         PKSubject(time, conc, covars, kelauto, kelrange, dosetime, KelData(T[], T[], Float64[], Float64[], Float64[], Float64[], Int[]), id)
     end
     #=
@@ -310,8 +313,14 @@ end
 function gettime(subj::T) where T <: AbstractSubject
     getfield(subj, :time)
 end
+function getobs_(obs::AbstractVector)
+    obs
+end 
+function getobs_(obs)
+    first(obs)
+end 
 function getobs(subj::T) where T <: AbstractSubject
-    getfield(subj, :obs)
+    getobs_(getfield(subj, :obs)) # !!! workaround !!!
 end
 
 

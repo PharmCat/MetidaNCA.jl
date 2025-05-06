@@ -116,10 +116,10 @@ include("refdicts.jl")
 
     # Return plot for PKSubject
 
-    @test_nowarn MetidaNCA.subjectplot(ds[1].time, ds[1].obs)
-    @test_nowarn MetidaNCA.subjectplot!(ds[1].time, ds[1].obs)
+    @test_nowarn MetidaNCA.subjectplot(ds[1].time, MetidaNCA.getobs(ds[1]))
+    @test_nowarn MetidaNCA.subjectplot!(ds[1].time, MetidaNCA.getobs(ds[1]))
     p = plot()
-    @test_nowarn MetidaNCA.subjectplot!(p, ds[1].time, ds[1].obs)
+    @test_nowarn MetidaNCA.subjectplot!(p, ds[1].time, MetidaNCA.getobs(ds[1]))
     p = plot()
     @test_nowarn MetidaNCA.pkplot!(ds[1])
     #p = plot()
@@ -189,6 +189,7 @@ include("refdicts.jl")
 
 
     # Missing string LLOQ
+    MetidaNCA.pkimport(lloqpk, :Time, :Concentration, io = io, verbose = 2, warn = true)
     dsncafromds =  MetidaNCA.nca(lloqpk, :Time, :Concentration, io = io, verbose = 2, warn = false)
     @test  sbj[:AUClast]  ≈ dsncafromds[:AUClast]
 
@@ -1696,21 +1697,21 @@ end
         sbj.id[:Subject] == 1
     end
     MetidaNCA.applylimitrule!(af, ds, lr)
-    @test ds[1].obs[1] ≈ 0.5
+    @test MetidaNCA.getobs(ds[1])[1] ≈ 0.5
     MetidaNCA.applylimitrule!(ds, lr, 2)
-    @test ds[2].obs[1] ≈ 0.5
+    @test MetidaNCA.getobs(ds[2])[1] ≈ 0.5
     MetidaNCA.applylimitrule!(ds, lr, 3:4)
-    @test ds[3].obs[1] ≈ 0.5
-    @test ds[4].obs[1] ≈ 0.5
+    @test MetidaNCA.getobs(ds[3])[1] ≈ 0.5
+    @test MetidaNCA.getobs(ds[4])[1] ≈ 0.5
     MetidaNCA.applylimitrule!(ds, lr, Dict(:Formulation => "R"))
-    @test ds[7].obs[1] ≈ 0.5
+    @test MetidaNCA.getobs(ds[7])[1] ≈ 0.5
     MetidaNCA.applylimitrule!(ds, lr)
-    @test ds[6].obs[1] ≈ 0.5
+    @test MetidaNCA.getobs(ds[6])[1] ≈ 0.5
 
     ds = MetidaNCA.pkimport(missingpk, :Time, :Concentration)
 
-    @test ismissing(ds.obs[13])
-    @test isnan(ds.obs[15])
+    @test ismissing(MetidaNCA.getobs(ds)[13])
+    @test isnan(MetidaNCA.getobs(ds)[15])
     @test length(ds) == 18
     MetidaNCA.applylimitrule!(ds, lr)
     @test length(ds) == 16
@@ -1718,7 +1719,7 @@ end
     ds = MetidaNCA.pkimport(missingpk, :Time, :Concentration)
     lr = MetidaNCA.LimitRule(;lloq = 180, btmax = 0.0, atmax = 0.5, nan = 1000, rm = false)
     MetidaNCA.applylimitrule!(ds, lr)
-    @test ds.obs ==  [0.0
+    @test MetidaNCA.getobs(ds) ==  [0.0
     0.0
   190.869
     0.5

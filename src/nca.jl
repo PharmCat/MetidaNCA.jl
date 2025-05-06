@@ -1,8 +1,10 @@
 # Pharmacokinetics
 # Makoid C, Vuchetich J, Banakar V. 1996-1999. Basic Pharmacokinetics.
 
-function validobsn(time::Vector{<:Number}, obs::Vector)
-    if length(time) != length(obs) error("Vector length `time` not equal `obs`") end
+function validobsn(time::Vector, obs::Vector)
+    if length(time) != length(obs) 
+        error("Vector length `time` not equal `obs`") 
+    end
     n = 0
     @inbounds for i = 1:length(time)
         if !isnanormissing(time[i]) && !isnanormissing(obs[i]) n+=1 end
@@ -513,7 +515,7 @@ Steady-state parameters (tau used):
 `partials` is a vector of vectors, tuples or pairs. Example: `partials = [(1,2), (3,4)]`, `partials = [[1,2], (3,4)]`
 
 """
-function nca!(data::PKSubject{T, O}; 
+function nca!(data::PKSubject{T, OBS}; 
     adm = :ev, calcm = :lint, 
     intpm = nothing,  
     partials = nothing, 
@@ -522,8 +524,9 @@ function nca!(data::PKSubject{T, O};
     warn = true, 
     io::IO = stdout, 
     modify! = identity,
-    kwargs...) where T where O
+    kwargs...) where T where OBS
 
+    O = eltype(getobs(data))
 
     ptype  = promote_type(Float64, T, O)
 
@@ -549,9 +552,9 @@ function nca!(data::PKSubject{T, O};
             println(io, "")
         end
         println(io, "    Settings:")
-        println(io, "    Method: $(calcm); Dose: $(data.dosetime.dose); Dose time: $(data.dosetime.time)")
+        println(io, "    Method: $(calcm); Dose: $(first_dosetime_dose); Dose time: $(first_dosetime_time)")
         if data.dosetime.tau > 0
-            println(io, "    Tau: $(data.dosetime.tau)")
+            println(io, "    Tau: $(first_dosetime_tau)")
         end
     end
 ################################################################################
@@ -870,13 +873,13 @@ function nca!(data::PKSubject{T, O};
 end
 
 function maxconc(subj::T) where T <: AbstractSubject
-    maximum(Iterators.filter(x-> !(ismissing(x) || isnan(x)), subj.obs))
+    maximum(Iterators.filter(x-> !(ismissing(x) || isnan(x)), getobs(subj)))
 end
 function minconc(subj::T, pos = false) where T <: AbstractSubject
     if pos
-        return minimum(Iterators.filter(x-> x > zero(x), subj.obs))
+        return minimum(Iterators.filter(x-> x > zero(x), getobs(subj)))
     else
-        return minimum(Iterators.filter(x-> !(ismissing(x) || isnan(x)), subj.obs))
+        return minimum(Iterators.filter(x-> !(ismissing(x) || isnan(x)), getobs(subj)))
     end
 end
 

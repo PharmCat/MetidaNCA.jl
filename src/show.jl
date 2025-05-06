@@ -43,7 +43,7 @@ function Base.show(io::IO, obj::PKSubject)
         println(io, obj.dosetime)
     end
     println(io,  obj.kelrange)
-    PrettyTables.pretty_table(io, metida_table(obj.time, obj.obs; names = (:Time, :Concentration)); tf = PrettyTables.tf_compact)
+    PrettyTables.pretty_table(io, metida_table(obj.time, getobs(obj); names = (:Time, :Concentration)); tf = PrettyTables.tf_compact)
 
 end
 function Base.show(io::IO, obj::UPKSubject)

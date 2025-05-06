@@ -85,25 +85,44 @@ Check element type of time column
 Check element type of observation / concentration column
 return new arrays
 =#
-function checkvalues(timevals_sp, concvals_sp; warn = true)
+function checkobsvec(vec::AbstractVector{<: Union{Number, Missing}}, warn) 
+    return vec
+end
+#=
+function checkobsvec(vec::AbstractVector{Union{<: AbstractFloat, Missing}}, warn) 
+    return vec
+end
 
-    timevals_sp_ = identity.(timevals_sp)
-    eltype(timevals_sp_) <: Number || error("Some time values not a number ($(eltype(timevals_sp_))))!")
+function checkobsvec(vec::AbstractVector{<: AbstractFloat}, warn) 
+    return vec
+end
+=#
+function checkobsvec(vec::AbstractVector{<: Union{Integer, Missing}}, warn)
+    warn && @warn "Concentration values transformed to float."
+    return float.(vec)
+end
+function checkobsvec(vec::AbstractVector, warn)
+    warn && @warn "Some concentration values maybe not a number, try to fix."
+    rvec = floatparse.(vec, warn)
+    return rvec
+end
 
-    if !(eltype(concvals_sp) <: Union{Number, Missing})
-        warn && @warn "Some concentration values maybe not a number, try to fix."
-        concvals_sp_ = floatparse.(concvals_sp, warn)
-    elseif eltype(concvals_sp) <: Integer
-        warn && @warn "Concentration values transformed to float."
-        concvals_sp_ = float.(concvals_sp)
-    else
-        concvals_sp_ = identity.(concvals_sp)
-    end
-    timevals_sp_, concvals_sp_
+function checktimevec(vec::AbstractVector)
+    timevals = identity.(vec)
+    eltype(timevals) <: Number || error("Some time values not a number ($(eltype(timevals))))!")
+    return timevals
+end
+
+function checkvalues!(timevals_sp, obsvals; warn = true)
+    timevals = checktimevec(timevals_sp)
+    
+    obsvals = checkobsvec.(obsvals, warn)
+    
+    timevals, obsvals
 end
 
 """
-    pkimport(data, time, conc, sort;
+    pkimport(data, time, obs, sort;
         kelauto = true,
         elimrange = ElimRange(),
         dosetime = DoseTime(),
@@ -114,7 +133,7 @@ end
 Import PK data from table `data`.
 
 * `time` - time column;
-* `conc` - concentration column;
+* `obs` - concentration column;
 * `sort` - subject sorting columns.
 
 keywords:
@@ -134,7 +153,7 @@ keywords:
 
 See also: [`ElimRange`](@ref), [`DoseTime`](@ref), [`LimitRule`](@ref).
 """
-function pkimport(data, time, conc, sort;
+function pkimport(data, time, obs, sort;
     covars = [],
     kelauto = true,  
     elimrange = ElimRange(), 
@@ -147,6 +166,7 @@ function pkimport(data, time, conc, sort;
     kwargs...)
     
     sort = parse_gkw(sort)
+    obs  = parse_gkw(obs)
 
     if length(covars) > 0
         covars = parse_gkw(covars)
@@ -160,7 +180,7 @@ function pkimport(data, time, conc, sort;
     indsdict!(d, cdata)
 
     timec = Tables.getcolumn(data, time)
-    concc = Tables.getcolumn(data, conc)
+    #concc = Tables.getcolumn(data, obs)
 
     if isnothing(dosetime) dosetime = DoseTime(NaN, zero(eltype(timec)), NaN) end
 
@@ -178,7 +198,8 @@ function pkimport(data, time, conc, sort;
 
         if checktime && !allunique(timevals)
             
-            concvals = concc[v]
+            #concvals = concc[v]
+            obsvals = [Tables.getcolumn(data, y)[v] for y in obs]
 
             nuv      = nonunique(timevals) # non unique values
             warn && @warn "Subject: $k, Not all time values is unique ($nuv), function '$(nutcfunk)' used to get observation!"
@@ -186,32 +207,39 @@ function pkimport(data, time, conc, sort;
             delinds = Int[]
             for nu in nuv
                 nuvinds = findall(x -> x == nu, timevals)   # non unique indexex
-            
-                concvals[first(nuvinds)] = nutcfunk(view(concvals, nuvinds)) # replace first nu value with result of nutcfunk
+                for ov in obsvals
+                    ov[first(nuvinds)] = nutcfunk(view(ov, nuvinds)) # replace first nu value with result of nutcfunk
+                end
                 append!(delinds, view(nuvinds, 2:length(nuvinds)))
             end
             sort!(delinds)
             deleteat!(v, delinds)
-            deleteat!(concvals, delinds)   
+
+            for ov in obsvals
+                deleteat!(ov, delinds)  
+            end
             timevals = view(timec, v)
             spt      = sortperm(timevals)
-            concvals_spv = permute!(concvals, spt)
+            for ov in obsvals
+                permute!(ov, spt)
+            end
             permute!(v, spt)
             timevals_spv = view(timec, v)
         else
             permute!(v, sortperm(timevals))
             timevals_spv = view(timec, v)
-            concvals_spv = view(concc, v)
+            obsvals      = [Tables.getcolumn(data, y)[v] for y in obs]
         end
-        timevals_sp, concvals_sp = checkvalues(timevals_spv, concvals_spv; warn = warn)
+
+        timevals_sp, obsvals = checkvalues!(timevals_spv, obsvals; warn = warn)
 
         if length(covars) > 0
             covars_v = (; zip(covars, [makecovariate(Tables.getcolumn(data, y)[v]) for y in covars])...)
         else
             covars_v = nothing
         end
-
-        sdata[i] = PKSubject(timevals_sp, concvals_sp, covars_v, kelauto, elimrange,  dosetime, Dict(sort .=> k))
+ 
+        sdata[i] = PKSubject(timevals_sp, (; zip(obs, obsvals)...), covars_v, kelauto, elimrange,  dosetime, Dict(sort .=> k))
         i += one(Int)
     end
     ds = DataSet(identity.(sdata))
@@ -228,9 +256,20 @@ end
 
 Import PK data from tabular data `data`, `time` - time column, `conc` - concentration column.
 """
-function pkimport(data, time, conc; warn = true, kwargs...)
-    timevals_sp, concvals_sp = checkvalues(Tables.getcolumn(data, time), Tables.getcolumn(data, conc); warn = warn)
-    pkimport(timevals_sp, concvals_sp; warn = warn, kwargs...)
+function pkimport(data, time, obs; kelauto = true,  elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true, kwargs...)
+    obs   = parse_gkw(obs)
+
+    obsvals = [copy(Tables.getcolumn(data, y)) for y in obs]
+
+    timevals, obsvals = checkvalues!(Tables.getcolumn(data, time), obsvals; warn = warn)
+    
+    if isnothing(dosetime) dosetime = DoseTime(NaN, zero(eltype(timevals)), NaN) end
+
+    pks = PKSubject(timevals, (; zip(obs, obsvals)...), kelauto, elimrange,  dosetime, id)
+    if !isnothing(limitrule)
+        applylimitrule!(pks, limitrule)
+    end
+    pks
 end
 """
     pkimport(time, conc;
@@ -245,12 +284,15 @@ end
 Import PK data from time vector `time` and concentration vector `conc`.
 
 """
-function pkimport(time, conc; kelauto = true,  elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true, kwargs...)
-    timevals_sp, concvals_sp = checkvalues(time, conc, warn = warn)
+function pkimport(time, obs; kelauto = true,  elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true, kwargs...)
+    
+    timevals = checktimevec(time)
+   
+    obsvals  = checkobsvec(obs, warn)
 
-    if isnothing(dosetime) dosetime = DoseTime(NaN, zero(eltype(timevals_sp)), NaN) end
+    if isnothing(dosetime) dosetime = DoseTime(NaN, zero(eltype(timevals)), NaN) end
 
-    pks = PKSubject(timevals_sp, concvals_sp, kelauto, elimrange,  dosetime, id)
+    pks = PKSubject(timevals, obsvals, kelauto, elimrange,  dosetime, id)
     if !isnothing(limitrule)
         applylimitrule!(pks, limitrule)
     end
@@ -433,10 +475,9 @@ function pdimport(data, time, obs, sort; bl = 0, th = 0, dosetime::Union{Nothing
             obsvals = view(obsc, v)
         end
         sp = sortperm(timevals)
-        timevals_spv = view(timevals, sp)
-        obsvals_spv = view(obsvals, sp)
-        timevals_sp, obsvals_sp = checkvalues(timevals_spv, obsvals_spv, warn = warn)
-        sdata[i] = PDSubject(timevals_sp, obsvals_sp, bl, th, dosetime, Dict(sort .=> k))
+        timevals_spv = checktimevec(view(timevals, sp))
+        obsvals_spv  = checkobsvec(obsvals[sp], warn)
+        sdata[i]     = PDSubject(timevals_spv, obsvals_spv, bl, th, dosetime, Dict(sort .=> k))
         i += one(Int)
     end
     ds = DataSet(identity.(sdata))
@@ -453,9 +494,11 @@ end
 
 Import PD data from tabular data `data`, `time` - time column, `obs` - observations column.
 """
-function pdimport(data, time, obs; warn = true,  kwargs...)
-    timevals_sp, obsvals_sp = checkvalues(Tables.getcolumn(data, time), Tables.getcolumn(data, obs), warn = warn)
-    pdimport(timevals_sp, obsvals_sp; kwargs...)
+function pdimport(data, time, obs; bl = 0, th = 0, id = Dict{Symbol, Any}(), warn = true)
+
+    timevals = checktimevec(Tables.getcolumn(data, time))
+    obsvals  = checkobsvec(copy(Tables.getcolumn(data, obs)), warn)
+    PDSubject(timevals, obsvals, bl, th,  id)
 end
 """
     pdimport(time, obs;
@@ -467,6 +510,7 @@ end
 Import PD data from time vector `time` and observations vector `obs`.
 """
 function pdimport(time, obs; bl = 0, th = 0, id = Dict{Symbol, Any}(), warn = true)
-    timevals_sp, obsvals_sp = checkvalues(copy(time), copy(obs), warn = warn)
-    PDSubject(timevals_sp, obsvals_sp, bl, th,  id)
+    timevals = checktimevec(time)
+    obsvals  = checkobsvec(copy(obs), warn)
+    PDSubject(timevals, obsvals, bl, th,  id)
 end

@@ -143,15 +143,18 @@ function plotlabel(d, ld = nothing)
 end
 
 function _subjplot(subj, kwargs, ls)
+
+    subjobs = getobs(subj)
+    
     k = keys(kwargs)
     if :yscale in k
         if kwargs[:yscale] in [:ln, :log, :log2, :log10]
             ls = false
             if !(:minorticks in k) kwargs[:minorticks] = true end
 
-            inds = findall(x-> x > 0, subj.obs)
+            inds = findall(x-> x > 0, subjobs)
             time = subj.time[inds]
-            obs  = subj.obs[inds]
+            obs  = subjobs[inds]
             if !(:yticks in k)
                 if kwargs[:yscale] == :log10
                     b = 10
@@ -176,16 +179,16 @@ function _subjplot(subj, kwargs, ls)
         end
     else
         time = subj.time
-        obs  = subj.obs
+        obs  = subjobs
         if !(:ylims in k)
             kwargs[:ylims] = (minconc(subj), maxconc(subj)*1.15)
         end
     end
 
     if ls == true
-        inds = findall(x-> x > 0, subj.obs)
+        inds = findall(x-> x > 0, subjobs)
         time = subj.time[inds]
-        obs = log.(subj.obs[inds])
+        obs = log.(subjobs[inds])
         if (:ylims in k)
             kwargs[:ylims] = (0, log(kwargs[:ylims][2]))
         end
@@ -555,9 +558,10 @@ function vpcplot(data::DataSet{T}; timef = identity, meanf = mean, intf = x->qf(
     dict = Dict{Float64, Vector{Float64}}()
     for i = 1:length(d)
         s = d[i]
+        subjobs = getobs(s)
         for j = 1:length(s)
             @inbounds time = timef(s.time[j])
-            @inbounds  obs = s.obs[j]
+            @inbounds  obs = subjobs[j]
             ind = ht_keyindex(dict, time)
             if ind > 0
                 push!(dict.vals[ind], obs)

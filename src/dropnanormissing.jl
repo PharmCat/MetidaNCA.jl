@@ -1,7 +1,7 @@
 function dropfunction!(f::Function, subj::PKSubject)
-    inds = findall(f, subj.obs)
-    deleteat!(subj.time, inds)
-    deleteat!(subj.obs, inds)
+    inds = findall(f, getobs(subj))
+    deleteat!(gettime(subj), inds)
+    deleteat!(getobs(subj), inds)
     return subj
 end
 
