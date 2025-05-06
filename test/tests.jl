@@ -52,7 +52,7 @@ include("refdicts.jl")
 # Swingtau
 @testset "   Basic API test                                          " begin
     # Basic dataset scenario
-    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
+    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0.0))
     sort!(ds, :Subject)
     show(io, ds)
     dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
@@ -1756,7 +1756,7 @@ end
 
 @testset "  Output                                                   " begin
     io = IOBuffer();
-    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
+    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0.0))
     sort!(ds, :Subject)
     @test_nowarn dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint, verbose = 1, io = io)
     show(io, ds[1])
@@ -1864,8 +1864,9 @@ include("pdtest.jl")
 
     udt = MetidaNCA.DoseTime(dose = 100u"mg", time = 0.25u"hr", tau = 9u"hr")
     dt = MetidaNCA.DoseTime(dose = 100, time = 0.25, tau = 9)
-    MetidaNCA.setdosetime!(uds, udt)
+    
     MetidaNCA.setdosetime!(ds, dt)
+    MetidaNCA.setdosetime!(uds, udt)
 
     upknca = MetidaNCA.nca!(uds, calcm = :lint)
     pknca  = MetidaNCA.nca!(ds, calcm = :lint)
@@ -1915,5 +1916,13 @@ end
     data = MetidaNCA.metida_table([0.,1.,2.,3.,4.,2.,1.,0.], [0.,1.,2.,3.,4.,5.,6.,7.], names = (:conc, :time))
     pki  = MetidaNCA.pkimport(data, :time, :conc; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0, tau = 5.5))
     @test_nowarn MetidaNCA.nca!(pki)
+end
+
+@testset "  Development                                              " begin
+    pki  = @test_nowarn MetidaNCA.pkimport(pkdata2, :Time, :Concentration, :Subject; 
+    dosetime = MetidaNCA.DoseTime(dose = 100, time = 0, tau = 5.5, rate = 1.0),
+    units = MetidaNCA.NCAUnits(u"hr", u"ng/ml", u"m", nothing))
+
+    @test_nowarn convert(typeof(MetidaNCA.DoseTime(dose = 100.0, time = 0.0, tau = 9)), MetidaNCA.DoseTime(dose = 100, time = 1, tau = 9))
 end
 

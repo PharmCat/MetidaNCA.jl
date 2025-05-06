@@ -143,6 +143,7 @@ function pkimport(data, time, conc, sort;
     warn = true, 
     checktime = true,
     nutcfunk = last,
+    units::Union{Nothing, NCAUnits} = nothing, 
     kwargs...)
     
     sort = parse_gkw(sort)
@@ -212,7 +213,8 @@ function pkimport(data, time, conc, sort;
     if !isnothing(limitrule)
         applylimitrule!(ds, limitrule)
     end
-    ds
+    if !(isnothing(units)) ds.metadata[:units] = units end
+    return ds
 end
 """
     pkimport(data, time, conc;
