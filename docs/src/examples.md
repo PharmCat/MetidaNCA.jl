@@ -95,7 +95,8 @@ png(p[1][2], "plot4.png")
 
 p = vpcplot(ds)
 
-png(p, "plot5.png")
+png(p, "vpcplot.png")
+
 ```
 
 #### Plot 1
@@ -116,7 +117,7 @@ png(p, "plot5.png")
 
 #### Plot 5
 
-![](plot5.png)
+![](vpcplot.png)
 
 ## Set dose time
 
