@@ -143,15 +143,18 @@ function plotlabel(d, ld = nothing)
 end
 
 function _subjplot(subj, kwargs, ls)
+
+    subjobs = getobs(subj)
+    
     k = keys(kwargs)
     if :yscale in k
         if kwargs[:yscale] in [:ln, :log, :log2, :log10]
             ls = false
             if !(:minorticks in k) kwargs[:minorticks] = true end
 
-            inds = findall(x-> x > 0, subj.obs)
+            inds = findall(x-> x > 0, subjobs)
             time = subj.time[inds]
-            obs  = subj.obs[inds]
+            obs  = subjobs[inds]
             if !(:yticks in k)
                 if kwargs[:yscale] == :log10
                     b = 10
@@ -176,16 +179,16 @@ function _subjplot(subj, kwargs, ls)
         end
     else
         time = subj.time
-        obs  = subj.obs
+        obs  = subjobs
         if !(:ylims in k)
             kwargs[:ylims] = (minconc(subj), maxconc(subj)*1.15)
         end
     end
 
     if ls == true
-        inds = findall(x-> x > 0, subj.obs)
+        inds = findall(x-> x > 0, subjobs)
         time = subj.time[inds]
-        obs = log.(subj.obs[inds])
+        obs = log.(subjobs[inds])
         if (:ylims in k)
             kwargs[:ylims] = (0, log(kwargs[:ylims][2]))
         end
@@ -525,4 +528,59 @@ end
 """
 function pkplot(data::NCAResult; kwargs...)
     pkplot(data.data; kwargs...)
+end
+
+function qf(x, alpha)
+    (quantile(x, alpha), quantile(x, 1-alpha))
+end
+
+"""
+    vpcplot(data::DataSet{T}; timef = identity, meanf = mean, intf = x->qf(x, 0.05), kwargs...) where T <: Union{PKSubject, PDSubject}
+
+Plot means in each time point with 0.05 - 0.95 quantile area.
+
+`timef` - Function, can be used to transform time points.
+
+`meanf` - `mean` by default, any other statistic function can be used.
+
+`intf` - function to calculate upper and lower bounds for each time point, by default used:
+
+```
+qf(x, alpha) = (quantile(x, alpha), quantile(x, 1-alpha))
+```
+
+Any other keywords pass to `plot` function.
+"""
+function vpcplot(data::DataSet{T}; timef = identity, meanf = mean, intf = x->qf(x, 0.05), kwargs...) where T <: Union{PKSubject, PDSubject}
+    kwargs = Dict{Symbol, Any}(kwargs)
+
+    d = getdata(data)
+    dict = Dict{Float64, Vector{Float64}}()
+    for i = 1:length(d)
+        s = d[i]
+        subjobs = getobs(s)
+        for j = 1:length(s)
+            @inbounds time = timef(s.time[j])
+            @inbounds  obs = subjobs[j]
+            ind = ht_keyindex(dict, time)
+            if ind > 0
+                push!(dict.vals[ind], obs)
+            else
+                dict[time] = Float64[obs]
+            end
+        end
+    end
+    k = sort!(collect(keys(dict)))
+    means = [meanf(dict[x]) for x in k ]
+    
+    if !isnothing(intf) && !(:ribbon in keys(kwargs))
+        ub = zeros(length(k))
+        lb = zeros(length(k))
+        for i = 1:length(k)
+            ub[i], lb[i] = intf(dict[k[i]])
+        end
+        kwargs[:kwargs] = (ub .- means, means .- lb)
+    end
+    p = plot(k, means; kwargs...)
+    return p
 end

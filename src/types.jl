@@ -71,6 +71,29 @@ mutable struct ElimRange{Symbol}
     end
 end
 
+abstract type AbstractCovariate end
+
+struct ConstantCovariate{T} <: AbstractCovariate
+    val::T
+end
+struct TimeVaryingCovariate{T} <: AbstractCovariate
+    val::T
+end
+function makecovariate(v::AbstractVector)
+    if length(v) == 1
+        return ConstantCovariate(first(v))
+    elseif all(x-> first(v) == x, v)
+        return ConstantCovariate(first(v))
+    else
+        return TimeVaryingCovariate(v)
+    end
+end
+value(v::AbstractCovariate) = v.val
+Base.getindex(v::ConstantCovariate, ::Any) = v.val
+Base.getindex(v::TimeVaryingCovariate, i) = v.val[i]
+Base.length(::ConstantCovariate) = 1
+Base.length(v::TimeVaryingCovariate) = length(value(v))
+
 # Dose settings
 """
     DoseTime(dose::D, time::T, tau::TAU) where D <: Number where T <: Number where TAU <: Number
@@ -83,25 +106,57 @@ Dose settings.
 
 Dose time set 0 by default.
 """
-struct DoseTime{D <: Number, T <: Number, TAU <: Number}
+struct DoseTime{D <: Number, T <: Number, TAU <: Number, R <: Number, RO}
     dose::D
     time::T
     tau::TAU
-    function DoseTime(dose::D, time::T, tau::TAU) where D <: Number where T <: Number where TAU <: Number
+    rate::R
+    route::RO
+    function DoseTime(dose::D, time::T, tau::TAU, rate::R, route::RO) where D <: Number where T <: Number where TAU <: Number where R <: Number where RO
         if time < zero(T) throw(ArgumentError("Dose time can't be less zero!")) end
-        new{D, T, TAU}(dose, time, tau)::DoseTime
+        new{D, T, TAU, R, RO}(dose, time, tau, rate, route)::DoseTime
     end
-    function DoseTime(;dose = NaN, time = 0.0, tau = NaN)
-        DoseTime(dose, time, tau)
+    function DoseTime(dose, time, tau)
+        if isa(time, Int) time_ = float(time) else time_ = time end
+        if isa(dose, Int) dose_ = float(dose) else dose_ = dose end
+        if isa(tau, Int) tau_   = float(tau)  else tau_  = tau  end
+        DoseTime(dose, time, tau, 0.0, nothing)
     end
-    #=
-    function DoseTime(dose)
-        DoseTime(dose, 0, NaN)
+    function DoseTime(;dose = NaN, time = 0.0, tau = NaN, rate = 0.0, route = nothing)
+        if isa(time, Int) time_ = float(time) else time_ = time end
+        if isa(dose, Int) dose_ = float(dose) else dose_ = dose end
+        if isa(tau, Int) tau_   = float(tau)  else tau_  = tau  end
+        DoseTime(dose, time, tau, rate, route)
     end
-    function DoseTime(dose, time)
-        DoseTime(dose, time, NaN)
+end
+
+function Base.convert(::Type{<: DoseTime{D,T,TAU,R,RO}}, x::DT) where D <: Number where T <: Number where TAU <: Number where R <: Number where RO where DT <: DoseTime
+    DoseTime(one(D)*x.dose, one(T)*x.time, one(TAU)*x.tau, one(R)*x.rate, x.route)
+end
+
+function Base.convert(::Type{<: Union{DoseTime, Vector{DoseTime}}}, x::Vector{DT}) where DT <: DoseTime
+    return Vector{DoseTime}(x)
+end
+
+Base.first(x::DoseTime) = x
+
+function checkdosetime(dt::DoseTime)
+    true
+end
+function checkdosetime(::Nothing)
+    true
+end
+function checkdosetime(dt::Vector{<:DoseTime})
+    if length(dt) == 0 
+        error("DoseTime can't be empty.") 
+    elseif length(dt) == 1 
+        return true
+    else
+        for i = 2:length(dt)
+            if dt[i].time < dt[i-1].time return false end
+        end
+        return true
     end
-    =#
 end
 
 # PK subject
@@ -121,19 +176,24 @@ Fields:
 * id::Dict{Symbol, V}
 
 """
-mutable struct PKSubject{T <: Number, O <: Union{Number, Missing}, V <: Any} <: AbstractSubject
+mutable struct PKSubject{T <: Number, O, C <: Any, V <: Any} <: AbstractSubject
     time::Vector{T}
-    obs::Vector{O}
+    obs::O
+    covars::C
     kelauto::Bool
     kelrange::ElimRange
-    dosetime::DoseTime
+    dosetime::Union{DoseTime, Vector{DoseTime}}
     keldata::KelData
     id::Dict{Symbol, V}
-    function PKSubject(time::Vector{T}, conc::Vector{O}, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, keldata::KelData, id::Dict{Symbol, V} = Dict{Symbol, Any}()) where T <: Number where O <: Union{Number, Missing} where V
-        new{T, O, V}(time, conc, kelauto, kelrange, dosetime, keldata, id)::PKSubject
+    function PKSubject(time::Vector{T}, conc::O, covars::C, kelauto::Bool, kelrange::ElimRange, dosetime, keldata::KelData, id::Dict{Symbol, V} = Dict{Symbol, Any}())  where T <: Number where O where C  where V
+        if !checkdosetime(dosetime) error("DoseTime Vector should be sorted.") end
+        new{T, O, C, V}(time, conc, covars, kelauto, kelrange, dosetime, keldata, id)::PKSubject
     end
-    function PKSubject(time::Vector{T}, conc::Vector{O}, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, id::Dict{Symbol, V}) where T where O where V
-        PKSubject(time, conc, kelauto, kelrange, dosetime, KelData(T[], T[], Float64[], Float64[], Float64[], Float64[], Int[]), id)
+    function PKSubject(time::Vector{T}, conc, kelauto::Bool, kelrange::ElimRange, dosetime, id)  where T 
+        PKSubject(time, conc, nothing, kelauto, kelrange, dosetime, KelData(T[], T[], Float64[], Float64[], Float64[], Float64[], Int[]), id)
+    end
+    function PKSubject(time::Vector{T}, conc, covars, kelauto::Bool, kelrange::ElimRange, dosetime, id)  where T 
+        PKSubject(time, conc, covars, kelauto, kelrange, dosetime, KelData(T[], T[], Float64[], Float64[], Float64[], Float64[], Int[]), id)
     end
     #=
     function PKSubject(time::Vector, conc::Vector, sort::Dict)
@@ -253,8 +313,14 @@ end
 function gettime(subj::T) where T <: AbstractSubject
     getfield(subj, :time)
 end
+function getobs_(obs::AbstractVector)
+    obs
+end 
+function getobs_(obs)
+    first(obs)
+end 
 function getobs(subj::T) where T <: AbstractSubject
-    getfield(subj, :obs)
+    getobs_(getfield(subj, :obs)) # !!! workaround !!!
 end
 
 
@@ -266,6 +332,13 @@ struct NCAOptions
     warn::Bool
     io::IO
     modify!::Function
+end
+
+struct NCAUnits{T, O, D, V}
+    time::T
+    obs::O
+    dose::D
+    vol::V
 end
 
 #=

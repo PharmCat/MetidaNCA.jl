@@ -33,9 +33,17 @@ function Base.show(io::IO, obj::PKSubject)
         end
         println(io, "")
     end
-    println(io, "Observations: $(length(obj)); ", obj.dosetime)
+    print(io, "Observations: $(length(obj)); ")
+    if isa(obj.dosetime, Vector)
+        println(io,"")
+        for i in 1:length(obj.dosetime)
+            println(io, "Dose $i: ", obj.dosetime[i])
+        end
+    else
+        println(io, obj.dosetime)
+    end
     println(io,  obj.kelrange)
-    PrettyTables.pretty_table(io, metida_table(obj.time, obj.obs; names = (:Time, :Concentration)); tf = PrettyTables.tf_compact)
+    PrettyTables.pretty_table(io, metida_table(obj.time, getobs(obj); names = (:Time, :Concentration)); tf = PrettyTables.tf_compact)
 
 end
 function Base.show(io::IO, obj::UPKSubject)

@@ -52,7 +52,7 @@ include("refdicts.jl")
 # Swingtau
 @testset "   Basic API test                                          " begin
     # Basic dataset scenario
-    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
+    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0.0))
     sort!(ds, :Subject)
     show(io, ds)
     dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
@@ -112,12 +112,14 @@ include("refdicts.jl")
     pl = @test_nowarn MetidaNCA.pkplot(ds; typesort = [:Subject, :Formulation], pagesort = MetidaNCA.NoPageSort(), legend = true)
     @test isa(pl, Plots.Plot) == true
 
+    pl = @test_nowarn MetidaNCA.vpcplot(ds)
+
     # Return plot for PKSubject
 
-    @test_nowarn MetidaNCA.subjectplot(ds[1].time, ds[1].obs)
-    @test_nowarn MetidaNCA.subjectplot!(ds[1].time, ds[1].obs)
+    @test_nowarn MetidaNCA.subjectplot(ds[1].time, MetidaNCA.getobs(ds[1]))
+    @test_nowarn MetidaNCA.subjectplot!(ds[1].time, MetidaNCA.getobs(ds[1]))
     p = plot()
-    @test_nowarn MetidaNCA.subjectplot!(p, ds[1].time, ds[1].obs)
+    @test_nowarn MetidaNCA.subjectplot!(p, ds[1].time, MetidaNCA.getobs(ds[1]))
     p = plot()
     @test_nowarn MetidaNCA.pkplot!(ds[1])
     #p = plot()
@@ -187,6 +189,7 @@ include("refdicts.jl")
 
 
     # Missing string LLOQ
+    MetidaNCA.pkimport(lloqpk, :Time, :Concentration, io = io, verbose = 2, warn = true)
     dsncafromds =  MetidaNCA.nca(lloqpk, :Time, :Concentration, io = io, verbose = 2, warn = false)
     @test  sbj[:AUClast]  ≈ dsncafromds[:AUClast]
 
@@ -213,7 +216,7 @@ include("refdicts.jl")
     pl = @test_nowarn MetidaNCA.pkplot!(pd; legend = true, drawbl = true, drawth = true, drawdt = true)
     # Multiple time
 
-    @test_logs (:warn,"Not all time values is unique ([96.0, 4.0, 2.5]), last observation used! ((1,))") (:warn,"Some concentration values maybe not a number, try to fix.") ds = MetidaNCA.pkimport(multtimepk, :Time, :Concentration, :Subject)
+    @test_logs (:warn,"Subject: (1,), Not all time values is unique ([96.0, 4.0, 2.5]), function 'last' used to get observation!") (:warn,"Some concentration values maybe not a number, try to fix.") ds = MetidaNCA.pkimport(multtimepk, :Time, :Concentration, :Subject)
     dsmultt = MetidaNCA.pdimport(multtimepk, :Time, :Concentration, :Subject; warn = false)
     @test MetidaNCA.gettime(dsmultt[1]) ≈ [0.0
     0.5
@@ -263,8 +266,43 @@ include("refdicts.jl")
     missingpk.ConcentrationStr = string.(missingpk.Concentration)
     @test_logs (:warn, "Some concentration values maybe not a number, try to fix.") (:warn, "Value missing parsed as `NaN`") pkiw = MetidaNCA.pkimport(missingpk, :Time, :ConcentrationStr)
 
+    # import covariates
+    @test MetidaNCA.makecovariate([2])[1] == 2
+    @test MetidaNCA.makecovariate([3,3])[1] == 3
+    @test MetidaNCA.makecovariate([3,4])[2] == 4
 
+    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; covars = [:Concentration, :Subject, :Formulation], dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
+    @test MetidaNCA.value(ds[1].covars.Subject) == 2
+    @test MetidaNCA.value(ds[1].covars.Concentration) == [ 0.0
+    62.222
+   261.177
+   234.063
+   234.091
+   222.881
+   213.896
+   196.026
+   199.634
+   196.037
+   213.352
+   200.088
+   196.035
+   160.338
+   110.28
+    85.241]
+    @test ds[1].covars.Formulation[1] == "R"
+    @test ds[1].covars.Concentration[2] == 62.222
+    @test length(ds[1].covars.Formulation) == 1
+    @test length(ds[1].covars.Concentration) == 16
 
+    # Drop functions 
+    @test_nowarn MetidaNCA.dropnanormissing!(ds[1])   
+    @test_nowarn MetidaNCA.dropnanormissing(ds[1])    
+
+    @test_nowarn MetidaNCA.dropnan!(ds[1])   
+    @test_nowarn MetidaNCA.dropnan(ds[1])   
+    
+    @test_nowarn MetidaNCA.dropmissing!(ds[1]) 
+    @test_nowarn MetidaNCA.dropmissing(ds[1])  
 end
 
 @testset "  #1 Linear trapezoidal, Dose 100, Dosetime 0, no tau      " begin
@@ -1659,21 +1697,21 @@ end
         sbj.id[:Subject] == 1
     end
     MetidaNCA.applylimitrule!(af, ds, lr)
-    @test ds[1].obs[1] ≈ 0.5
+    @test MetidaNCA.getobs(ds[1])[1] ≈ 0.5
     MetidaNCA.applylimitrule!(ds, lr, 2)
-    @test ds[2].obs[1] ≈ 0.5
+    @test MetidaNCA.getobs(ds[2])[1] ≈ 0.5
     MetidaNCA.applylimitrule!(ds, lr, 3:4)
-    @test ds[3].obs[1] ≈ 0.5
-    @test ds[4].obs[1] ≈ 0.5
+    @test MetidaNCA.getobs(ds[3])[1] ≈ 0.5
+    @test MetidaNCA.getobs(ds[4])[1] ≈ 0.5
     MetidaNCA.applylimitrule!(ds, lr, Dict(:Formulation => "R"))
-    @test ds[7].obs[1] ≈ 0.5
+    @test MetidaNCA.getobs(ds[7])[1] ≈ 0.5
     MetidaNCA.applylimitrule!(ds, lr)
-    @test ds[6].obs[1] ≈ 0.5
+    @test MetidaNCA.getobs(ds[6])[1] ≈ 0.5
 
     ds = MetidaNCA.pkimport(missingpk, :Time, :Concentration)
 
-    @test ismissing(ds.obs[13])
-    @test isnan(ds.obs[15])
+    @test ismissing(MetidaNCA.getobs(ds)[13])
+    @test isnan(MetidaNCA.getobs(ds)[15])
     @test length(ds) == 18
     MetidaNCA.applylimitrule!(ds, lr)
     @test length(ds) == 16
@@ -1681,7 +1719,7 @@ end
     ds = MetidaNCA.pkimport(missingpk, :Time, :Concentration)
     lr = MetidaNCA.LimitRule(;lloq = 180, btmax = 0.0, atmax = 0.5, nan = 1000, rm = false)
     MetidaNCA.applylimitrule!(ds, lr)
-    @test ds.obs ==  [0.0
+    @test MetidaNCA.getobs(ds) ==  [0.0
     0.0
   190.869
     0.5
@@ -1719,7 +1757,7 @@ end
 
 @testset "  Output                                                   " begin
     io = IOBuffer();
-    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
+    ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0.0))
     sort!(ds, :Subject)
     @test_nowarn dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint, verbose = 1, io = io)
     show(io, ds[1])
@@ -1827,8 +1865,9 @@ include("pdtest.jl")
 
     udt = MetidaNCA.DoseTime(dose = 100u"mg", time = 0.25u"hr", tau = 9u"hr")
     dt = MetidaNCA.DoseTime(dose = 100, time = 0.25, tau = 9)
-    MetidaNCA.setdosetime!(uds, udt)
+    
     MetidaNCA.setdosetime!(ds, dt)
+    MetidaNCA.setdosetime!(uds, udt)
 
     upknca = MetidaNCA.nca!(uds, calcm = :lint)
     pknca  = MetidaNCA.nca!(ds, calcm = :lint)
@@ -1859,9 +1898,51 @@ include("pdtest.jl")
     
 end
 
+@testset "  DataFrames                                               " begin
+    ds    = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject])
+    dsnca = MetidaNCA.nca!(ds)
+    dsdf =   @test_nowarn DataFrame(ds)
+    @test size(dsdf) == (160, 3)
+    @test dsdf[8, :time] == 4.0
+    @test dsdf[8, :obs] == 169.334
+    @test dsdf[8, :Subject] == 5
+    dsdf =   @test_nowarn DataFrame(ds; obstime = true)
+    @test size(dsdf) == (160, 2)
+    @test dsdf[8, :time] == 4.0
+    dsdf =   @test_nowarn DataFrame(dsnca)
+    @test dsdf[1, :Cmax] == 169.334 
+end
+
 @testset "  Precompile                                               " begin
     data = MetidaNCA.metida_table([0.,1.,2.,3.,4.,2.,1.,0.], [0.,1.,2.,3.,4.,5.,6.,7.], names = (:conc, :time))
     pki  = MetidaNCA.pkimport(data, :time, :conc; dosetime = MetidaNCA.DoseTime(dose = 100, time = 0, tau = 5.5))
     @test_nowarn MetidaNCA.nca!(pki)
+end
+
+@testset "  Development                                              " begin
+    io = IOBuffer();
+
+    pki  = @test_nowarn MetidaNCA.pkimport(pkdata2, :Time, :Concentration, :Subject; 
+    dosetime = MetidaNCA.DoseTime(dose = 100, time = 0, tau = 5.5, rate = 1.0),
+    units = MetidaNCA.NCAUnits(u"hr", u"ng/ml", u"m", nothing))
+
+    dtvec = [MetidaNCA.DoseTime(dose = 100, time = 0),
+    MetidaNCA.DoseTime(dose = 100, time = 1)
+    ]
+    pki  = @test_nowarn MetidaNCA.pkimport(pkdata2, :Time, :Concentration, :Subject; 
+    dosetime = dtvec)
+
+    @test_nowarn show(io, pki[1])
+
+    dtvec = [MetidaNCA.DoseTime(dose = 100, time = 1),
+    MetidaNCA.DoseTime(dose = 100, time = 0)
+    ]
+    pki  = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, :Subject; 
+    dosetime = dtvec)
+
+    
+    @test_nowarn MetidaNCA.nca!(pki)
+
+    @test_nowarn convert(typeof(MetidaNCA.DoseTime(dose = 100.0, time = 0.0, tau = 9)), MetidaNCA.DoseTime(dose = 100, time = 1, tau = 9))
 end
 

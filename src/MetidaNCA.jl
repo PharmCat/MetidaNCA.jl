@@ -6,8 +6,8 @@ module MetidaNCA
 using RecipesBase
 
 import RecipesBase: plot!, plot
-
-import Base: length, length, push!, resize!
+import Statistics: mean, quantile
+import Base: length, push!, resize!, ht_keyindex, convert, first
 import MetidaBase
 import MetidaBase: Tables, StatsBase, PrecompileTools,
 PrettyTables,
@@ -29,7 +29,7 @@ using MetidaBase.Requires
 export pkimport, upkimport, pdimport, nca!, nca, DoseTime, ElimRange, LimitRule, NoPageSort,
 auc_sparse,
 setdosetime!, setkelauto!, setkelrange!, applylimitrule!, setbl!, setth!,
-pkplot,
+pkplot, vpcplot,
 getkeldata, getkelauto, getkelrange, getdosetime, getbl, getth, subset,
 metida_table,
 PKSubject, UPKSubject, PDSubject, NCAResult
@@ -56,6 +56,7 @@ const LOG2 = log(2)
     include("metidatable.jl")
     include("setblth.jl")
     include("timefilter.jl")
+    include("dropnanormissing.jl")
     include("sparse.jl")
     include("atomic.jl")
     include("precompile.jl")
