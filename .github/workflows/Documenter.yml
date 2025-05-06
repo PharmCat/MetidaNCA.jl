@@ -29,7 +29,7 @@ jobs:
       contents: write
       pull-requests: read
       statuses: write
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
@@ -51,3 +51,4 @@ jobs:
         run: julia --color=yes --project=docs docs/make.jl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # If authenticating with GitHub Actions token
+          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }} # If authenticating with SSH deploy key
