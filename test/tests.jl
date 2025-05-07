@@ -1,6 +1,7 @@
 #using MetidaNCA
 using Test
-using DataFrames, CSV, Plots, Unitful
+using Plots
+using DataFrames, CSV, Unitful
 import TypedTables: Table
 
 path     = dirname(@__FILE__)

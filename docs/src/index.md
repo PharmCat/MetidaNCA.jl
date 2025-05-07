@@ -46,6 +46,10 @@ Depth = 3
 * Gabrielsson J, Weiner D. Non-compartmental analysis. Methods Mol Biol. 2012;929:377-89. doi: 10.1007/978-1-62703-050-2_16. PMID: 23007438.
 
 
+## Manual
+
+* Manual 0.1 RU (draft): [manual_ru.pdf](./manual_ru.pdf).
+
 ```@example
 import Dates # hide
 println("Date and time: ", now()) # hide

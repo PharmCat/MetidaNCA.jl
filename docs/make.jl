@@ -4,6 +4,8 @@ using Documenter, Weave, PrettyTables, CSV, DataFrames
 
 include("validation.jl")
 
+include("manual.jl")
+
 #v_out_path = joinpath(dirname(@__FILE__), "src", "validation_report.md")
 
 makedocs(

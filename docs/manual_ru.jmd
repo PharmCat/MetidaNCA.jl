@@ -7,7 +7,7 @@ date: `j import Dates; Dates.Date(Dates.now())`
 
 
 ```julia; echo = false
-using Dates, DataFrames, CSV, PrettyTables, Latexify
+using Dates, DataFrames, CSV, PrettyTables, Latexify, LaTeXStrings
 ```
 
 # Введение
@@ -33,7 +33,18 @@ MetidaNCA обеспечивает:
 Автоматически обновляемая докуентация доступна по ссылкам:
 
   * Версия в разработке: [https://pharmcat.github.io/MetidaNCA.jl/dev/](https://pharmcat.github.io/MetidaNCA.jl/dev/)
-  * SСтабильный релиз: [https://pharmcat.github.io/MetidaNCA.jl/stable/](https://pharmcat.github.io/MetidaNCA.jl/stable/)
+  * Стабильный релиз: [https://pharmcat.github.io/MetidaNCA.jl/stable/](https://pharmcat.github.io/MetidaNCA.jl/stable/)
+
+Сборка руководства по эксплуатации выполнена в окружении:
+
+```julia; echo = false; results = "hidden"
+using MetidaNCA, Pkg
+pkgversion(m::Module) = Pkg.TOML.parsefile(joinpath(dirname(string(first(methods(m.eval)).file)), "..", "Project.toml"))["version"]
+ver = pkgversion(MetidaNCA)
+```
+* Julia version: `j Sys.VERSION`
+* Current machine: `j Sys.MACHINE`
+* MetidaNCA: `ver`
 
 ## Julia
 
@@ -43,6 +54,8 @@ Julia применяется как язык программирования и
 и динамического моделирования Engee и др.
 
 Сайт: https://julialang.org/
+
+\pagebreak
 
 # Требования
 
@@ -61,7 +74,7 @@ CSV таблицами (CSV) и графиками (Plots). При этом па
 
 Обычный выпуск обновлений выполняется следующим образом:
 
-  * Разработка
+  * Разработка программы (дополнений)
   * Разработка тестировочных процедур
   * Проверка на локальной машине
   * Релиз ветви разработчика
@@ -114,7 +127,7 @@ MetidaNCA поставляется с набором валидационных 
 При проведении тестирования выполняются стандартные функции пакета MetidaNCA с 
 последующим сравнением с заранее известными значениями (значения вычисленных параметров 
 получены с использованием других программных продуктов предназначенных для вычисления 
-фармакокинетических параметров: Phoenix WinNonlin). 
+фармакокинетических параметров: Phoenix WinNonlin и др.). 
 
 Для запуска валидационных процедур выполнить:
 
@@ -173,7 +186,7 @@ sort!(ds, :Subject)
 #pretty_table(dfn; tf = tf_ascii_rounded)
 show(latexify(dfn; latex=false))
 ```
-Table: Parameter description
+Таблица: Описание параметров
 
 \pagebreak
 
@@ -209,94 +222,254 @@ pkdata2[1:15, :]
 * Концентрация (Float64);
 * Уникальный идентификатор субъекта (SubjectID) (если субъектов > 1) - одно или несколько полей.
 
-```julia; eval = false
+```julia; echo = true; wrap = false; line_width = 75
+# Загрузка данных
 pkdata2  = CSV.File(
 joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "pkdata2.csv")
 ) |> DataFrame
+
+# Импорт данных
 ds = pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation];
 dosetime = DoseTime(dose = 100, time = 0))
-sort!(ds, :Subject)
 ```
 
 ## Выполнение вычислений
 
+Для одного субъекта:
+
 ```julia; echo = true; wrap = false; line_width = 75
-MetidaNCA.nca!(ds[1], adm = :ev, calcm = :lint, verbose = 1)
+dsnca1 = nca!(ds[1], adm = :ev, calcm = :lint, verbose = 1)
+```
+
+Для всего набора данных:
+
+```julia; echo = true; wrap = false; line_width = 75
+dsnca  = nca!(ds, adm = :ev, calcm = :lint, verbose = 1)
 ```
 
 ## Построение графиков
 
+Построение графиков выполняется с исползованием пакета RecipesBase. 
+Это значит, что для построения могут быть использованы пакеты совместимые с RecipesBase.jl - Plots.jl и .
+
+Для субъекта:
+
+```julia; eval = false
+pkplot(ds[1])
+```
+
+![A plot](`j pkplot(ds[1])`)
+
+Для набора данных:
+
+```julia; eval = false
+pkplot(ds; typesort = :Subject, pagesort = MetidaNCA.NoPageSort(), sort = Dict(:Formulation => "R"))
+```
+
+![B plot](`j pkplot(ds; typesort = :Subject, pagesort = MetidaNCA.NoPageSort(), sort = Dict(:Formulation => "R"))`)
+
 ## Экспорт результатов
+
+Для экспорта таблиц может быть использован пакет DataFrames.jl:
+
+```julia; echo = true; wrap = false; line_width = 75
+dsnca = DataFrame(dsnca)
+dsnca[1:5, 1:7]
+```
+
+С последующим сохранением в виде CSV или XLSX файла (CSV.jl, XLSX.jl)
+
+```julia; eval = false; echo = true; wrap = false; line_width = 75
+CSV.write("nca_export.csv", dsnca)
+```
+
+\pagebreak
 
 # Дополнительные функции
 
 ## LimitRule
 
+Правила для замены наблюдений ниже LLOQ и неопределенных значений (NaN).
+
+```julia; eval = false; echo = true; wrap = false; line_width = 75
+lr = LimitRule(;lloq = 0.5, btmax = 0.0, atmax = NaN, nan = NaN, rm = true)
+
+applylimitrule!(ds, lr)
+```
+
 ## DoseTime
+
+Установка дозы и времени дозирование.
+
+```julia; eval = false; echo = true; wrap = false; line_width = 75
+dt = DoseTime(dose = 110, time = 2.1, tau = 10)
+
+setdosetime!(ds[1], dt)
+```
 
 ## ElimRange
 
-# Вычисление параметров
+Установка границ для расчета константы элиминации:
+
+```julia; eval = false; echo = true; wrap = false; line_width = 75
+kr =  ElimRange(kelstart = 4, kelend = 12)
+
+setkelrange!(ds, kr; kelauto = true)
+```
+
+\pagebreak
+
+# API
+
+Подробное описание API составляется автоматически при релизе новой версии и доступно по адресу: [API](https://pharmcat.github.io/MetidaNCA.jl/stable/api/).
+
+# Вычисление основных параметров
+
+## Cmax
+
+Максимальная концентрация измеренная после дозирования, исползуется первое значение. 
+
+### Tmax
+
+Время достижения максимальной концентрации, исползуется первое значение. 
+
+### AUC / AUMC
+
+Area under Curve / Area under the Moment Curve:
+
+```math
+AUC = \sum_{n=1}^N AUC_{n}
+```
+
+```math
+AUMC = \sum_{n=1}^N AUMC_{n}
+```
+
+#### Правило линейных трепеций
+
+```julia; echo = false
+L"""
+AUC\mid_{t_1}^{t_2} = \delta t \times \frac{C_1 + C_2}{2}
+"""
+```
+
+```julia; echo = false
+L"""
+AUMC\mid_{t_1}^{t_2} = \delta t \times \frac{t_1 \times C_1 + t_2 \times C_2}{2}
+"""
+```
+
+#### Правило лог-трепеций
+
+```julia; echo = false
+L"""
+AUC\mid_{t_1}^{t_2} =   \delta t \times \frac{ C_2 - C_1}{ln(C_2/C_1)}
+"""
+```
+
+```julia; echo = false
+L"""
+AUMC\mid_{t_1}^{t_2} = \delta t \times \frac{t_2 \times C_2 - t_1 \times C_1}{ln(C_2/C_1)} -  \delta t^2 \times \frac{ C_2 - C_1}{ln(C_2/C_1)^2}
+"""
+```
 
 ## Пропущенные значения и интерполяция
 
-## Количество наблюдений
+### Правило линейной интерполяции
 
-## Время дозирования
+```julia; echo = false
+L"""
+C_x = C_1 + \frac{(t_x-t_1)\times(C_2 - C_1)}{t_2 - t_1}
+"""
+```
 
-## Kel
+### Правило лог-интерполяции
 
-## Cdose
+```julia; echo = false
+L"""
+C_x = exp\left(ln(C_1) + \frac{(t_x-t_1)\times(ln(C_2) - ln(C_1))}{t_2 - t_1}\right)
+"""
+```
 
-## AUC/AUMC
+### MRTlast
 
-## Параметры равновесного состояния
+Среднее время удержания:
 
-## Частичные AUC/AUMC
+```julia; echo = false
+L"""
+MRT_{last} = AUMC_{last} / AUC_{last}
+"""
+```
+
+### Kel
+
+𝝺z - константа элиминации. Для расчета используется линейная регрессия для логарифмированных данных на терминальном участке.
+
+### HL
+
+Время полувыведения; T1/2
+
+```julia; echo = false
+L"""
+HL = ln(2) / \lambda_z
+"""
+```
+
+### AUCinf
 
 
+```julia; echo = false
+L"""
+AUC_\infty = AUC_{last} + \frac{C_{last}}{\lambda_z}
+"""
+```
+
+### AUMCinf
+
+```julia; echo = false
+L"""
+AUMC_\infty =  AUMC_{last} + \frac{t_{last}\times C_{last}}{\lambda_z} + \frac{C_{last}}{\lambda_z^2}
+"""
+```
+
+### AUCpct
+
+
+```julia; echo = false
+L"""
+AUCpct = (AUC_\infty - AUC_{last}) / AUC_\infty * 100 \%
+"""
+```
 
 \pagebreak
+
+# Валидация
+
+Информация о валидации программного обеспечения представлена в отчете: [MetidaNCA Validation Report](https://pharmcat.github.io/MetidaNCA.jl/stable/validation_report.pdf).
 
 # Глоссарий
 
-  * Installation qualification (IQ) - Establishing confidence that process equipment and ancillary systems are compliant with appropriate codes and approved design intentions, and that manufacturer's recommendations are suitably considered.
-  * Operational qualification (OQ) Establishing confidence that process equipment and sub-systems are capable of consistently operating within established limits and tolerances.
-  * Product performance qualification (PQ) - Establishing confidence through appropriate testing that the finished product produced by a specified process meets all release requirements for functionality and safety.
   * Repository - GitHub repository: https://github.com/PharmCat/MetidaNCA.jl
   * Master branch - main branch on GitHub ([link](https://github.com/PharmCat/MetidaNCA.jl/tree/main)).
   * Current machine - pc that used for validation report generating.
-  * REPL (от англ. read-eval-print loop — «цикл "чтение — вычисление — вывод"») — форма организации простой интерактивной среды программирования в рамках средств интерфейса командной строки.
   * AUC - площадь под фармакокинетической кривой — кривой «концентрация—время».
   * AUMC - площадь под кривой «произведение времени на концентрацию препарата tC».
-  * Tau - интервал дозирования
+  * HL - период полувыведения.
+  * LLOQ - Нижний предел количественного определения (Lower Limit of Quantification).
+  * REPL (от англ. read-eval-print loop — «цикл "чтение — вычисление — вывод"») — форма организации простой интерактивной среды программирования в рамках средств интерфейса командной строки.
+  * Tau - интервал дозирования (время).
 
 # Ссылки
 
-* [General Principles of Software Validation; Final Guidance for Industry and FDA Staff](https://www.fda.gov/media/73141/download)
-* [Guidance for Industry Process Validation: General Principles and Practices](https://www.fda.gov/files/drugs/published/Process-Validation--General-Principles-and-Practices.pdf)
-* [Glossary of Computer System Software Development Terminology](https://www.fda.gov/inspections-compliance-enforcement-and-criminal-investigations/inspection-guides/glossary-computer-system-software-development-terminology-895)
+* Gabrielsson J, Weiner D. Non-compartmental analysis. Methods Mol Biol. 2012;929:377-89. doi: 10.1007/978-1-62703-050-2_16. PMID: 23007438.
+* [MetidaNCA Documentation EN](https://pharmcat.github.io/MetidaNCA.jl/stable/)
+* [MetidaNCA Validation Report](https://pharmcat.github.io/MetidaNCA.jl/stable/validation_report.pdf)
 
-\pagebreak
+# Обратная связь
 
+Сообщения об ошибках, а также сообщения для улчучшения программного обеспечения может быть направлена:
 
+* по адресу mail@pharmcat.net 
+* В разделе [Issues](https://github.com/PharmCat/MetidaNCA.jl/issues) на сайте github.com
 
-## Системная информация
-
- * Julia version: `j Sys.VERSION`
- * Current machine: `j Sys.MACHINE`
-
-
-## Версия MetidaNCA
-
-```julia; echo = false; results = "hidden"
-using MetidaNCA, Pkg
-pkgversion(m::Module) = Pkg.TOML.parsefile(joinpath(dirname(string(first(methods(m.eval)).file)), "..", "Project.toml"))["version"]
-ver = pkgversion(MetidaNCA)
-```
-
-Current package version:
-```julia; echo = false; results = "tex"
-ver
-```
 
