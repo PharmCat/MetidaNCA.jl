@@ -8,3 +8,5 @@ pandoc_options=["--toc", "-V colorlinks=true" , "-V linkcolor=blue", "-V urlcolo
 rm(joinpath(dirname(@__FILE__), "src", "manual_ru.aux"); force=true)
 rm(joinpath(dirname(@__FILE__), "src", "manual_ru.log"); force=true)
 rm(joinpath(dirname(@__FILE__), "src", "manual_ru.out"); force=true)
+
+#weave(joinpath(dirname(@__FILE__), "manual_ru.jmd"); out_path = "D:\\Temp")

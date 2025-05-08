@@ -1,14 +1,15 @@
 
 ---
-title: MetidaNCA: Руковоство по эксплуатации
+title: MetidaNCA - Руководство по эксплуатации
 author: Владимир Арнаутов
 date: `j import Dates; Dates.Date(Dates.now())`
 ---
 
 
 ```julia; echo = false
-using Dates, DataFrames, CSV, PrettyTables, Latexify, LaTeXStrings
+using Dates, DataFrames, CSV, PrettyTables, Latexify, Plots
 ```
+
 
 # Введение
 
@@ -176,13 +177,6 @@ dfn = DataFrame(
 "MRTtauinf" "MRT based on Tau" "MRT в границах Tau"
 "Cltau" "Clearence in Tau range" "Клиренс в границах Tau"
 "Vztau" "Volume of distribution in Tau range" "Объем распределения Tau"], ["Название", "Описание(EN)", "Описание(RU)"])
-
-pkdata2  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "pkdata2.csv")) |> DataFrame
-upkdata  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "upkdata.csv")) |> DataFrame
-pddata   = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "pddata.csv")) |> DataFrame
-ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; 
-dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
-sort!(ds, :Subject)
 #pretty_table(dfn; tf = tf_ascii_rounded)
 show(latexify(dfn; latex=false))
 ```
@@ -245,6 +239,8 @@ dsnca1 = nca!(ds[1], adm = :ev, calcm = :lint, verbose = 1)
 
 ```julia; echo = true; wrap = false; line_width = 75
 dsnca  = nca!(ds, adm = :ev, calcm = :lint, verbose = 1)
+
+dsnca[3:4]
 ```
 
 ## Построение графиков
@@ -347,58 +343,44 @@ AUMC = \sum_{n=1}^N AUMC_{n}
 
 #### Правило линейных трепеций
 
-```julia; echo = false
-L"""
+```math
 AUC\mid_{t_1}^{t_2} = \delta t \times \frac{C_1 + C_2}{2}
-"""
 ```
 
-```julia; echo = false
-L"""
+```math
 AUMC\mid_{t_1}^{t_2} = \delta t \times \frac{t_1 \times C_1 + t_2 \times C_2}{2}
-"""
 ```
 
 #### Правило лог-трепеций
 
-```julia; echo = false
-L"""
+```math
 AUC\mid_{t_1}^{t_2} =   \delta t \times \frac{ C_2 - C_1}{ln(C_2/C_1)}
-"""
 ```
 
-```julia; echo = false
-L"""
+```math
 AUMC\mid_{t_1}^{t_2} = \delta t \times \frac{t_2 \times C_2 - t_1 \times C_1}{ln(C_2/C_1)} -  \delta t^2 \times \frac{ C_2 - C_1}{ln(C_2/C_1)^2}
-"""
 ```
 
 ## Пропущенные значения и интерполяция
 
 ### Правило линейной интерполяции
 
-```julia; echo = false
-L"""
+```math
 C_x = C_1 + \frac{(t_x-t_1)\times(C_2 - C_1)}{t_2 - t_1}
-"""
 ```
 
 ### Правило лог-интерполяции
 
-```julia; echo = false
-L"""
+```math
 C_x = exp\left(ln(C_1) + \frac{(t_x-t_1)\times(ln(C_2) - ln(C_1))}{t_2 - t_1}\right)
-"""
 ```
 
 ### MRTlast
 
 Среднее время удержания:
 
-```julia; echo = false
-L"""
+```math
 MRT_{last} = AUMC_{last} / AUC_{last}
-"""
 ```
 
 ### Kel
@@ -409,36 +391,28 @@ MRT_{last} = AUMC_{last} / AUC_{last}
 
 Время полувыведения; T1/2
 
-```julia; echo = false
-L"""
+```math
 HL = ln(2) / \lambda_z
-"""
 ```
 
 ### AUCinf
 
 
-```julia; echo = false
-L"""
+```math
 AUC_\infty = AUC_{last} + \frac{C_{last}}{\lambda_z}
-"""
 ```
 
 ### AUMCinf
 
-```julia; echo = false
-L"""
+```math
 AUMC_\infty =  AUMC_{last} + \frac{t_{last}\times C_{last}}{\lambda_z} + \frac{C_{last}}{\lambda_z^2}
-"""
 ```
 
 ### AUCpct
 
 
-```julia; echo = false
-L"""
+```math
 AUCpct = (AUC_\infty - AUC_{last}) / AUC_\infty * 100 \%
-"""
 ```
 
 \pagebreak
@@ -458,10 +432,12 @@ AUCpct = (AUC_\infty - AUC_{last}) / AUC_\infty * 100 \%
   * LLOQ - Нижний предел количественного определения (Lower Limit of Quantification).
   * REPL (от англ. read-eval-print loop — «цикл "чтение — вычисление — вывод"») — форма организации простой интерактивной среды программирования в рамках средств интерфейса командной строки.
   * Tau - интервал дозирования (время).
+  * тестовое покрытие (test coverage): Степень, с которой данный тест проверяет требования для программного продукта 
 
 # Ссылки
 
 * Gabrielsson J, Weiner D. Non-compartmental analysis. Methods Mol Biol. 2012;929:377-89. doi: 10.1007/978-1-62703-050-2_16. PMID: 23007438.
+* [ГОСТ Р ИСО/МЭК 12207-2010](https://docs.cntd.ru/document/1200082859?section=text)
 * [MetidaNCA Documentation EN](https://pharmcat.github.io/MetidaNCA.jl/stable/)
 * [MetidaNCA Validation Report](https://pharmcat.github.io/MetidaNCA.jl/stable/validation_report.pdf)
 

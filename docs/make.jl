@@ -2,9 +2,9 @@ using MetidaNCA
 using Documenter, Weave, PrettyTables, CSV, DataFrames
 #using DocumenterLaTeX
 
-include("validation.jl")
-
 include("manual.jl")
+
+include("validation.jl")
 
 #v_out_path = joinpath(dirname(@__FILE__), "src", "validation_report.md")
 
