@@ -3,6 +3,12 @@
 title: MetidaNCA - Руководство по эксплуатации
 author: Владимир Арнаутов
 date: `j import Dates; Dates.Date(Dates.now())`
+lang: ru
+header-includes: |
+    \newfontfamily{\cyrillicfont}{Arial} 
+    \newfontfamily{\cyrillicfontrm}{Arial}
+    \newfontfamily{\cyrillicfonttt}{Arial}
+    \newfontfamily{\cyrillicfontsf}{Arial}
 ---
 
 
@@ -238,7 +244,7 @@ dsnca1 = nca!(ds[1], adm = :ev, calcm = :lint, verbose = 1)
 Для всего набора данных:
 
 ```julia; echo = true; wrap = false; line_width = 75
-dsnca  = nca!(ds, adm = :ev, calcm = :lint, verbose = 1)
+dsnca  = nca!(ds, adm = :ev, calcm = :lint)
 
 dsnca[3:4]
 ```

@@ -52,5 +52,5 @@ Depth = 3
 
 ```@example
 import Dates # hide
-println("Date and time: ", now()) # hide
+println("Date and time: ", Dates.now()) # hide
 ```
