@@ -38,8 +38,29 @@ function __init__()
     @require Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80" begin
         savefig = Plots.savefig
         current = Plots.current
+
+        function mergeplots!(sp1::Plots.Subplot, sp2::Plots.Subplot)
+            append!(sp1.series_list, sp2.series_list)
+            Plots.expand_extrema!(sp1[:xaxis], xlims(sp2))
+            Plots.expand_extrema!(sp1[:yaxis], ylims(sp2))
+            Plots.expand_extrema!(sp1[:zaxis], zlims(sp2))
+            return sp1
+        end
+        
+        function mergeplots!(plt, plts...)
+            for (i, sp) in enumerate(plt.subplots)
+                for other_plt in plts
+                    if i in eachindex(other_plt.subplots)
+                      mergeplots!(sp, other_plt[i])
+                    end
+                end
+            end
+            return plt
+        end
     end
 end
+
+function mergeplots! end
 
 const LOG2 = log(2)
 
