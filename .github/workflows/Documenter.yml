@@ -11,6 +11,7 @@ on:
       - 'LICENSE.md'
       - 'README.md'
       - '.github/**'
+      - '.github/workflows/Tier1.yml'
       - 'test/**'
       - 'img/**'
       - 'validation/**'
@@ -22,6 +23,9 @@ on:
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - '.github/workflows/Tier1.yml'
+      - 'test/**'
 jobs:
   build:
     permissions:
@@ -36,7 +40,7 @@ jobs:
       - name: Update
         run: sudo apt-get update
       - name: Install Pandoc
-        run: sudo apt-get install pandoc texlive-latex-recommended texlive-xetex texlive-luatex texlive-latex-extra texlive-lang-cyrillic texlive-doc-ru
+        run: sudo apt-get install pandoc texlive-latex-recommended texlive-xetex texlive-luatex texlive-latex-extra texlive-lang-cyrillic
       - uses: julia-actions/setup-julia@v2
         with:
           version: '1'
