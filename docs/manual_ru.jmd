@@ -4,12 +4,8 @@ title: MetidaNCA - Руководство по эксплуатации
 author: Владимир Арнаутов
 date: `j import Dates; Dates.Date(Dates.now())`
 lang: ru
-base-font-family: Noto Serif
-header-includes: |
-    \newfontfamily{\cyrillicfont}{Arial} 
-    \newfontfamily{\cyrillicfontrm}{Arial}
-    \newfontfamily{\cyrillicfonttt}{Arial}
-    \newfontfamily{\cyrillicfontsf}{Arial}
+mainfont: DejaVuSans
+monofont: DejaVuSansMono
 ---
 
 
@@ -392,7 +388,7 @@ MRT_{last} = AUMC_{last} / AUC_{last}
 
 ### Kel
 
-𝝺z - константа элиминации. Для расчета используется линейная регрессия для логарифмированных данных на терминальном участке.
+`\lambda_z` - константа элиминации. Для расчета используется линейная регрессия для логарифмированных данных на терминальном участке.
 
 ### HL
 
