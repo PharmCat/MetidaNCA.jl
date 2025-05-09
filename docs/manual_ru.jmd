@@ -10,9 +10,10 @@ monofont: DejaVuSansMono
 
 
 ```julia; echo = false
-using Dates, DataFrames, CSV, PrettyTables, Latexify, Plots
+using Dates, DataFrames, CSV, PrettyTables, Latexify, LaTeXStrings, Plots
 ```
 
+\pagebreak
 
 # Введение
 
@@ -43,7 +44,8 @@ MetidaNCA обеспечивает:
 
 ```julia; echo = false; results = "hidden"
 using MetidaNCA, Pkg
-pkgversion(m::Module) = Pkg.TOML.parsefile(joinpath(dirname(string(first(methods(m.eval)).file)), "..", "Project.toml"))["version"]
+pkgversion(m::Module) = Pkg.TOML.parsefile(joinpath(dirname(string(first(methods(m.eval)).file)), 
+"..", "Project.toml"))["version"]
 ver = pkgversion(MetidaNCA)
 ```
 * Julia version: `j Sys.VERSION`
@@ -149,6 +151,8 @@ import Pkg; Pkg.test("MetidaNCA")
 
 Поставляются с пакетом (./test/csv/*.csv).
 
+\pagebreak
+
 # Описание фармакокинетических параметров
 
 Следующие фармакокинетические параметры могут быть получены в ходе анализа ФК профилей:
@@ -200,7 +204,8 @@ show(latexify(dfn; latex=false))
 Пример загрузки табличных данных:
 
 ```julia; eval = false
-pkdata2  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "pkdata2.csv")) |> DataFrame
+pkdata2  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), 
+"..", "test", "csv", "pkdata2.csv")) |> DataFrame
 ```
 
 Подробная информация о работе с табличными данными при помощи пакета DataFrames: [Codecov.io](https://)
@@ -220,12 +225,15 @@ pkdata2[1:15, :]
 * Уникальный идентификатор субъекта (SubjectID) (если субъектов > 1) - одно или несколько полей.
 
 ```julia; echo = true; wrap = false; line_width = 75
+
 # Загрузка данных
+
 pkdata2  = CSV.File(
 joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "pkdata2.csv")
 ) |> DataFrame
 
 # Импорт данных
+
 ds = pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation];
 dosetime = DoseTime(dose = 100, time = 0))
 ```
@@ -257,15 +265,19 @@ dsnca[3:4]
 pkplot(ds[1])
 ```
 
-![A plot](`j pkplot(ds[1])`)
+![Один субъект](`j pkplot(ds[1])`)
 
 Для набора данных:
 
 ```julia; eval = false
-pkplot(ds; typesort = :Subject, pagesort = MetidaNCA.NoPageSort(), sort = Dict(:Formulation => "R"))
+pkplot(ds; typesort = :Subject, pagesort = MetidaNCA.NoPageSort(), 
+sort = Dict(:Formulation => "R"))
 ```
 
-![B plot](`j pkplot(ds; typesort = :Subject, pagesort = MetidaNCA.NoPageSort(), sort = Dict(:Formulation => "R"))`)
+![Набор субъектов](`j pkplot(ds; typesort = :Subject, pagesort = MetidaNCA.NoPageSort(), sort = Dict(:Formulation => "R"))`)
+
+\pagebreak
+
 
 ## Экспорт результатов
 
@@ -291,7 +303,8 @@ CSV.write("nca_export.csv", dsnca)
 Правила для замены наблюдений ниже LLOQ и неопределенных значений (NaN).
 
 ```julia; eval = false; echo = true; wrap = false; line_width = 75
-lr = LimitRule(;lloq = 0.5, btmax = 0.0, atmax = NaN, nan = NaN, rm = true)
+lr = LimitRule(;lloq = 0.5, btmax = 0.0, atmax = NaN, 
+nan = NaN, rm = true)
 
 applylimitrule!(ds, lr)
 ```
@@ -336,8 +349,9 @@ setkelrange!(ds, kr; kelauto = true)
 
 Area under Curve / Area under the Moment Curve:
 
-```math
-AUC = \sum_{n=1}^N AUC_{n}
+
+```julia; echo = false, results = "tex"
+L"AUC = \sum_{n=1}^N AUC_{n}"
 ```
 
 ```math
