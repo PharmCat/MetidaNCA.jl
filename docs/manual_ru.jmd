@@ -4,12 +4,7 @@ title: MetidaNCA - Руководство по эксплуатации
 author: Владимир Арнаутов
 date: `j import Dates; Dates.Date(Dates.now())`
 lang: ru
-base-font-family: Noto Serif
-header-includes: |
-    \newfontfamily{\cyrillicfont}{Arial} 
-    \newfontfamily{\cyrillicfontrm}{Arial}
-    \newfontfamily{\cyrillicfonttt}{Arial}
-    \newfontfamily{\cyrillicfontsf}{Arial}
+mainfont: sans-serif
 ---
 
 
