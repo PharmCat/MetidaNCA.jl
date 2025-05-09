@@ -4,7 +4,7 @@ title: MetidaNCA - Руководство по эксплуатации
 author: Владимир Арнаутов
 date: `j import Dates; Dates.Date(Dates.now())`
 lang: ru
-mainfont: sans-serif
+mainfont: DejaVuSans
 ---
 
 
