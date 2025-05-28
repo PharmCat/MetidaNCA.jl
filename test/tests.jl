@@ -380,6 +380,8 @@ dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
 
     # MRTinf_pred
 
+    @test round.(dsnca[:, :MRTinf_pred], digits = 5) == round.(refdict[:MRTinf_pred], digits = 5)
+
     # Cllast
 
     # Clinf
@@ -1941,12 +1943,34 @@ end
     pki  = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, :Subject; 
     dosetime = dtvec)
 
-    
     @test_nowarn MetidaNCA.nca!(pki)
 
     @test_nowarn convert(typeof(MetidaNCA.DoseTime(dose = 100.0, time = 0.0, tau = 9)), MetidaNCA.DoseTime(dose = 100, time = 1, tau = 9))
 
     @test_nowarn options = MetidaNCA.NCAOptions() 
+
+
+    pkdata22 = filter(:Concentration => x -> x > 0, pkdata2)
+    pkdata22.Concentration2 = copy(pkdata22.Concentration)
+    pkdata22.LogConcentration = log.(pkdata22.Concentration)
+
+    pki  = @test_nowarn MetidaNCA.pkimport(pkdata22, :Time, [:Concentration, :Concentration2], :Subject)
+
+    params = [:Cmax, :Tmax, :AUClast, :Kel, :Rsq, :MRTinf]
+    ncares1 = MetidaNCA.nca!(pki, :Concentration)
+    ncares2 = MetidaNCA.nca!(pki, :Concentration2)
+
+    pki  = @test_nowarn MetidaNCA.pkimport(pkdata22, :Time, [:LogConcentration, :Concentration], :Subject)
+    ncares3 = MetidaNCA.nca!(pki, :Concentration)
+
+    pki  = @test_nowarn MetidaNCA.pkimport(pkdata22, :Time, [:Concentration, :LogConcentration], :Subject)
+    ncares4 = MetidaNCA.nca!(pki, :Concentration)
+
+    for p in params
+        @test ncares1[:, p] == ncares2[:, p]
+        @test ncares1[:, p] == ncares3[:, p]
+        @test ncares1[:, p] == ncares4[:, p]
+    end
 
 end
 

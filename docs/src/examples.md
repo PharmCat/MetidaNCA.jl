@@ -119,6 +119,14 @@ png(p, "vpcplot.png")
 
 ![](vpcplot.png)
 
+### MetidaNCA.mergeplots!(plt, plts...)
+
+If Plots.jl installed? you can use `MetidaNCA.mergeplots!` function to merge 2 or more plots. This function not exported.
+
+```
+MetidaNCA.mergeplots!(plt, plts...)
+```
+
 ## Set dose time
 
 You can set dose time with [`setdosetime!`](@ref) for whole subject set or for

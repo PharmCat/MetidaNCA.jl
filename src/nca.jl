@@ -410,18 +410,23 @@ function nca(args...; type::Symbol = :bps, bl = 0, th = 0, kelauto = true,  elim
 end
 
 """
-    nca!(data::DataSet{Subj}; adm = :ev, calcm = :lint, intpm = nothing, verbose = 0, warn = true, wm::Bool = false, io::IO = stdout, modify! = identity) where Subj <: AbstractSubject
+    nca!(data::DataSet{Subj}, obs::Union{Symbol, Nothing} = nothing; adm = :ev, calcm = :lint, intpm = nothing, verbose = 0, warn = true, wm::Bool = false, io::IO = stdout, modify! = identity) where Subj <: AbstractSubject
+
+Non-compartmental (NCA) analysis of PK/PD data.
+
+**Arguments**
+
+* data - DataSet to analyze;
+* obs - observation to use as a PK metric (by default used first observations vector).
+
+ **Keywords**
 
 * `wm` - write output to DataSet metadata (`:ncalog` index).
 
-Non-compartmental (NCA) analysis of PK/PD data.
+Other keywords is the same as in `nca!` method for `PKSubject`.
 """
-function nca!(data::DataSet{Subj};  wm::Bool = false, io = stdout, kwargs...) where Subj <: AbstractSubject
-    #result = Vector{NCAResult{Subj}}(undef, length(data))
-    #for i = 1:length(data)
-    #    result[i] = nca!(data[i]; kwargs...)
-    #end
-    #DataSet(result)
+function nca!(data::DataSet{Subj}, obs::Union{Symbol, Nothing} = nothing;  wm::Bool = false, io = stdout, kwargs...) where Subj <: AbstractSubject
+
     writetostdout = false
     if wm
         if io == stdout
@@ -430,7 +435,7 @@ function nca!(data::DataSet{Subj};  wm::Bool = false, io = stdout, kwargs...) wh
         end
     end
 
-    ds = map(x -> nca!(x; io = io, kwargs...), data)
+    ds = map(x -> nca!(x, obs; io = io, kwargs...), data)
     
     if wm
         io2 = deepcopy(io)
@@ -443,7 +448,14 @@ function nca!(data::DataSet{Subj};  wm::Bool = false, io = stdout, kwargs...) wh
 end
 
 """
-    nca!(data::PKSubject{T,O}; adm = :ev, calcm = :lint, intpm = nothing,  partials = nothing, prtext = :err, verbose = 0, warn = true, io::IO = stdout, modify! = nothing) where T where O
+    nca!(data::PKSubject{T,O}, obs::Union{Symbol, Nothing} = nothing; adm = :ev, calcm = :lint, intpm = nothing,  partials = nothing, prtext = :err, verbose = 0, warn = true, io::IO = stdout, modify! = nothing) where T where O
+
+**Arguments**
+
+* data - PK Subject to analyze;
+* obs - observation to use as a PK metric (by default used first observations vector).
+
+**Keywords**
 
 * `adm` - administration:
     - `:ev` - extra vascular;
@@ -516,7 +528,7 @@ Steady-state parameters (tau used):
 `partials` is a vector of vectors, tuples or pairs. Example: `partials = [(1,2), (3,4)]`, `partials = [[1,2], (3,4)]`
 
 """
-function nca!(data::PKSubject{T, OBS}; 
+function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = nothing; 
     adm = :ev, calcm = :lint, 
     intpm = :calcm,  
     partials = nothing, 
@@ -527,7 +539,7 @@ function nca!(data::PKSubject{T, OBS};
     modify! = identity,
     kwargs...) where T where OBS
 
-    O = eltype(getobs(data))
+    O = eltype(getobs(data, obs))
 
     ptype  = promote_type(Float64, T, O)
 
@@ -535,7 +547,7 @@ function nca!(data::PKSubject{T, OBS};
 
     if intpm == :calcm intpm = calcm end
 
-    options =  Dict(:type => :bps, :adm => adm, :calcm => calcm, :intpm => intpm, :verbose => verbose, :warn => warn, :modify! => modify!)
+    options =  Dict(:obsname => obs, :type => :bps, :adm => adm, :calcm => calcm, :intpm => intpm, :verbose => verbose, :warn => warn, :modify! => modify!)
 
     # !!! temporal workaround !!!
     first_dosetime_tau  = first(data.dosetime).tau
@@ -560,8 +572,8 @@ function nca!(data::PKSubject{T, OBS};
     end
 ################################################################################
     # STEP 1 FILTER ALL BEFORE DOSETIME AND ALL NAN OR MISSING VALUES
-    if validobsn(gettime(data), getobs(data)) == 0 return NCAResult(data, options, result) end
-    time_cp, obs_cp, einds = step_1_filterpksubj(gettime(data), getobs(data), first_dosetime_time)
+    if validobsn(gettime(data), getobs(data, obs)) == 0 return NCAResult(data, options, result) end
+    time_cp, obs_cp, einds = step_1_filterpksubj(gettime(data), getobs(data, obs), first_dosetime_time)
     if length(obs_cp) < 2
         return NCAResult(data, options, result)
     end
@@ -681,7 +693,9 @@ function nca!(data::PKSubject{T, OBS};
         result[:AUCinf_pred]     = result[:AUClast] + result[:Clast_pred] / result[:Kel]
         result[:AUCpct]          = (result[:AUCinf] - result[:AUClast]) / result[:AUCinf] * 100
         result[:AUMCinf]         = result[:AUMClast] + result[:Tlast] * result[:Clast] / result[:Kel] + result[:Clast] / result[:Kel] ^ 2
+        result[:AUMCinf_pred]    = result[:AUMClast] + result[:Tlast] * result[:Clast_pred] / result[:Kel] + result[:Clast_pred] / result[:Kel] ^ 2
         result[:MRTinf]          = result[:AUMCinf] / result[:AUCinf]
+        result[:MRTinf_pred]     = result[:AUMCinf_pred] / result[:AUCinf_pred]
         if first_dosetime_dose > zero(first_dosetime_dose)
             result[:Vzlast]          = first_dosetime_dose / result[:AUClast] / result[:Kel]
             result[:Vzinf]           = first_dosetime_dose / result[:AUCinf] / result[:Kel]
@@ -873,14 +887,14 @@ function nca!(data::PKSubject{T, OBS};
     return ncares
 end
 
-function maxconc(subj::T) where T <: AbstractSubject
-    maximum(Iterators.filter(x-> !(ismissing(x) || isnan(x)), getobs(subj)))
+function maxconc(subj::T, obs::Union{Symbol, Nothing} = nothing) where T <: AbstractSubject
+    maximum(Iterators.filter(x-> !(ismissing(x) || isnan(x)), getobs(subj, obs)))
 end
-function minconc(subj::T, pos = false) where T <: AbstractSubject
+function minconc(subj::T, pos = false, obs::Union{Symbol, Nothing} = nothing) where T <: AbstractSubject
     if pos
-        return minimum(Iterators.filter(x-> x > zero(x), getobs(subj)))
+        return minimum(Iterators.filter(x-> x > zero(x), getobs(subj, obs)))
     else
-        return minimum(Iterators.filter(x-> !(ismissing(x) || isnan(x)), getobs(subj)))
+        return minimum(Iterators.filter(x-> !(ismissing(x) || isnan(x)), getobs(subj, obs)))
     end
 end
 
@@ -940,7 +954,7 @@ Results:
 * HL
 * AUCinf
 """
-function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}; adm = :ev, calcm = :lint, intpm = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = identity, kwargs...) where S where E where O where VOL where V
+function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}, obs::Union{Symbol, Nothing} = nothing; adm = :ev, calcm = :lint, intpm = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = identity, kwargs...) where S where E where O where VOL where V
 
     ptype  = promote_type(Float64, S, E, O, VOL)
     ttype  = promote_type(S, E)
@@ -1105,7 +1119,7 @@ Results:
 * AUCBTW - AUC between baseline and threshold;
 
 """
-function nca!(data::PDSubject{T,O}; calcm = :lint, intpm = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = identity, kwargs...) where T where O
+function nca!(data::PDSubject{T,O}, obs::Union{Symbol, Nothing} = nothing; calcm = :lint, intpm = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = identity, kwargs...) where T where O
     
     ptype  = promote_type(Float64, T, O)
 

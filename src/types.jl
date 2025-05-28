@@ -332,14 +332,17 @@ end
 function gettime(subj::T) where T <: AbstractSubject
     getfield(subj, :time)
 end
-function getobs_(obs::AbstractVector)
-    obs
+function getobs_(obsvals::AbstractVector, ::Nothing)
+    obsvals
 end 
-function getobs_(obs)
-    first(obs)
+function getobs_(obsvals, ::Nothing)
+    first(obsvals)
 end 
-function getobs(subj::T) where T <: AbstractSubject
-    getobs_(getfield(subj, :obs)) # !!! workaround !!!
+function getobs_(obsvals, obs::Symbol)
+    obsvals[obs]
+end 
+function getobs(subj::T, obs::Union{Symbol, Nothing} = nothing) where T <: AbstractSubject
+    getobs_(getfield(subj, :obs), obs)
 end
 
 

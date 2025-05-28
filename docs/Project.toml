@@ -12,7 +12,7 @@ LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 
 [compat]
 Documenter = "1"
-MetidaNCA  = "0.6"
+MetidaNCA  = "0.7"
 CSV        = "0.8, 0.9, 0.10"
 DataFrames = "1"
 PrettyTables = "1, 2"
