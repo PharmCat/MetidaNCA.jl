@@ -125,6 +125,21 @@ MetidaNCA устанавливается путем выполнения сле�
 ```julia; eval = false
 import Pkg; Pkg.add("MetidaNCA")
 ```
+
+Или напрямую из репозитория GitVerse:
+
+```julia; eval = false
+import Pkg
+Pkg.add(url="https://gitverse.ru/PharmCat/MetidaNCA.jl"
+```
+
+Или напрямую из репозитория GitHub:
+
+```julia; eval = false
+import Pkg
+Pkg.add(url="https://github.com/PharmCat/MetidaNCA.jl"
+```
+
 ## Пользовательская валидация
 
 MetidaNCA поставляется с набором валидационных (тестировочных) процедур, 
@@ -354,8 +369,8 @@ Area under Curve / Area under the Moment Curve:
 L"AUC = \sum_{n=1}^N AUC_{n}"
 ```
 
-```math
-AUMC = \sum_{n=1}^N AUMC_{n}
+```julia; echo = false, results = "tex"
+L"AUMC = \sum_{n=1}^N AUMC_{n}"
 ```
 
 #### Правило линейных трепеций

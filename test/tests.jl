@@ -326,9 +326,7 @@ dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
     @test round.(dsnca[:, :Cdose], sigdigits = 6) == round.(refdict[:Cdose], sigdigits = 6)
 
     # Tlag
-
     @test round.(dsnca[:, :Tlag], sigdigits = 6) == round.(refdict[:Tlag], sigdigits = 6)
-
 
     # Clast
     @test dsnca[:, :Clast] == refdict[:Clast]
@@ -364,10 +362,13 @@ dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
     @test round.(dsnca[:, :AUCinf], sigdigits = 6) == round.(refdict[:AUCinf], sigdigits = 6)
 
     # AUCinf_pred
+    @test round.(dsnca[:, :AUCinf_pred], sigdigits = 6) == round.(refdict[:AUCinf_pred], sigdigits = 6)
 
-    # AUMCinf
+    # AUMCinf 
+    @test round.(dsnca[:, :AUMCinf], sigdigits = 5) == round.(refdict[:AUMCinf], sigdigits = 5)
 
     # AUMCinf_pred
+    @test round.(dsnca[:, :AUMCinf_pred], sigdigits = 6) == round.(refdict[:AUMCinf_pred], sigdigits = 6)
 
     # AUCpct
     @test round.(dsnca[:, :AUCpct], sigdigits = 5) == round.(refdict[:AUCpct], sigdigits = 5)
@@ -379,10 +380,10 @@ dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
     @test round.(dsnca[:, :MRTinf], digits = 5) == round.(refdict[:MRTinf], digits = 5)
 
     # MRTinf_pred
-
     @test round.(dsnca[:, :MRTinf_pred], digits = 5) == round.(refdict[:MRTinf_pred], digits = 5)
 
     # Cllast
+    
 
     # Clinf
     @test round.(dsnca[:, :Clinf], sigdigits = 6) == round.(refdict[:Clinf], sigdigits = 6)
