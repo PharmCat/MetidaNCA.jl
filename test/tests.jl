@@ -1923,7 +1923,7 @@ end
     @test_nowarn MetidaNCA.nca!(pki)
 end
 
-@testset "  Development                                              " begin
+@testset "  Multiple observation                                     " begin
     io = IOBuffer();
 
     pki  = @test_nowarn MetidaNCA.pkimport(pkdata2, :Time, :Concentration, :Subject; 
@@ -1973,5 +1973,13 @@ end
         @test ncares1[:, p] == ncares4[:, p]
     end
 
+    @test_nowarn show(io, pki[1])
+
+    @test_nowarn  pkplt = MetidaNCA.pkplot(ncares4[1])
+    @test_nowarn  pkplt = MetidaNCA.pkplot(ncares4[1], obsname = :Concentration)
+    @test_nowarn  pkplt = MetidaNCA.pkplot(ncares4[1], obsname = :LogConcentration)
+    @test_nowarn  pkplt = MetidaNCA.pkplot(ncares4[1], obsname = :Concentration, elim = true)
+
+    @test_throws "This observations not used for NCA calculation." MetidaNCA.pkplot(ncares4[1], obsname = :LogConcentration, elim = true)
 end
 

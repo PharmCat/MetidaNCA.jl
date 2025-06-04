@@ -43,8 +43,18 @@ function Base.show(io::IO, obj::PKSubject)
         println(io, obj.dosetime)
     end
     println(io,  obj.kelrange)
-    PrettyTables.pretty_table(io, metida_table(obj.time, getobs(obj); names = (:Time, :Concentration)); tf = PrettyTables.tf_compact)
-
+    if ismultobs(obj)
+        if obsnumber(obj) == 1
+            PrettyTables.pretty_table(io, metida_table(obj.time, getobs(obj); names = (:Time, getfirstkey(obj))); tf = PrettyTables.tf_compact)
+        else
+            PrettyTables.pretty_table(io, metida_table(obj.time, obj.obs...; names = append!([:Time], keys(obj.obs))); tf = PrettyTables.tf_compact)
+        end
+    else
+        PrettyTables.pretty_table(io, metida_table(obj.time, getobs(obj); names = (:Time, :Observations)); tf = PrettyTables.tf_compact)
+    end
+    if obj.ncaresobs != NCARESOBS
+        printstyled(io, "(NCA obs: $(obj.ncaresobs))\n"; color = :blue)
+    end
 end
 function Base.show(io::IO, obj::UPKSubject)
     println(io, "  Pharmacokinetic subject (urine)")

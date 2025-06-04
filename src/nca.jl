@@ -549,6 +549,14 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = nothing;
 
     options =  Dict(:obsname => obs, :type => :bps, :adm => adm, :calcm => calcm, :intpm => intpm, :verbose => verbose, :warn => warn, :modify! => modify!)
 
+
+    if !isnothing(obs)
+        sfk = getfirstkey(data)
+        if !isnothing(sfk)
+            data.ncaresobs = sfk
+        end
+    end
+
     # !!! temporal workaround !!!
     first_dosetime_tau  = first(data.dosetime).tau
     first_dosetime_time = first(data.dosetime).time
@@ -572,7 +580,9 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = nothing;
     end
 ################################################################################
     # STEP 1 FILTER ALL BEFORE DOSETIME AND ALL NAN OR MISSING VALUES
-    if validobsn(gettime(data), getobs(data, obs)) == 0 return NCAResult(data, options, result) end
+    if validobsn(gettime(data), getobs(data, obs)) == 0
+        return NCAResult(data, options, result) 
+    end
     time_cp, obs_cp, einds = step_1_filterpksubj(gettime(data), getobs(data, obs), first_dosetime_time)
     if length(obs_cp) < 2
         return NCAResult(data, options, result)
@@ -887,14 +897,14 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = nothing;
     return ncares
 end
 
-function maxconc(subj::T, obs::Union{Symbol, Nothing} = nothing) where T <: AbstractSubject
-    maximum(Iterators.filter(x-> !(ismissing(x) || isnan(x)), getobs(subj, obs)))
+function maxconc(subj::T; obsname::Union{Symbol, Nothing} = nothing) where T <: AbstractSubject
+    maximum(Iterators.filter(x-> !(ismissing(x) || isnan(x)), getobs(subj, obsname)))
 end
-function minconc(subj::T, pos = false, obs::Union{Symbol, Nothing} = nothing) where T <: AbstractSubject
+function minconc(subj::T, pos = false; obsname::Union{Symbol, Nothing} = nothing) where T <: AbstractSubject
     if pos
-        return minimum(Iterators.filter(x-> x > zero(x), getobs(subj, obs)))
+        return minimum(Iterators.filter(x-> x > zero(x), getobs(subj, obsname)))
     else
-        return minimum(Iterators.filter(x-> !(ismissing(x) || isnan(x)), getobs(subj, obs)))
+        return minimum(Iterators.filter(x-> !(ismissing(x) || isnan(x)), getobs(subj, obsname)))
     end
 end
 

@@ -142,9 +142,9 @@ function plotlabel(d, ld = nothing)
     return title
 end
 
-function _subjplot(subj, kwargs, ls)
+function _subjplot(subj, kwargs, ls; obsname = nothing)
 
-    subjobs = getobs(subj)
+    subjobs = getobs(subj, obsname)
     
     k = keys(kwargs)
     if :yscale in k
@@ -181,7 +181,7 @@ function _subjplot(subj, kwargs, ls)
         time = subj.time
         obs  = subjobs
         if !(:ylims in k)
-            kwargs[:ylims] = (minconc(subj), maxconc(subj)*1.15)
+            kwargs[:ylims] = (minconc(subj; obsname = obsname), maxconc(subj; obsname = obsname)*1.15)
         end
     end
 
@@ -197,8 +197,11 @@ function _subjplot(subj, kwargs, ls)
 end
 
 
-function _elimplot!(p, subj, time, obs, kwargs, elim, ls)
+function _elimplot!(p, subj, time, obs, kwargs, elim, ls; obsname = nothing)
     if elim
+        if !isnothing(obsname) && subj.ncaresobs != obsname
+            error("This observations not used for NCA calculation.")
+        end 
         if length(subj.keldata) > 0
             arsq, rsqn = findmax(subj.keldata.ar)
             lz        = subj.keldata.a[rsqn]
@@ -253,7 +256,7 @@ Plot for subject
 * `drawdt` (`false`) - draw drawdose time;
 
 """
-function pkplot(subj::AbstractSubject; ls = false, elim = false, xticksn = :auto, yticksn = :auto, kwargs...)
+function pkplot(subj::AbstractSubject; ls = false, elim = false, xticksn = :auto, yticksn = :auto, obsname = nothing, kwargs...)
 
     kwargs = Dict{Symbol, Any}(kwargs)
     k = keys(kwargs)
@@ -284,20 +287,20 @@ function pkplot(subj::AbstractSubject; ls = false, elim = false, xticksn = :auto
         kwargs[:xlims] = (minimum(subj.time), maximum(subj.time)*1.1)
     end
    
-    time, obs = _subjplot(subj, kwargs, ls)
+    time, obs = _subjplot(subj, kwargs, ls; obsname = obsname)
 
     p = subjectplot(time, obs;  lcd = yticksn, tcd = xticksn, kwargs...)
 
-    _elimplot!(p, subj, time, obs, kwargs, elim, ls)
+    _elimplot!(p, subj, time, obs, kwargs, elim, ls; obsname = obsname)
     
     _pddtplot!(p, subj, kwargs)
 
     return p
 end
 
-function pkplot!(subj; ls = false, elim = false, xticksn = :auto, yticksn = :auto, kwargs...)
-    time = subj.time
-    obs = subj.obs
+function pkplot!(subj; ls = false, elim = false, xticksn = :auto, yticksn = :auto, obsname = nothing, kwargs...)
+    time = gettime(subj)
+    obs  = getobs(subj, obsname)
     kwargs = Dict{Symbol, Any}(kwargs)
     k = keys(kwargs)
     if !(:plotstyle in k)
@@ -341,8 +344,8 @@ function pageplot(data, id, ulist; kwargs...)
 
     if !(:ylims in k) && length(subdata) > 1
         ysc   = :yscale in k
-        ylmin = findmin(x->minconc(x, ysc), getdata(subdata))[1]
-        ylmax = findmax(x->maxconc(x), getdata(subdata))[1]*1.15
+        ylmin = findmin(x->minconc(x, ysc; obsname = kwargs[:obsname]), getdata(subdata))[1]
+        ylmax = findmax(x->maxconc(x; obsname = kwargs[:obsname]), getdata(subdata))[1]*1.15
         if ysc 
             ylmax *= 5
         end
@@ -421,6 +424,9 @@ function pkplot(data::DataSet{T};
     if !(:ls in k)
         kwargs[:ls] = false
     end
+    if !(:obsname in k)
+        kwargs[:obsname] = nothing
+    end
     if !(:elim in k)
         kwargs[:elim] = false
     end
@@ -431,7 +437,7 @@ function pkplot(data::DataSet{T};
         kwargs[:drawth] = false
     end
     if uylims && !(:ylims in k)
-        kwargs[:ylims] = (findmin(x -> minconc(x), getdata(data))[1], findmax(x -> maxconc(x), getdata(data))[1]*1.15)
+        kwargs[:ylims] = (findmin(x -> minconc(x; obsname = obsname), getdata(data))[1], findmax(x -> maxconc(x), getdata(data))[1]*1.15)
     end
     if !isnothing(filter) data = subset(data, filter) end
 

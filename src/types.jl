@@ -174,6 +174,7 @@ Fields:
 * dosetime::DoseTime
 * keldata::KelData
 * id::Dict{Symbol, V}
+* ncaresobs::Symbol
 
 """
 mutable struct PKSubject{T <: Number, O, C <: Any, V <: Any} <: AbstractSubject
@@ -185,9 +186,10 @@ mutable struct PKSubject{T <: Number, O, C <: Any, V <: Any} <: AbstractSubject
     dosetime::Union{DoseTime, Vector{DoseTime}}
     keldata::KelData
     id::Dict{Symbol, V}
+    ncaresobs::Symbol
     function PKSubject(time::Vector{T}, conc::O, covars::C, kelauto::Bool, kelrange::ElimRange, dosetime, keldata::KelData, id::Dict{Symbol, V} = Dict{Symbol, Any}())  where T <: Number where O where C  where V
         if !checkdosetime(dosetime) error("DoseTime Vector should be sorted.") end
-        new{T, O, C, V}(time, conc, covars, kelauto, kelrange, dosetime, keldata, id)::PKSubject
+        new{T, O, C, V}(time, conc, covars, kelauto, kelrange, dosetime, keldata, id, NCARESOBS)::PKSubject
     end
     function PKSubject(time::Vector{T}, conc, kelauto::Bool, kelrange::ElimRange, dosetime, id)  where T 
         PKSubject(time, conc, nothing, kelauto, kelrange, dosetime, KelData(T[], T[], Float64[], Float64[], Float64[], Float64[], Int[]), id)
@@ -344,6 +346,38 @@ end
 function getobs(subj::T, obs::Union{Symbol, Nothing} = nothing) where T <: AbstractSubject
     getobs_(getfield(subj, :obs), obs)
 end
+
+function getfirstkey(subj::PKSubject)
+    getfirstkey_(subj.obs)
+end
+function getfirstkey_(obsvals::AbstractVector)
+    nothing
+end
+function getfirstkey_(obsvals)
+    first(keys(obsvals))
+end
+
+
+function ismultobs(subj::PKSubject)
+   ismultobs_(subj.obs)
+end
+function ismultobs_(obsvals::AbstractVector)
+    false
+end
+function ismultobs_(obsvals)
+    true
+end
+
+function obsnumber(subj::PKSubject)
+   obsnumber_(subj.obs)
+end
+function obsnumber_(obsvals::AbstractVector)
+    1
+end
+function obsnumber_(obsvals)
+    length(obsvals)
+end
+
 
 
 struct NCAUnits{T, O, D, V}

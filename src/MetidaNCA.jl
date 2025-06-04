@@ -64,6 +64,8 @@ function mergeplots! end
 
 const LOG2 = log(2)
 
+const NCARESOBS = Symbol("")
+
     include("types.jl")
     include("setkelauto.jl")
     include("setkelrange.jl")
