@@ -554,6 +554,17 @@ Any other keywords pass to `plot` function.
 function vpcplot(data::DataSet{T}; timef = identity, meanf = mean, intf = x->qf(x, 0.05), kwargs...) where T <: Union{PKSubject, PDSubject}
     kwargs = Dict{Symbol, Any}(kwargs)
 
+    k, means, lb, ub = vpcdata(data, timef = timef, meanf = meanf, intf = intf)
+
+    if !(:ribbon in keys(kwargs))
+        kwargs[:ribbon] = (means .- lb, ub .- means)
+    end
+
+    p = plot(k, means; kwargs...)
+    return p
+end
+
+function vpcdata(data::DataSet{T}; timef = identity, meanf = mean, intf = x->qf(x, 0.05)) where T <: Union{PKSubject, PDSubject}
     d = getdata(data)
     dict = Dict{Float64, Vector{Float64}}()
     for i = 1:length(d)
@@ -573,14 +584,11 @@ function vpcplot(data::DataSet{T}; timef = identity, meanf = mean, intf = x->qf(
     k = sort!(collect(keys(dict)))
     means = [meanf(dict[x]) for x in k ]
     
-    if !isnothing(intf) && !(:ribbon in keys(kwargs))
-        ub = zeros(length(k))
-        lb = zeros(length(k))
-        for i = 1:length(k)
-            ub[i], lb[i] = intf(dict[k[i]])
-        end
-        kwargs[:ribbon] = (means .- lb, ub .- means)
+    ub = zeros(length(k))
+    lb = zeros(length(k))
+    for i = 1:length(k)
+        ub[i], lb[i] = intf(dict[k[i]])
     end
-    p = plot(k, means; kwargs...)
-    return p
+ 
+    k, means, lb, ub
 end
