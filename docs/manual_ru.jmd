@@ -336,12 +336,13 @@ setkelrange!(ds, kr; kelauto = true)
 
 Area under Curve / Area under the Moment Curve:
 
-```math
-AUC = \sum_{n=1}^N AUC_{n}
+
+```julia; echo = false, results = "tex"
+L"AUC = \sum_{n=1}^N AUC_{n}"
 ```
 
-```math
-AUMC = \sum_{n=1}^N AUMC_{n}
+```julia; echo = false, results = "tex"
+L"AUMC = \sum_{n=1}^N AUMC_{n}"
 ```
 
 #### Правило линейных трепеций
