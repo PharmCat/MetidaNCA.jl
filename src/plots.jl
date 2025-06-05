@@ -585,7 +585,7 @@ function vpcplot(data::DataSet{T}; timef = identity, meanf = mean, intf = x->qf(
         for i = 1:length(k)
             ub[i], lb[i] = intf(dict[k[i]])
         end
-        kwargs[:ribbon] = (ub .- means, means .- lb)
+        kwargs[:ribbon] = (means .- lb, ub .- means)
     end
     p = plot(k, means; kwargs...)
     return p

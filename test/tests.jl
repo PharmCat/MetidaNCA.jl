@@ -304,6 +304,11 @@ include("refdicts.jl")
     
     @test_nowarn MetidaNCA.dropmissing!(ds[1]) 
     @test_nowarn MetidaNCA.dropmissing(ds[1])  
+
+    # Convert dosing
+    newtype = typeof(MetidaNCA.DoseTime(dose = 100.0, time = 0.0, tau = 9))
+    newdt   = convert(newtype, MetidaNCA.DoseTime(dose = 100, time = 1, tau = 9))
+    @test isa(newdt, newtype)
 end
 
 @testset "  #1 Linear trapezoidal, Dose 100, Dosetime 0, no tau      " begin
@@ -1923,7 +1928,7 @@ end
     @test_nowarn MetidaNCA.nca!(pki)
 end
 
-@testset "  Multiple observation                                     " begin
+@testset "  Multiple dosing                                          " begin
     io = IOBuffer();
 
     pki  = @test_nowarn MetidaNCA.pkimport(pkdata2, :Time, :Concentration, :Subject; 
@@ -1946,10 +1951,9 @@ end
 
     @test_nowarn MetidaNCA.nca!(pki)
 
-    @test_nowarn convert(typeof(MetidaNCA.DoseTime(dose = 100.0, time = 0.0, tau = 9)), MetidaNCA.DoseTime(dose = 100, time = 1, tau = 9))
-
-    @test_nowarn options = MetidaNCA.NCAOptions() 
-
+end
+@testset "  Multiple observation                                     " begin
+    io = IOBuffer();
 
     pkdata22 = filter(:Concentration => x -> x > 0, pkdata2)
     pkdata22.Concentration2 = copy(pkdata22.Concentration)
@@ -1983,3 +1987,6 @@ end
     @test_throws "This observations not used for NCA calculation." MetidaNCA.pkplot(ncares4[1], obsname = :LogConcentration, elim = true)
 end
 
+@testset "  Development                                              " begin
+      @test_nowarn options = MetidaNCA.NCAOptions() 
+end
