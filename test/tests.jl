@@ -304,6 +304,11 @@ include("refdicts.jl")
     
     @test_nowarn MetidaNCA.dropmissing!(ds[1]) 
     @test_nowarn MetidaNCA.dropmissing(ds[1])  
+
+    # Convert dosing
+    newtype = typeof(MetidaNCA.DoseTime(dose = 100.0, time = 0.0, tau = 9))
+    newdt   = convert(newtype, MetidaNCA.DoseTime(dose = 100, time = 1, tau = 9))
+    @test isa(newdt, newtype)
 end
 
 @testset "  #1 Linear trapezoidal, Dose 100, Dosetime 0, no tau      " begin
@@ -326,9 +331,7 @@ dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
     @test round.(dsnca[:, :Cdose], sigdigits = 6) == round.(refdict[:Cdose], sigdigits = 6)
 
     # Tlag
-
     @test round.(dsnca[:, :Tlag], sigdigits = 6) == round.(refdict[:Tlag], sigdigits = 6)
-
 
     # Clast
     @test dsnca[:, :Clast] == refdict[:Clast]
@@ -364,10 +367,13 @@ dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
     @test round.(dsnca[:, :AUCinf], sigdigits = 6) == round.(refdict[:AUCinf], sigdigits = 6)
 
     # AUCinf_pred
+    @test round.(dsnca[:, :AUCinf_pred], sigdigits = 6) == round.(refdict[:AUCinf_pred], sigdigits = 6)
 
-    # AUMCinf
+    # AUMCinf 
+    @test round.(dsnca[:, :AUMCinf], sigdigits = 5) == round.(refdict[:AUMCinf], sigdigits = 5)
 
     # AUMCinf_pred
+    @test round.(dsnca[:, :AUMCinf_pred], sigdigits = 6) == round.(refdict[:AUMCinf_pred], sigdigits = 6)
 
     # AUCpct
     @test round.(dsnca[:, :AUCpct], sigdigits = 5) == round.(refdict[:AUCpct], sigdigits = 5)
@@ -379,8 +385,10 @@ dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
     @test round.(dsnca[:, :MRTinf], digits = 5) == round.(refdict[:MRTinf], digits = 5)
 
     # MRTinf_pred
+    @test round.(dsnca[:, :MRTinf_pred], digits = 5) == round.(refdict[:MRTinf_pred], digits = 5)
 
     # Cllast
+    
 
     # Clinf
     @test round.(dsnca[:, :Clinf], sigdigits = 6) == round.(refdict[:Clinf], sigdigits = 6)
@@ -1920,7 +1928,7 @@ end
     @test_nowarn MetidaNCA.nca!(pki)
 end
 
-@testset "  Development                                              " begin
+@testset "  Multiple dosing                                          " begin
     io = IOBuffer();
 
     pki  = @test_nowarn MetidaNCA.pkimport(pkdata2, :Time, :Concentration, :Subject; 
@@ -1941,12 +1949,44 @@ end
     pki  = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, :Subject; 
     dosetime = dtvec)
 
-    
     @test_nowarn MetidaNCA.nca!(pki)
 
-    @test_nowarn convert(typeof(MetidaNCA.DoseTime(dose = 100.0, time = 0.0, tau = 9)), MetidaNCA.DoseTime(dose = 100, time = 1, tau = 9))
+end
+@testset "  Multiple observation                                     " begin
+    io = IOBuffer();
 
-    @test_nowarn options = MetidaNCA.NCAOptions() 
+    pkdata22 = filter(:Concentration => x -> x > 0, pkdata2)
+    pkdata22.Concentration2 = copy(pkdata22.Concentration)
+    pkdata22.LogConcentration = log.(pkdata22.Concentration)
 
+    pki  = @test_nowarn MetidaNCA.pkimport(pkdata22, :Time, [:Concentration, :Concentration2], :Subject)
+
+    params = [:Cmax, :Tmax, :AUClast, :Kel, :Rsq, :MRTinf]
+    ncares1 = MetidaNCA.nca!(pki, :Concentration)
+    ncares2 = MetidaNCA.nca!(pki, :Concentration2)
+
+    pki  = @test_nowarn MetidaNCA.pkimport(pkdata22, :Time, [:LogConcentration, :Concentration], :Subject)
+    ncares3 = MetidaNCA.nca!(pki, :Concentration)
+
+    pki  = @test_nowarn MetidaNCA.pkimport(pkdata22, :Time, [:Concentration, :LogConcentration], :Subject)
+    ncares4 = MetidaNCA.nca!(pki, :Concentration)
+
+    for p in params
+        @test ncares1[:, p] == ncares2[:, p]
+        @test ncares1[:, p] == ncares3[:, p]
+        @test ncares1[:, p] == ncares4[:, p]
+    end
+
+    @test_nowarn show(io, pki[1])
+
+    @test_nowarn  pkplt = MetidaNCA.pkplot(ncares4[1])
+    @test_nowarn  pkplt = MetidaNCA.pkplot(ncares4[1], obsname = :Concentration)
+    @test_nowarn  pkplt = MetidaNCA.pkplot(ncares4[1], obsname = :LogConcentration)
+    @test_nowarn  pkplt = MetidaNCA.pkplot(ncares4[1], obsname = :Concentration, elim = true)
+
+    @test_throws "This observations not used for NCA calculation." MetidaNCA.pkplot(ncares4[1], obsname = :LogConcentration, elim = true)
 end
 
+@testset "  Development                                              " begin
+      @test_nowarn options = MetidaNCA.NCAOptions() 
+end
