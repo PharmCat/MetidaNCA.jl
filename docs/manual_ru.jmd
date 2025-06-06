@@ -10,7 +10,7 @@ monofont: DejaVuSansMono
 
 
 ```julia; echo = false
-using Dates, DataFrames, CSV, PrettyTables, Latexify, Plots
+using Dates, DataFrames, CSV, PrettyTables, Latexify, Plots, LaTeXStrings 
 ```
 
 
@@ -118,11 +118,24 @@ CSV таблицами (CSV) и графиками (Plots). При этом па
 
 ## Установка MetidaNCA
 
-MetidaNCA устанавливается путем выполнения следующей команды в REPL:
+MetidaNCA устанавливается из регистра пакетов Julia путем выполнения следующей команды в REPL:
 
 ```julia; eval = false
 import Pkg; Pkg.add("MetidaNCA")
 ```
+
+Непосредственно с сайта GitVerse.ru:
+
+```julia; eval = false
+import Pkg; Pkg.add(url="https://gitverse.ru/PharmCat/MetidaNCA.jl.git")
+```
+
+Непосредственно с сайта GitHub.com:
+
+```julia; eval = false
+import Pkg; Pkg.add(url="https://github.com/PharmCat/MetidaNCA.jl.git")
+```
+
 ## Пользовательская валидация
 
 MetidaNCA поставляется с набором валидационных (тестировочных) процедур, 
@@ -200,6 +213,13 @@ show(latexify(dfn; latex=false))
 Пример загрузки табличных данных:
 
 ```julia; eval = false
+# Загрузка данных
+
+pkdata2  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), 
+"..", "test", "csv", "pkdata2.csv")) |> DataFrame
+```
+
+```julia; echo = false
 pkdata2  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "pkdata2.csv")) |> DataFrame
 ```
 
@@ -220,11 +240,6 @@ pkdata2[1:15, :]
 * Уникальный идентификатор субъекта (SubjectID) (если субъектов > 1) - одно или несколько полей.
 
 ```julia; echo = true; wrap = false; line_width = 75
-# Загрузка данных
-pkdata2  = CSV.File(
-joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "pkdata2.csv")
-) |> DataFrame
-
 # Импорт данных
 ds = pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation];
 dosetime = DoseTime(dose = 100, time = 0))
@@ -249,7 +264,8 @@ dsnca[3:4]
 ## Построение графиков
 
 Построение графиков выполняется с исползованием пакета RecipesBase. 
-Это значит, что для построения могут быть использованы пакеты совместимые с RecipesBase.jl - Plots.jl и .
+Это значит, что для построения могут быть использованы пакеты совместимые с RecipesBase.jl 
+(на данный момент это Plots.jl).
 
 Для субъекта:
 
@@ -266,6 +282,8 @@ pkplot(ds; typesort = :Subject, pagesort = MetidaNCA.NoPageSort(), sort = Dict(:
 ```
 
 ![B plot](`j pkplot(ds; typesort = :Subject, pagesort = MetidaNCA.NoPageSort(), sort = Dict(:Formulation => "R"))`)
+
+\pagebreak
 
 ## Экспорт результатов
 

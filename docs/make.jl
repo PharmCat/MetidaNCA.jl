@@ -1,5 +1,5 @@
 using MetidaNCA
-using Documenter, Weave, PrettyTables, CSV, DataFrames
+using Documenter, Weave, PrettyTables, CSV, DataFrames, LaTeXStrings 
 #using DocumenterLaTeX
 
 include("manual.jl")
