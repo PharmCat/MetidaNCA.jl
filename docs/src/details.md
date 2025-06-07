@@ -45,6 +45,9 @@ See also: [`setdosetime!`](@ref).
 Filter all values before dose time and `NaN` or `missing` values after last measurable concentration.
 If TAU set, calculate start and end timepoints for AUCtau.
 
+!!! note
+    By default last `DoseTime` used to get dose time. For using another dose time - set `usedose` keyword as number of this dose.
+
 ### Step 2
 
 Cmax, Tmax calculation. Interpolate `NaN` and `missing` values.

@@ -1,6 +1,6 @@
-# Metida
-# Copyright © 2019-2020 Vladimir Arnautov aka PharmCat <mail@pharmcat.net>
-
+# MetidaNCA
+# Copyright © 2019-2025 Vladimir Arnautov aka PharmCat <mail@pharmcat.net>
+# SPDX-License-Identifier: MIT
 module MetidaNCA
 
 using RecipesBase
@@ -63,6 +63,8 @@ end
 function mergeplots! end
 
 const LOG2 = log(2)
+
+const NCARESOBS = Symbol("")
 
     include("types.jl")
     include("setkelauto.jl")

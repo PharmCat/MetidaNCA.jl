@@ -146,7 +146,8 @@ dfn = DataFrame(
 "AUCinf" "AUC extrapolated to infinity"
 "AUCpct" "Percentage AUClast from AUCinf"
 "MRTlast" "Mean Residence Time (last)"
-"MRTinf" "Mean Residence Time (inf)"
+"MRTinf" "Mean residence time (MRT) extrapolated to infinity"
+"MRTinf_pred" "Mean residence time (inf) predicted"
 "Clinf" "Clearence"
 "Vzinf" "Volume of distribution"
 "AUCtau" "AUC in Tau range"
@@ -221,6 +222,7 @@ list = [:Cmax
 :AUCpct
 :MRTlast
 :MRTinf
+:MRTinf_pred
 :Clinf
 :Vzinf]
 
@@ -268,6 +270,7 @@ list = [:Cmax
 :Clast_pred
 :AUCinf
 :AUCpct
+:MRTinf_pred
 :MRTtauinf
 :Cltau
 :Vztau]
@@ -318,6 +321,7 @@ list = [:Cmax
 :Clast_pred
 :AUCinf
 :AUCpct
+:MRTinf_pred
 :MRTtauinf
 :Cltau
 :Vztau]
@@ -368,6 +372,7 @@ list = [:Cmax
 :Clast_pred
 :AUCinf
 :AUCpct
+:MRTinf_pred
 :MRTtauinf
 :Cltau
 :Vztau]

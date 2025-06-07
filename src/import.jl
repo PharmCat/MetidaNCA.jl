@@ -121,6 +121,16 @@ function checkvalues!(timevals_sp, obsvals; warn = true)
     timevals, obsvals
 end
 
+function makedosetimevec(::Nothing, v)
+    [DoseTime(NaN, v, NaN)] 
+end
+function makedosetimevec(x::DoseTime, ::Any)
+    [x] 
+end
+function makedosetimevec(x::AbstractVector{<: DoseTime}, ::Any) 
+    x
+end
+
 """
     pkimport(data, time, obs, sort;
         kelauto = true,
@@ -182,11 +192,11 @@ function pkimport(data, time, obs, sort;
     timec = Tables.getcolumn(data, time)
     #concc = Tables.getcolumn(data, obs)
 
-    if isnothing(dosetime) dosetime = DoseTime(NaN, zero(eltype(timec)), NaN) end
+    dosetime_ = makedosetimevec(dosetime, zero(eltype(timec)))
 
-    if !checkdosetime(dosetime)
+    if !checkdosetime(dosetime_)
         @warn "DoseTime sorted..."
-        sort!(dosetime, by = x -> x.time)
+        sort!(dosetime_, by = x -> x.time)
     end
 
     any(isnanormissing, timec) && error("Some time values is NaN or Missing!")
@@ -239,7 +249,7 @@ function pkimport(data, time, obs, sort;
             covars_v = nothing
         end
  
-        sdata[i] = PKSubject(timevals_sp, (; zip(obs, obsvals)...), covars_v, kelauto, elimrange,  dosetime, Dict(sort .=> k))
+        sdata[i] = PKSubject(timevals_sp, (; zip(obs, obsvals)...), covars_v, kelauto, elimrange,  dosetime_, Dict(sort .=> k))
         i += one(Int)
     end
     ds = DataSet(identity.(sdata))
@@ -263,9 +273,14 @@ function pkimport(data, time, obs; kelauto = true,  elimrange = ElimRange(), dos
 
     timevals, obsvals = checkvalues!(Tables.getcolumn(data, time), obsvals; warn = warn)
     
-    if isnothing(dosetime) dosetime = DoseTime(NaN, zero(eltype(timevals)), NaN) end
+    dosetime_ = makedosetimevec(dosetime, zero(eltype(timevals)))
 
-    pks = PKSubject(timevals, (; zip(obs, obsvals)...), kelauto, elimrange,  dosetime, id)
+    if !checkdosetime(dosetime_)
+        @warn "DoseTime sorted..."
+        sort!(dosetime_, by = x -> x.time)
+    end
+
+    pks = PKSubject(timevals, (; zip(obs, obsvals)...), kelauto, elimrange,  dosetime_, id)
     if !isnothing(limitrule)
         applylimitrule!(pks, limitrule)
     end
@@ -290,9 +305,14 @@ function pkimport(time, obs; kelauto = true,  elimrange = ElimRange(), dosetime 
    
     obsvals  = checkobsvec(obs, warn)
 
-    if isnothing(dosetime) dosetime = DoseTime(NaN, zero(eltype(timevals)), NaN) end
+    dosetime_ = makedosetimevec(dosetime, zero(eltype(timevals)))
 
-    pks = PKSubject(timevals, obsvals, kelauto, elimrange,  dosetime, id)
+    if !checkdosetime(dosetime_)
+        @warn "DoseTime sorted..."
+        sort!(dosetime_, by = x -> x.time)
+    end
+
+    pks = PKSubject(timevals, obsvals, kelauto, elimrange,  dosetime_, id)
     if !isnothing(limitrule)
         applylimitrule!(pks, limitrule)
     end

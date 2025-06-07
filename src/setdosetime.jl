@@ -1,13 +1,37 @@
 #Subject
 """
-    setdosetime!(data::T, dosetime::DoseTime) where T <: AbstractSubject
+    setdosetime!(data::AbstractSubject, dosetime)
 
 Set dose time `dosetime` for subject `data`.
 """
-function setdosetime!(data::AbstractSubject, dosetime::DoseTime)
+function setdosetime!(data::AbstractSubject, dosetime)
     data.dosetime = dosetime
     data
 end
+
+
+#Subject
+"""
+    setdosetime!(data::PKSubject, dosetime::AbstractVector{<:DoseTime})
+
+Set dose time `dosetime` for subject `data`.
+"""
+function setdosetime!(data::PKSubject, dosetime::AbstractVector{<:DoseTime})
+    data.dosetime = dosetime
+    data
+end
+
+#Subject
+"""
+    setdosetime!(data::PKSubject, dosetime::DoseTime)
+
+Set dose time `dosetime` for subject `data`.
+"""
+function setdosetime!(data::PKSubject, dosetime::DoseTime)
+    setdosetime!(data, [dosetime])
+    data
+end
+
 #DS ind Int
 """
     setdosetime!(data::DataSet{T}, dosetime::DoseTime, ind::Int) where T <: AbstractSubject
