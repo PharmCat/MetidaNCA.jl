@@ -1632,9 +1632,9 @@ end
         dt = MetidaNCA.DoseTime(dose = 110, time = 2.1, tau = 10)
         MetidaNCA.setdosetime!(ds[1], dt)
         dts = MetidaNCA.getdosetime(ds[1])
-        @test dts.dose == 110
-        @test dts.time == 2.1
-        @test dts.tau == 10
+        @test dts[1].dose == 110
+        @test dts[1].time == 2.1
+        @test dts[1].tau == 10
         dt2 = MetidaNCA.DoseTime(dose = 100, time = 2.2, tau = 9)
         MetidaNCA.setdosetime!(ds, dt2, 4)
         MetidaNCA.setdosetime!(ds, dt2, [1,2,3])

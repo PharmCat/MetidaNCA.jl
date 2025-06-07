@@ -68,10 +68,12 @@ function ctmax(time::AbstractVector, obs::AbstractVector)
     end
     return cmax, time[tmaxn], tmaxn
 end
-function ctmax(data::PKSubject)
-    fobs = firstobs(gettime(data), getobs(data), data.dosetime.time)
-    if  data.dosetime.tau > 0
-        taulastp = findlast(x -> x <= data.dosetime.time + data.dosetime.tau, gettime(data))
+function ctmax(data::PKSubject, dt::Int = 0)
+    if dt == 0 dt = length(data.dosetime) end
+    datadt = data.dosetime[dt]
+    fobs = firstobs(gettime(data), getobs(data), datadt.time)
+    if  datadt.tau > 0
+        taulastp = findlast(x -> x <= datadt.time + datadt.tau, gettime(data))
     else
         taulastp = length(data)
     end
@@ -448,7 +450,7 @@ function nca!(data::DataSet{Subj}, obs::Union{Symbol, Nothing} = nothing;  wm::B
 end
 
 """
-    nca!(data::PKSubject{T,O}, obs::Union{Symbol, Nothing} = nothing; adm = :ev, calcm = :lint, intpm = nothing,  partials = nothing, prtext = :err, verbose = 0, warn = true, io::IO = stdout, modify! = nothing) where T where O
+    nca!(data::PKSubject{T,O}, obs::Union{Symbol, Nothing} = nothing; adm = :ev, calcm = :lint,  usedose::Int = 0, intpm = nothing,  partials = nothing, prtext = :err, verbose = 0, warn = true, io::IO = stdout, modify! = nothing) where T where O
 
 **Arguments**
 
@@ -465,6 +467,7 @@ end
     - `:luld` - linear up log down;
     - `:luldt` - linear up log down after Tmax;
     - `:logt` - log-trapezoidal after Tmax (Not Recommended);
+* `usedose` - number of dose used for calculation; if `usedose = 0` (by default) - last dose used.
 * `intpm` - interpolation method:
     - `:lint` - linear trapezoidal;
     - `:luld` - linear up log down;
@@ -529,7 +532,7 @@ Steady-state parameters (tau used):
 
 """
 function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = nothing; 
-    adm = :ev, calcm = :lint, 
+    adm = :ev, calcm = :lint, usedose::Int = 0,
     intpm = :calcm,  
     partials = nothing, 
     prtext = :err, 
@@ -557,10 +560,15 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = nothing;
         end
     end
 
-    # !!! temporal workaround !!!
-    first_dosetime_tau  = first(data.dosetime).tau
-    first_dosetime_time = first(data.dosetime).time
-    first_dosetime_dose = first(data.dosetime).dose
+    if usedose == 0
+        usedose = length(data.dosetime)
+    else
+        if usedose < 0 || usedose > length(data.dosetime) error("Wrong 'usedose' value.") end
+    end
+
+    used_dosetime_tau  = data.dosetime[usedose].tau
+    used_dosetime_time = data.dosetime[usedose].time
+    used_dosetime_dose = data.dosetime[usedose].dose
 
 
     if verbose > 0
@@ -573,9 +581,9 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = nothing;
             println(io, "")
         end
         println(io, "    Settings:")
-        println(io, "    Method: $(calcm); Dose: $(first_dosetime_dose); Dose time: $(first_dosetime_time)")
-        if data.dosetime.tau > 0
-            println(io, "    Tau: $(first_dosetime_tau)")
+        println(io, "    Method: $(calcm); Dose: $(used_dosetime_dose); Dose time: $(used_dosetime_time)")
+        if used_dosetime_tau > 0
+            println(io, "    Tau: $(used_dosetime_tau)")
         end
     end
 ################################################################################
@@ -583,7 +591,7 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = nothing;
     if validobsn(gettime(data), getobs(data, obs)) == 0
         return NCAResult(data, options, result) 
     end
-    time_cp, obs_cp, einds = step_1_filterpksubj(gettime(data), getobs(data, obs), first_dosetime_time)
+    time_cp, obs_cp, einds = step_1_filterpksubj(gettime(data), getobs(data, obs), used_dosetime_time)
     if length(obs_cp) < 2
         return NCAResult(data, options, result)
     end
@@ -593,8 +601,8 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = nothing;
     result[:Obsnum] = validobsn(time_cp, obs_cp)
     # If TAU set, calculates start and end timepoints for AUCtau
 
-    if  first_dosetime_tau > zero(typeof(first_dosetime_tau))
-        taulastp = findlast(x -> x <= first_dosetime_time + first_dosetime_tau, time_cp)
+    if  used_dosetime_tau > zero(typeof(used_dosetime_tau))
+        taulastp = findlast(x -> x <= used_dosetime_time + used_dosetime_tau, time_cp)
         result[:Ctaumin] = ctaumin(time_cp, obs_cp, taulastp)
     else
         taulastp = length(obs_cp)
@@ -625,8 +633,8 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = nothing;
 
 ################################################################################
     # STEP 4
-    if  first_dosetime_tau > zero(first_dosetime_tau)
-        time_cp .-= first_dosetime_time
+    if  used_dosetime_tau > zero(used_dosetime_tau)
+        time_cp .-= used_dosetime_time
     end
 ################################################################################
     # STEP 5
@@ -644,7 +652,7 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = nothing;
                 result[:Cdose] = first(obs_cp)
             end
         else
-            if  first_dosetime_tau > zero(typeof(first_dosetime_tau))
+            if  used_dosetime_tau > zero(typeof(used_dosetime_tau))
                 result[:Cdose] = result[:Ctaumin]
             else
                 result[:Cdose] = zero(O)
@@ -671,9 +679,9 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = nothing;
     #---------------------------------------------------------------------------
     result[:MRTlast]    = result[:AUMClast] / result[:AUClast]
     #---------------------------------------------------------------------------
-    if first_dosetime_dose > zero(first_dosetime_dose)
-        result[:Cllast]           = first_dosetime_dose / result[:AUClast]
-        result[:Dose]             = first_dosetime_dose
+    if used_dosetime_dose > zero(used_dosetime_dose)
+        result[:Cllast]           = used_dosetime_dose / result[:AUClast]
+        result[:Dose]             = used_dosetime_dose
     end
     #-----------------------------------------------------------------------
     #-----------------------------------------------------------------------
@@ -706,10 +714,10 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = nothing;
         result[:AUMCinf_pred]    = result[:AUMClast] + result[:Tlast] * result[:Clast_pred] / result[:Kel] + result[:Clast_pred] / result[:Kel] ^ 2
         result[:MRTinf]          = result[:AUMCinf] / result[:AUCinf]
         result[:MRTinf_pred]     = result[:AUMCinf_pred] / result[:AUCinf_pred]
-        if first_dosetime_dose > zero(first_dosetime_dose)
-            result[:Vzlast]          = first_dosetime_dose / result[:AUClast] / result[:Kel]
-            result[:Vzinf]           = first_dosetime_dose / result[:AUCinf] / result[:Kel]
-            result[:Clinf]           = first_dosetime_dose / result[:AUCinf]
+        if used_dosetime_dose > zero(used_dosetime_dose)
+            result[:Vzlast]          = used_dosetime_dose / result[:AUClast] / result[:Kel]
+            result[:Vzinf]           = used_dosetime_dose / result[:AUCinf] / result[:Kel]
+            result[:Clinf]           = used_dosetime_dose / result[:AUCinf]
             result[:Vssinf]          = result[:Clinf] * result[:MRTinf]
         end
     else
@@ -718,19 +726,19 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = nothing;
 ################################################################################
     # STEP 8
     # Steady-state parameters
-    if first_dosetime_tau > zero(first_dosetime_tau)
+    if used_dosetime_tau > zero(used_dosetime_tau)
         eaucpartl  = zero(T)*zero(O)
         eaumcpartl = zero(T)^2*zero(O)
-        if time_cp[taulastp] < first_dosetime_tau < time_cp[end]
-            result[:Ctau] = interpolate(time_cp[taulastp], time_cp[taulastp + 1], first_dosetime_tau, obs_cp[taulastp], obs_cp[taulastp + 1], intpm, true)
-            eaucpartl = aucpart(time_cp[taulastp], first_dosetime_tau, obs_cp[taulastp], result[:Ctau], calcm, true)
-            eaumcpartl = aumcpart(time_cp[taulastp], first_dosetime_tau, obs_cp[taulastp], result[:Ctau], calcm, true)
+        if time_cp[taulastp] < used_dosetime_tau < time_cp[end]
+            result[:Ctau] = interpolate(time_cp[taulastp], time_cp[taulastp + 1], used_dosetime_tau, obs_cp[taulastp], obs_cp[taulastp + 1], intpm, true)
+            eaucpartl = aucpart(time_cp[taulastp], used_dosetime_tau, obs_cp[taulastp], result[:Ctau], calcm, true)
+            eaumcpartl = aumcpart(time_cp[taulastp], used_dosetime_tau, obs_cp[taulastp], result[:Ctau], calcm, true)
                 #remoove part after tau
-        elseif data.dosetime.tau > time_cp[end] && result[:Kel] !== NaN
+        elseif used_dosetime_tau > time_cp[end] && result[:Kel] !== NaN
                 #extrapolation
-            result[:Ctau] = exp(result[:LZint] + result[:LZ] * (first_dosetime_tau + first_dosetime_time))
-            eaucpartl = aucpart(time_cp[end], first_dosetime_tau, obs_cp[end], result[:Ctau], calcm, true)
-            eaumcpartl = aumcpart(time_cp[end], first_dosetime_tau, obs_cp[end], result[:Ctau], calcm, true)
+            result[:Ctau] = exp(result[:LZint] + result[:LZ] * (used_dosetime_tau + used_dosetime_time))
+            eaucpartl = aucpart(time_cp[end], used_dosetime_tau, obs_cp[end], result[:Ctau], calcm, true)
+            eaumcpartl = aumcpart(time_cp[end], used_dosetime_tau, obs_cp[end], result[:Ctau], calcm, true)
         else
             result[:Ctau] = obs_cp[taulastp]
         end
@@ -744,7 +752,7 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = nothing;
         result[:AUCtau]   = auctau
         result[:AUMCtau]  = aumctau
 
-        result[:Cavg]     = result[:AUCtau]/first_dosetime_tau
+        result[:Cavg]     = result[:AUCtau]/used_dosetime_tau
         if result[:Ctaumin] != 0
             result[:Swing]    = (result[:Cmax] - result[:Ctaumin])/result[:Ctaumin]
         end
@@ -754,11 +762,11 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = nothing;
         result[:Fluc]     = (result[:Cmax] - result[:Ctaumin])/result[:Cavg] * 100
         result[:Fluctau]  = (result[:Cmax] - result[:Ctau])/result[:Cavg] * 100
         #If Kel calculated
-        result[:Cltau]           = first_dosetime_dose / result[:AUCtau]
+        result[:Cltau]           = used_dosetime_dose / result[:AUCtau]
         if !isnan(result[:Kel])
-            result[:Accind]   = 1 / (1 - (exp(-result[:Kel] * first_dosetime_tau)))
-            result[:MRTtauinf]       = (result[:AUMCtau] + first_dosetime_tau * (result[:AUCinf] - result[:AUCtau])) / result[:AUCtau]
-            result[:Vztau]           = first_dosetime_dose / result[:AUCtau] / result[:Kel]
+            result[:Accind]   = 1 / (1 - (exp(-result[:Kel] * used_dosetime_tau)))
+            result[:MRTtauinf]       = (result[:AUMCtau] + used_dosetime_tau * (result[:AUCinf] - result[:AUCtau])) / result[:AUCtau]
+            result[:Vztau]           = used_dosetime_dose / result[:AUCtau] / result[:Kel]
             result[:Vsstau]          = result[:Cltau] * result[:MRTtauinf]
         end
 
@@ -769,12 +777,12 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = nothing;
         for prt in partials
             stime = prt[1]
             etime = prt[2]
-            if stime <  first_dosetime_time error("Start time can't be less than dose time!") end
-            if stime <  first_dosetime_time error("End time can't be less than dose time!") end
+            if stime <  used_dosetime_time error("Start time can't be less than dose time!") end
+            if stime <  used_dosetime_time error("End time can't be less than dose time!") end
             if etime <= stime error("End time can't be less or equal start time!") end
             suffix = "_"*string(stime)*"_"*string(etime)
-            stime = stime - first_dosetime_time
-            etime = etime - first_dosetime_time
+            stime = stime - used_dosetime_time
+            etime = etime - used_dosetime_time
             if etime > last(time_cp) && prtext == :err error("End time can't be greater than last time point ($(last(time_cp)))! Use keyword `prtext=:last` or `prtext=:extr`...") end 
             #first point
             firstp = findfirst(x -> x >= stime, time_cp)
@@ -832,8 +840,8 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = nothing;
             aucpartlsum[i]  = sum(view(aucpartl, 1:i))
             aumcpartlsum[i] = sum(view(aumcpartl, 1:i))
         end
-        if  first_dosetime_time > 0
-            time_cp .+= first_dosetime_time
+        if  used_dosetime_time > 0
+            time_cp .+= used_dosetime_time
         end
         hnames = [:Time, :Concentrtion, :AUC, :AUC_cum, :AUMC, :AUMC_cum, :Info]
         mx = metida_table(time_cp, obs_cp, pushfirst!(aucpartl, 0.0),  pushfirst!(aucpartlsum, 0.0), pushfirst!(aumcpartl, 0.0),  pushfirst!(aumcpartlsum, 0.0), fill("", length(obs_cp));
@@ -865,7 +873,7 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = nothing;
                   ["" "" "" "(cum.)" "" "(cum.)" ""])
         PrettyTables.pretty_table(io, mx; tf = PrettyTables.tf_compact, header = hnames, formatters = PrettyTables.ft_printf("%3.4g"))
         println(io, "")
-        println(io, "    Cdose: $(result[:Cdose]), Dose time: $(data.dosetime.time)")
+        println(io, "    Cdose: $(result[:Cdose]), Dose time: $(used_dosetime_time)")
         if isnan(result[:Kel])
             println(io, "    Elimination not calculated")
         else
@@ -875,7 +883,7 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = nothing;
             println(io, "    @ - Interpolated points ($(length(einds)))")
         end
         println(io, "")
-        if first_dosetime_tau < time_cp[end] && first_dosetime_tau > 0
+        if used_dosetime_tau < time_cp[end] && used_dosetime_tau > 0
             println(io, "    Tau + dosetime is less then end time. Interpolation used.")
             println(io, "    Ctau: $(result[:Ctau])")
             println(io, "    AUC  final part: $(eaucpartl)")

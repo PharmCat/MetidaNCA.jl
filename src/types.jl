@@ -138,14 +138,15 @@ function Base.convert(::Type{<: Union{DoseTime, Vector{DoseTime}}}, x::Vector{DT
     return Vector{DoseTime}(x)
 end
 
-Base.first(x::DoseTime) = x
+#Base.first(x::DoseTime) = x
 
-function checkdosetime(dt::DoseTime)
-    true
-end
-function checkdosetime(::Nothing)
-    true
-end
+#function checkdosetime(dt::DoseTime)
+#    true
+#end
+#function checkdosetime(::Nothing)
+#    true
+#end
+
 function checkdosetime(dt::Vector{<:DoseTime})
     if length(dt) == 0 
         error("DoseTime can't be empty.") 
@@ -183,7 +184,7 @@ mutable struct PKSubject{T <: Number, O, C <: Any, V <: Any} <: AbstractSubject
     covars::C
     kelauto::Bool
     kelrange::ElimRange
-    dosetime::Union{DoseTime, Vector{DoseTime}}
+    dosetime::Vector{DoseTime}
     keldata::KelData
     id::Dict{Symbol, V}
     ncaresobs::Symbol
