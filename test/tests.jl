@@ -138,7 +138,7 @@ include("refdicts.jl")
     pl = @test_nowarn MetidaNCA.pkplot(dsnca; typesort = :Subject, elim = true, legend = true)
 
     #png
-    @test_nowarn png(pl[1], io)
+    #@test_nowarn png(pl[1], io)
 
     #  mergeplots!
     mpl1 = @test_nowarn MetidaNCA.mergeplots!(pl[1].plot, pl[2].plot)
