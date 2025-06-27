@@ -36,6 +36,7 @@ PKSubject, UPKSubject, PDSubject, NCAResult
 
 function __init__()
     @require Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80" begin
+        import Plots: png
         savefig = Plots.savefig
         current = Plots.current
 
@@ -56,6 +57,15 @@ function __init__()
                 end
             end
             return plt
+        end
+        function Plots.png(plt::PKPlot, io::IO)
+            png(plt.plot, io)
+        end
+        function Plots.png(plt::PKPlot, fn)
+            png(plt.plot, fn)
+        end
+        function Plots.png(plt::PKPlot)
+            png(plt.plot)
         end
     end
 end

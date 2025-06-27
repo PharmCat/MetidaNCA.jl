@@ -135,6 +135,9 @@ include("refdicts.jl")
     # no pagesort + elim
     pl = @test_nowarn MetidaNCA.pkplot(dsnca; typesort = :Subject, elim = true, legend = true)
 
+    #png
+    png(pl[1], io)
+
     #  mergeplots!
     mpl1 = @test_nowarn MetidaNCA.mergeplots!(pl[1].plot, pl[2].plot)
     mpl1 = @test_nowarn MetidaNCA.mergeplots!(pl)
@@ -1838,6 +1841,7 @@ end
     io = IOBuffer();
     pd_rds = MetidaNCA.nca!(pd; calcm = :luldt, verbose = 2, io = io, wm = true)
     @test pd_rds.metadata[:ncalog] == String(take!(io))
+
 end
 
 
