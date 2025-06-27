@@ -531,7 +531,7 @@ Steady-state parameters (tau used):
 `partials` is a vector of vectors, tuples or pairs. Example: `partials = [(1,2), (3,4)]`, `partials = [[1,2], (3,4)]`
 
 """
-function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = nothing; 
+function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS; 
     adm = :ev, calcm = :lint, usedose::Int = 0,
     intpm = :calcm,  
     partials = nothing, 
@@ -551,14 +551,6 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = nothing;
     if intpm == :calcm intpm = calcm end
 
     options =  Dict(:obsname => obs, :type => :bps, :adm => adm, :calcm => calcm, :intpm => intpm, :verbose => verbose, :warn => warn, :modify! => modify!)
-
-
-    if !isnothing(obs)
-        sfk = getfirstkey(data)
-        if !isnothing(sfk)
-            data.ncaresobs = sfk
-        end
-    end
 
     if usedose == 0
         usedose = length(data.dosetime)
@@ -625,7 +617,8 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = nothing;
         end
     end
 
-    keldata, excltime, tlastn, tlast = step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, gettime(data), data.keldata)
+
+    keldata, excltime, tlastn, tlast = step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, gettime(data), KelData(T[], T[], Float64[], Float64[], Float64[], Float64[], Int[]))
     # C last and T last
     result[:Tlast]   = time_cp[tlastn]
     result[:Clast]   = obs_cp[tlastn]
@@ -695,7 +688,7 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = nothing;
         result[:Tlag] = zero(T)
     end
 
-    if  length(data.keldata) > 0
+    if  length(keldata) > 0
         #data.keldata             = keldata
         result[:ARsq], rsqn      = findmax(keldata.ar)
         result[:Rsq]             = keldata.r[rsqn]
@@ -898,7 +891,7 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = nothing;
     end
 ################################################################################
 
-    ncares = NCAResult(data, options, result)
+    ncares = NCAResult(data, options, obs, keldata, result)
     modify!(ncares)
 
     #-----------------------------------------------------------------------
@@ -996,13 +989,13 @@ function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}, obs::Union{Symbol, Nothi
     if isnothing(intpm) intpm = calcm end
 
 
-    time, obs, vol = step_1_filterupksubj(gettime(data), getobs(data), data.vol, data.dosetime.time)
+    time, obsvals, vol = step_1_filterupksubj(gettime(data), getobs(data, obs), data.vol, data.dosetime.time)
 
     mtime  = map(x-> (x[1]+x[2])/2, time)
 
-    exr  = exrate(time, obs, vol)
+    exr  = exrate(time, obsvals, vol)
 
-    result[:AR]   = getobs(data)' * data.vol
+    result[:AR]   = getobs(data, obs)' * data.vol
     result[:Vol]  = sum(vol)
 
     if time[1][1] > data.dosetime.time
@@ -1010,7 +1003,7 @@ function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}, obs::Union{Symbol, Nothi
     else
         pushfirst!(mtime, time[1][1])
     end
-    pushfirst!(obs, zero(O))
+    pushfirst!(obsvals, zero(O))
     pushfirst!(vol, zero(VOL))
     pushfirst!(exr, zero(eltype(exr)))
 
@@ -1032,7 +1025,7 @@ function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}, obs::Union{Symbol, Nothi
 
     # STEP 3
     # Elimination
-    keldata, excltime = step_3_elim!(result, data, adm, tmaxn, mtime, exr, data.time, data.keldata)
+    keldata, excltime = step_3_elim!(result, data, adm, tmaxn, mtime, exr, data.time, KelData(ttype[], ttype[], Float64[], Float64[], Float64[], Float64[], Int[]))
 
     #result[:Kel]
     #result[:HL]
@@ -1046,7 +1039,7 @@ function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}, obs::Union{Symbol, Nothi
     result[:AUClast] = sum(aucpartl[1:lastobs-1])
     result[:Rlast]  = exr[end]
 
-    if  length(data.keldata) > 0
+    if  length(keldata) > 0
         result[:ARsq], rsqn      = findmax(keldata.ar)
         result[:Rsq]             = keldata.r[rsqn]
         result[:Kel]             = abs(keldata.a[rsqn]) / oneunit(ttype)
@@ -1060,7 +1053,7 @@ function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}, obs::Union{Symbol, Nothi
         result[:AUCpct]          = (result[:AUCinf] - result[:AUClast]) / result[:AUCinf] * 100
     end
 
-    ncares = NCAResult(data, options, result)
+    ncares = NCAResult(data, options, obs, keldata, result)
     modify!(ncares)
     #-----------------------------------------------------------------------
     return ncares

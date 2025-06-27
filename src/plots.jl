@@ -1,5 +1,10 @@
 struct NoPageSort end
 
+struct PKPlot <: AbstractIdData
+    plot
+    id
+end
+
 const PKPLOTSTYLE = (
 (:solid, :blue, :circle, :blue),
 (:solid, :red, :utriangle, :red),
@@ -197,30 +202,22 @@ function _subjplot(subj, kwargs, ls; obsname = nothing)
 end
 
 
-function _elimplot!(p, subj, time, obs, kwargs, elim, ls; obsname = nothing)
-    if elim
-        if !isnothing(obsname) && subj.ncaresobs != obsname
-            error("This observations not used for NCA calculation.")
-        end 
-        if length(subj.keldata) > 0
-            arsq, rsqn = findmax(subj.keldata.ar)
-            lz        = subj.keldata.a[rsqn]
-            lzint     = subj.keldata.b[rsqn]
-            ts        = subj.keldata.s[rsqn]
-            te        = subj.keldata.e[rsqn]
+function _elimplot!(p, keldata, ls; obsname = nothing)
+        if length(keldata) > 0
+            arsq, rsqn = findmax(keldata.ar)
+            lz        = keldata.a[rsqn]
+            lzint     = keldata.b[rsqn]
+            ts        = keldata.s[rsqn]
+            te        = keldata.e[rsqn]
             if ls true
                 x = [ts, te]
                 y = [lzint + lz * x[1], lzint + lz * x[2]]
             else
                 x = collect(ts:(te-ts)/100:te)
-                y = exp.(lzint .+ lz .* x)
+                y = @. exp(lzint + lz * x)
             end
-            pkelimpplot!(p, x, y; title = kwargs[:title]*"\n($(round(lzint, sigdigits = 4)) + $(round(lz, sigdigits = 4)) * Time; aR² = $(round(arsq, sigdigits = 4))) ")
-            if length(subj.kelrange.kelexcl) > 0
-                pkelimpdrop!(p, time[subj.kelrange.kelexcl], obs[subj.kelrange.kelexcl])
-            end
+            pkelimpplot!(p, x, y; title =  p.attr[:plot_title]*"\n($(round(lzint, sigdigits = 4))+$(round(lz, sigdigits = 4))*Time; aR²=$(round(arsq, sigdigits = 3)))")
         end
-    end
     return p
 end
 
@@ -239,12 +236,11 @@ function _pddtplot!(p, subj, kwargs)
     return p
 end
 """
-    pkplot(subj; ls = false, elim = false, xticksn = :auto, yticksn = :auto, kwargs...)
+    pkplot(subj::AbstractSubject; ls = false, elim = false, xticksn = :auto, yticksn = :auto, obsname = nothing, kwargs...)
 
 Plot for subject
 
 * `ls` - concentration in log scale;
-* `elim` - draw elimination curve;
 * `xticksn` - number of ticks on x axis;
 * `yticksn` - number of ticks on y axis;
 
@@ -256,7 +252,7 @@ Plot for subject
 * `drawdt` (`false`) - draw drawdose time;
 
 """
-function pkplot(subj::AbstractSubject; ls = false, elim = false, xticksn = :auto, yticksn = :auto, obsname = nothing, kwargs...)
+function pkplot(subj::AbstractSubject; ls = false, xticksn = :auto, yticksn = :auto, obsname = nothing, kwargs...)
 
     kwargs = Dict{Symbol, Any}(kwargs)
     k = keys(kwargs)
@@ -290,15 +286,13 @@ function pkplot(subj::AbstractSubject; ls = false, elim = false, xticksn = :auto
     time, obs = _subjplot(subj, kwargs, ls; obsname = obsname)
 
     p = subjectplot(time, obs;  lcd = yticksn, tcd = xticksn, kwargs...)
-
-    _elimplot!(p, subj, time, obs, kwargs, elim, ls; obsname = obsname)
     
     _pddtplot!(p, subj, kwargs)
 
     return p
 end
 
-function pkplot!(subj; ls = false, elim = false, xticksn = :auto, yticksn = :auto, obsname = nothing, kwargs...)
+function pkplot!(subj; ls = false, xticksn = :auto, yticksn = :auto, obsname = nothing, kwargs...)
     time = gettime(subj)
     obs  = getobs(subj, obsname)
     kwargs = Dict{Symbol, Any}(kwargs)
@@ -512,11 +506,15 @@ function pkplot(data::DataSet{T};
         end
     end
     if isa(pagesort, NoPageSort)
-        return p[1]
+        if isa(p[1], Pair)
+            return p[1][2]
+        else
+            return p[1]
+        end
     end
-
     if onlyplots return  getindex.(p, 2) end
-    return p
+
+    return DataSet([PKPlot(x[2], x[1]) for x in p])
 
 end
 
@@ -524,16 +522,42 @@ end
 """
     pkplot(data::DataSet{T}; kwargs...) where T <: NCAResult
 """
-function pkplot(data::DataSet{T}; kwargs...) where T <: NCAResult
+function pkplot(data::DataSet{T}; elim = false, kwargs...) where T <: NCAResult
+    k = keys(kwargs)
     ds = map(x-> x.data, data)
-    pkplot(ds; kwargs...)
+    plts = pkplot(ds; kwargs...)
+    if :pagesort in k && elim
+        @info "'elim' keyword ignored..."
+    end  
+    if !(:pagesort in k) && elim
+        if !(:ls in k)
+            ls = false
+        else
+            ls = kwargs[:ls]
+        end
+
+        for i = 1:length(plts)
+            _elimplot!(plts[i].plot, data[i].keldata, ls; obsname = data[i].obsname)
+        end
+    end
+    plts
 end
 
 """
-    pkplot(data::NCAResult; kwargs...) 
+    pkplot(data::NCAResult; elim = false, kwargs...) 
+
+* `elim` - draw elimination curve;
 """
-function pkplot(data::NCAResult; kwargs...)
-    pkplot(data.data; kwargs...)
+function pkplot(data::NCAResult; elim = false, kwargs...)
+    k = keys(kwargs)
+    if !(:ls in k)
+        ls = false
+    else
+        ls = kwargs[:ls]
+    end
+    p = pkplot(data.data; kwargs...)
+    if elim _elimplot!(p, data.keldata, ls; obsname = data.obsname) end
+    p
 end
 
 function qf(x, alpha)
@@ -592,4 +616,15 @@ function vpcdata(data::DataSet{T}; timef = identity, meanf = mean, intf = x->qf(
         ub[i], lb[i] = intf(dict[k[i]])
     end
     k, means, lb, ub
+end
+
+
+function mergeplots!(data::DataSet{PKPlot})
+    if length(data) == 0 
+        return nothing
+    elseif length(data) == 1 
+        return data.ds[1]
+    else
+        mergeplots!([p.plot for p in data.ds]...)
+    end
 end

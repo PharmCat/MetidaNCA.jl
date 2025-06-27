@@ -57,7 +57,7 @@ Function `newparam` applyed to [`NCAResult`](@ref).
 ## Print output
 
 ```@example ncaexample
-dsnca = nca!(ds[1], adm = :ev, calcm = :lint, verbose = 2);
+nca!(ds[1], adm = :ev, calcm = :lint, verbose = 2);
 
 ```
 
@@ -79,17 +79,17 @@ p = pkplot(ds; typesort = :Formulation, pagesort = NoPageSort(), legend = true)
 png(p, "plot2.png")
 
 # plot 3
+# Plotting with elimination results (only for results)
 
-p = pkplot(ds; elim = true, ls = true)
+p = pkplot(dsnca; elim = true, ls = true)
 
-png(p[1][2], "plot3.png")
+png(p[1], "plot3.png")
 
 # plot 4
-# If pagesort used - return pairs with `Page ID` => `Plot`
 
 p = pkplot(ds; typesort = :Subject, pagesort = :Formulation)
 
-png(p[1][2], "plot4.png")
+png(p[1], "plot4.png")
 
 # plot 5
 

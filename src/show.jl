@@ -25,7 +25,19 @@ end
 # PK Subject
 
 function Base.show(io::IO, obj::PKSubject)
-    println(io, "  Pharmacokinetic subject")
+    print(io, "  Pharmacokinetic subject")
+    if isnothing(obsnames(obj))
+        println(io, "")
+    else
+        on = obsnames(obj)
+        print(io, " (Observation names: $(on[1])")
+        if length(on) > 1
+            for i = 2:length(on)
+                print(io, ", $(on[i])")
+            end
+        end
+        println(io, ")")
+    end
     if length(obj.id) > 0
         print(io, "ID: ")
         for (k, v) in obj.id
@@ -51,9 +63,6 @@ function Base.show(io::IO, obj::PKSubject)
         end
     else
         PrettyTables.pretty_table(io, metida_table(obj.time, getobs(obj); names = (:Time, :Observations)); tf = PrettyTables.tf_compact)
-    end
-    if obj.ncaresobs != NCARESOBS
-        printstyled(io, "(NCA obs: $(obj.ncaresobs))\n"; color = :blue)
     end
 end
 function Base.show(io::IO, obj::UPKSubject)
@@ -107,7 +116,12 @@ function Base.show(io::IO, obj::DataSet{ST}) where ST <: AbstractSubject
 end
 
 function Base.show(io::IO, obj::T) where T <: NCAResult
-    println(io, "  PK/PD subject NCA result")
+    print(io, "  PK/PD subject NCA result")
+    if (obj.obsname != NCARESOBS) && !isnothing(obj.obsname)
+        printstyled(io, " (NCA obs: $(obj.obsname))\n"; color = :blue)
+    else
+        println(io, "")
+    end
     PrettyTables.pretty_table(io, obj.result; header = ["Parameter", "Value"], tf = PrettyTables.tf_compact)
 end
 
@@ -119,6 +133,40 @@ function Base.show(io::IO, obj::DataSet{Res}) where Res <: NCAResult
         print(io, "Subject $(i): ")
         if length(obj[i].data.id) > 0
             for (k, v) in obj[i].data.id
+                print(io, "$k => $v, ")
+            end
+            println(io, "")
+        else
+            println(io, "-")
+        end
+    end
+    if lo < length(obj) 
+        printstyled(io, "$(length(obj) - lo) subjects omitted... \n"; color = :blue)
+    end
+end
+
+function Base.show(io::IO, obj::PKPlot) 
+    show(io, obj.plot) 
+end
+function Base.display(obj::PKPlot) 
+    display(obj.plot) 
+end
+function Base.display(m::MIME, obj::PKPlot) 
+    display(m, obj.plot) 
+end
+function Base.display(d::AbstractDisplay, mime::AbstractString, obj::PKPlot) 
+    display(d, mime, obj.plot) 
+end
+
+
+function Base.show(io::IO, obj::DataSet{PKPlot}) 
+    println(io, "DataSet: PKPlot")
+    println(io, "Length: $(length(obj))")
+    lo = min(length(obj), 20)
+    for i = 1:lo
+        print(io, "Subject $(i) plot: ")
+        if length(obj[i].id) > 0
+            for (k, v) in obj[i].id
                 print(io, "$k => $v, ")
             end
             println(io, "")

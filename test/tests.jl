@@ -60,6 +60,8 @@ include("refdicts.jl")
     @test  MetidaNCA.getid(dsnca, :, :Subject) == collect(1:10)
     show(io, dsnca)
 
+    @test MetidaNCA.obsnames(ds[1]) == (:Concentration,)
+
     # pkimport method with keywords
     @test_nowarn MetidaNCA.pkimport(pkdata2; time = :Time, conc = :Concentration)
 
@@ -92,10 +94,10 @@ include("refdicts.jl")
 
 
     # If no typesort and no pagesort returns array of pairs id => plot
-    pl = @test_nowarn  MetidaNCA.pkplot(ds; elim = true, ls = true)
+    pl = @test_nowarn  MetidaNCA.pkplot(ds; ls = true)
     @test length(pl) == 10
 
-    pl = @test_nowarn MetidaNCA.pkplot(ds; typesort = :Subject, pagesort = :Formulation, elim = true, ls = true, title = "Plots")
+    pl = @test_nowarn MetidaNCA.pkplot(ds; typesort = :Subject, pagesort = :Formulation, ls = true, title = "Plots")
     @test length(pl) == 2
 
     pl = @test_nowarn  MetidaNCA.pkplot(ds; typesort = :Formulation, pagesort = :Subject, xticksn = 8, yticksn = 10)
@@ -112,6 +114,30 @@ include("refdicts.jl")
 
     pl = @test_nowarn MetidaNCA.pkplot(ds; typesort = [:Subject, :Formulation], pagesort = MetidaNCA.NoPageSort(), legend = true)
     @test isa(pl, Plots.Plot) == true
+
+    # NCA Plots
+    # Single
+    pl = @test_nowarn MetidaNCA.pkplot(dsnca[1];  legend = true)
+    @test isa(pl, Plots.Plot) == true
+    pl = @test_nowarn MetidaNCA.pkplot(dsnca[1];  legend = false, elim = true)
+    @test isa(pl, Plots.Plot) == true
+    pl = @test_nowarn MetidaNCA.pkplot(dsnca[1];  ls = true, elim = true)
+    @test isa(pl, Plots.Plot) == true
+
+    # DataSet
+    pl = @test_nowarn MetidaNCA.pkplot(dsnca;  legend = true)
+    pl = @test_nowarn MetidaNCA.pkplot(dsnca; elim = true, legend = true)
+
+    # pagesort
+    pl = @test_nowarn MetidaNCA.pkplot(dsnca; typesort = :Subject, pagesort = :Formulation, legend = true)
+    # no pagesort
+    pl = @test_nowarn MetidaNCA.pkplot(dsnca; typesort = :Subject, legend = true)
+    # no pagesort + elim
+    pl = @test_nowarn MetidaNCA.pkplot(dsnca; typesort = :Subject, elim = true, legend = true)
+
+    #  mergeplots!
+    mpl1 = @test_nowarn MetidaNCA.mergeplots!(pl[1].plot, pl[2].plot)
+    mpl1 = @test_nowarn MetidaNCA.mergeplots!(pl)
 
     pl = @test_nowarn MetidaNCA.vpcplot(ds)
 
@@ -143,8 +169,8 @@ include("refdicts.jl")
     MetidaNCA.setkelauto!(ds, true)
 
     #Plot from NCA result DataSet
-    @test_nowarn MetidaNCA.pkplot(dsncafromds[1]; ylims = (0, 10), yscale = :log10, legend = false)
-    @test_nowarn MetidaNCA.pkplot(dsncafromds; typesort = :Subject, pagesort = :Formulation, elim = true, ls = true, title = "Plots")
+    @test_nowarn MetidaNCA.pkplot(dsncafromds[1]; yscale = :log10, legend = false)
+    @test_logs :info, "'elim' keyword ignored..." MetidaNCA.pkplot(dsncafromds; typesort = :Subject, pagesort = :Formulation, elim = true, ls = true, title = "Plots")
     # Unknown typesort
     @test_nowarn pl = MetidaNCA.pkplot(ds; typesort = :unknown)
 
@@ -165,7 +191,7 @@ include("refdicts.jl")
     show(io, MetidaNCA.getkelrange(ds))
     sbj = MetidaNCA.nca!(ds)
     show(io, sbj)
-    show(io, MetidaNCA.getkeldata(sbj))
+    #show(io, MetidaNCA.getkeldata(sbj))
     ct = MetidaNCA.ctmax(ds)
     @test  sbj[:Cmax] == ct[1]
     @test  sbj[:Tmax] == ct[2]
@@ -1660,24 +1686,24 @@ end
         kr =  MetidaNCA.ElimRange(kelstart = 12, kelend = 16)
         MetidaNCA.setkelrange!(ds[1], kr)
         dsnca2 = deepcopy(MetidaNCA.nca!(ds[1], adm = :ev, calcm = :luldt))
-        @test dsnca1.data.keldata.ar[3] ≈ 0.7147692761075757
-        @test dsnca1.data.keldata.ar[3] ≈ dsnca2.data.keldata.ar[1]
-        @test dsnca1.data.keldata.a[3] ≈ dsnca2.data.keldata.a[1]
-        @test dsnca1.data.keldata.b[3] ≈ dsnca2.data.keldata.b[1]
+        @test dsnca1.keldata.ar[3] ≈ 0.7147692761075757
+        @test dsnca1.keldata.ar[3] ≈ dsnca2.keldata.ar[1]
+        @test dsnca1.keldata.a[3] ≈ dsnca2.keldata.a[1]
+        @test dsnca1.keldata.b[3] ≈ dsnca2.keldata.b[1]
 
         kr =  MetidaNCA.ElimRange(kelstart = 12, kelend = 16, kelexcl = Int[5,6])
         MetidaNCA.setkelrange!(ds[1], kr)
         dsnca3 = deepcopy(MetidaNCA.nca!(ds[1], adm = :ev, calcm = :luldt))
-        @test dsnca1.data.keldata.ar[3] ≈ dsnca3.data.keldata.ar[1]
-        @test dsnca1.data.keldata.a[3] ≈ dsnca3.data.keldata.a[1]
-        @test dsnca1.data.keldata.b[3] ≈ dsnca3.data.keldata.b[1]
+        @test dsnca1.keldata.ar[3] ≈ dsnca3.keldata.ar[1]
+        @test dsnca1.keldata.a[3] ≈ dsnca3.keldata.a[1]
+        @test dsnca1.keldata.b[3] ≈ dsnca3.keldata.b[1]
 
         kr =  MetidaNCA.ElimRange(kelexcl = Int[5,6])
         MetidaNCA.setkelrange!(ds[1], kr; kelauto = true)
         dsnca4 = deepcopy(MetidaNCA.nca!(ds[1], adm = :ev, calcm = :luldt))
-        @test dsnca1.data.keldata.ar[3] ≈ dsnca4.data.keldata.ar[3]
-        @test dsnca1.data.keldata.a[3] ≈ dsnca4.data.keldata.a[3]
-        @test dsnca1.data.keldata.b[3] ≈ dsnca4.data.keldata.b[3]
+        @test dsnca1.keldata.ar[3] ≈ dsnca4.keldata.ar[3]
+        @test dsnca1.keldata.a[3] ≈ dsnca4.keldata.a[3]
+        @test dsnca1.keldata.b[3] ≈ dsnca4.keldata.b[3]
 
         kr =  MetidaNCA.ElimRange(kelstart = 4, kelend = 12, kelexcl = Int[5,6])
         MetidaNCA.setkelrange!(ds[1], kr)
@@ -1961,15 +1987,19 @@ end
 
     pki  = @test_nowarn MetidaNCA.pkimport(pkdata22, :Time, [:Concentration, :Concentration2], :Subject)
 
+    @test MetidaNCA.obsnames(pki[1]) == (:Concentration, :Concentration2)
+
     params = [:Cmax, :Tmax, :AUClast, :Kel, :Rsq, :MRTinf]
     ncares1 = MetidaNCA.nca!(pki, :Concentration)
     ncares2 = MetidaNCA.nca!(pki, :Concentration2)
 
     pki  = @test_nowarn MetidaNCA.pkimport(pkdata22, :Time, [:LogConcentration, :Concentration], :Subject)
     ncares3 = MetidaNCA.nca!(pki, :Concentration)
+    @test MetidaNCA.obsnames(pki[1]) == (:LogConcentration, :Concentration)
 
     pki  = @test_nowarn MetidaNCA.pkimport(pkdata22, :Time, [:Concentration, :LogConcentration], :Subject)
     ncares4 = MetidaNCA.nca!(pki, :Concentration)
+    @test MetidaNCA.obsnames(pki[1]) == (:Concentration, :LogConcentration)
 
     for p in params
         @test ncares1[:, p] == ncares2[:, p]
@@ -1979,12 +2009,10 @@ end
 
     @test_nowarn show(io, pki[1])
 
-    @test_nowarn  pkplt = MetidaNCA.pkplot(ncares4[1])
     @test_nowarn  pkplt = MetidaNCA.pkplot(ncares4[1], obsname = :Concentration)
     @test_nowarn  pkplt = MetidaNCA.pkplot(ncares4[1], obsname = :LogConcentration)
     @test_nowarn  pkplt = MetidaNCA.pkplot(ncares4[1], obsname = :Concentration, elim = true)
 
-    @test_throws "This observations not used for NCA calculation." MetidaNCA.pkplot(ncares4[1], obsname = :LogConcentration, elim = true)
 end
 
 @testset "  Development                                              " begin
