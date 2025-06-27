@@ -11,8 +11,14 @@ function timefilter(subj::PKSubject, time::AbstractRange)
         if !(gettime(subj_)[n] in time) push!(inds, n) end
     end
     deleteat!(gettime(subj_), inds)
-    deleteat!(getobs(subj_), inds)
-    resize!(subj_.keldata, 0)
+    obsn = obsnames(subj_)
+    if isnothing(obsn)
+        deleteat!(getobs(subj_), inds)
+    else
+        for n in obsn
+            deleteat!(getobs(subj_, n), inds)
+        end
+    end
     if !(subj_.kelrange.kelstart in time) || !(subj_.kelrange.kelend in time) || any(x-> !(x in time), subj_.kelrange.kelexcl)
         subj_.kelrange = ElimRange()
         subj_.kelauto = true

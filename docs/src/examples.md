@@ -57,7 +57,7 @@ Function `newparam` applyed to [`NCAResult`](@ref).
 ## Print output
 
 ```@example ncaexample
-dsnca = nca!(ds[1], adm = :ev, calcm = :lint, verbose = 2);
+nca!(ds[1], adm = :ev, calcm = :lint, verbose = 2);
 
 ```
 
@@ -79,17 +79,17 @@ p = pkplot(ds; typesort = :Formulation, pagesort = NoPageSort(), legend = true)
 png(p, "plot2.png")
 
 # plot 3
+# Plotting with elimination results (only for results)
 
-p = pkplot(ds; elim = true, ls = true)
+p = pkplot(dsnca; elim = true, ls = true)
 
-png(p[1][2], "plot3.png")
+png(p[1], "plot3.png")
 
 # plot 4
-# If pagesort used - return pairs with `Page ID` => `Plot`
 
 p = pkplot(ds; typesort = :Subject, pagesort = :Formulation)
 
-png(p[1][2], "plot4.png")
+png(p[1], "plot4.png")
 
 # plot 5
 
@@ -119,6 +119,14 @@ png(p, "vpcplot.png")
 
 ![](vpcplot.png)
 
+### MetidaNCA.mergeplots!(plt, plts...)
+
+If Plots.jl installed? you can use `MetidaNCA.mergeplots!` function to merge 2 or more plots. This function not exported.
+
+```
+MetidaNCA.mergeplots!(plt, plts...)
+```
+
 ## Set dose time
 
 You can set dose time with [`setdosetime!`](@ref) for whole subject set or for
@@ -136,8 +144,7 @@ dsnca[:, :Dose]
 
 ## Set range for elimination
 
-By default no exclusion or range specified. With [`setkelrange!`](@ref) elimination range and exclusion
-can be specified for whole subject set or for any selected subjects.
+By default no exclusions or range to calculate elimination parameters specified. With [`setkelrange!`](@ref) elimination range and exclusion can be specified for whole subject set or for any selected subjects. The observation number is used to indicate the boundaries of the elimination calculation and the observations to be excluded.
 
 ```@example ncaexample
 kr =  ElimRange(kelstart = 4, kelend = 12, kelexcl = Int[5,6])
@@ -146,11 +153,11 @@ setkelrange!(ds, kr, [1,2,3])
 
 dsnca = nca!(ds)
 
-p = pkplot(ds[1]; elim = true)
+p = pkplot(dsnca[1]; elim = true)
 
 png(p, "plot5.png")
 
-getkeldata(ds[1])
+getkeldata(dsnca[1])
 ```
 
 #### Plot 5

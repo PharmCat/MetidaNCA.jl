@@ -60,6 +60,8 @@ include("refdicts.jl")
     @test  MetidaNCA.getid(dsnca, :, :Subject) == collect(1:10)
     show(io, dsnca)
 
+    @test MetidaNCA.obsnames(ds[1]) == (:Concentration,)
+
     # pkimport method with keywords
     @test_nowarn MetidaNCA.pkimport(pkdata2; time = :Time, conc = :Concentration)
 
@@ -92,10 +94,10 @@ include("refdicts.jl")
 
 
     # If no typesort and no pagesort returns array of pairs id => plot
-    pl = @test_nowarn  MetidaNCA.pkplot(ds; elim = true, ls = true)
+    pl = @test_nowarn  MetidaNCA.pkplot(ds; ls = true)
     @test length(pl) == 10
 
-    pl = @test_nowarn MetidaNCA.pkplot(ds; typesort = :Subject, pagesort = :Formulation, elim = true, ls = true, title = "Plots")
+    pl = @test_nowarn MetidaNCA.pkplot(ds; typesort = :Subject, pagesort = :Formulation, ls = true, title = "Plots")
     @test length(pl) == 2
 
     pl = @test_nowarn  MetidaNCA.pkplot(ds; typesort = :Formulation, pagesort = :Subject, xticksn = 8, yticksn = 10)
@@ -112,6 +114,35 @@ include("refdicts.jl")
 
     pl = @test_nowarn MetidaNCA.pkplot(ds; typesort = [:Subject, :Formulation], pagesort = MetidaNCA.NoPageSort(), legend = true)
     @test isa(pl, Plots.Plot) == true
+
+    # NCA Plots
+    # Single
+    pl = @test_nowarn MetidaNCA.pkplot(dsnca[1];  legend = true)
+    @test isa(pl, Plots.Plot) == true
+    pl = @test_nowarn MetidaNCA.pkplot(dsnca[1];  legend = false, elim = true)
+    @test isa(pl, Plots.Plot) == true
+    pl = @test_nowarn MetidaNCA.pkplot(dsnca[1];  legend = false, kelpoints = false, elim = true)
+    @test isa(pl, Plots.Plot) == true
+    pl = @test_nowarn MetidaNCA.pkplot(dsnca[1];  ls = true, elim = true)
+    @test isa(pl, Plots.Plot) == true
+
+    # DataSet
+    pl = @test_nowarn MetidaNCA.pkplot(dsnca;  legend = true)
+    pl = @test_nowarn MetidaNCA.pkplot(dsnca; elim = true, legend = true)
+
+    # pagesort
+    pl = @test_nowarn MetidaNCA.pkplot(dsnca; typesort = :Subject, pagesort = :Formulation, legend = true)
+    # no pagesort
+    pl = @test_nowarn MetidaNCA.pkplot(dsnca; typesort = :Subject, legend = true)
+    # no pagesort + elim
+    pl = @test_nowarn MetidaNCA.pkplot(dsnca; typesort = :Subject, elim = true, legend = true)
+
+    #png
+    #@test_nowarn png(pl[1], io)
+
+    #  mergeplots!
+    mpl1 = @test_nowarn MetidaNCA.mergeplots!(pl[1].plot, pl[2].plot)
+    mpl1 = @test_nowarn MetidaNCA.mergeplots!(pl)
 
     pl = @test_nowarn MetidaNCA.vpcplot(ds)
 
@@ -134,17 +165,18 @@ include("refdicts.jl")
 
     p = plot()
     MetidaNCA.pkplot!(ds[1]; ylims = (0, 250), yscale = :log10, legend = false)
-    #MetidaNCA.pkplot!(p, ds[1]; ylims = (0, 250), yscale = :log10, legend = false)
 
+    # ElimRange NCA PLOTS with ElimRange
     kr =  MetidaNCA.ElimRange(kelstart = 4, kelend = 12, kelexcl = Int[5,6])
     MetidaNCA.setkelrange!(ds, kr, [1,2,3])
     dsnca = MetidaNCA.nca!(ds)
-    pl = @test_nowarn MetidaNCA.pkplot(ds[1]; elim = true)
+    pl = @test_nowarn MetidaNCA.pkplot(dsnca[1]; elim = true)
+    pl = @test_nowarn MetidaNCA.pkplot(dsnca[1]; kelpoints = false, elim = true)
     MetidaNCA.setkelauto!(ds, true)
 
     #Plot from NCA result DataSet
-    @test_nowarn MetidaNCA.pkplot(dsncafromds[1]; ylims = (0, 10), yscale = :log10, legend = false)
-    @test_nowarn MetidaNCA.pkplot(dsncafromds; typesort = :Subject, pagesort = :Formulation, elim = true, ls = true, title = "Plots")
+    @test_nowarn MetidaNCA.pkplot(dsncafromds[1]; yscale = :log10, legend = false)
+    @test_logs :info, "'elim' keyword ignored..." MetidaNCA.pkplot(dsncafromds; typesort = :Subject, pagesort = :Formulation, elim = true, ls = true, title = "Plots")
     # Unknown typesort
     @test_nowarn pl = MetidaNCA.pkplot(ds; typesort = :unknown)
 
@@ -165,7 +197,7 @@ include("refdicts.jl")
     show(io, MetidaNCA.getkelrange(ds))
     sbj = MetidaNCA.nca!(ds)
     show(io, sbj)
-    show(io, MetidaNCA.getkeldata(sbj))
+    @test_nowarn show(io, MetidaNCA.getkeldata(sbj))
     ct = MetidaNCA.ctmax(ds)
     @test  sbj[:Cmax] == ct[1]
     @test  sbj[:Tmax] == ct[2]
@@ -304,6 +336,11 @@ include("refdicts.jl")
     
     @test_nowarn MetidaNCA.dropmissing!(ds[1]) 
     @test_nowarn MetidaNCA.dropmissing(ds[1])  
+
+    # Convert dosing
+    newtype = typeof(MetidaNCA.DoseTime(dose = 100.0, time = 0.0, tau = 9))
+    newdt   = convert(newtype, MetidaNCA.DoseTime(dose = 100, time = 1, tau = 9))
+    @test isa(newdt, newtype)
 end
 
 @testset "  #1 Linear trapezoidal, Dose 100, Dosetime 0, no tau      " begin
@@ -326,9 +363,7 @@ dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
     @test round.(dsnca[:, :Cdose], sigdigits = 6) == round.(refdict[:Cdose], sigdigits = 6)
 
     # Tlag
-
     @test round.(dsnca[:, :Tlag], sigdigits = 6) == round.(refdict[:Tlag], sigdigits = 6)
-
 
     # Clast
     @test dsnca[:, :Clast] == refdict[:Clast]
@@ -364,10 +399,13 @@ dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
     @test round.(dsnca[:, :AUCinf], sigdigits = 6) == round.(refdict[:AUCinf], sigdigits = 6)
 
     # AUCinf_pred
+    @test round.(dsnca[:, :AUCinf_pred], sigdigits = 6) == round.(refdict[:AUCinf_pred], sigdigits = 6)
 
-    # AUMCinf
+    # AUMCinf 
+    @test round.(dsnca[:, :AUMCinf], sigdigits = 5) == round.(refdict[:AUMCinf], sigdigits = 5)
 
     # AUMCinf_pred
+    @test round.(dsnca[:, :AUMCinf_pred], sigdigits = 6) == round.(refdict[:AUMCinf_pred], sigdigits = 6)
 
     # AUCpct
     @test round.(dsnca[:, :AUCpct], sigdigits = 5) == round.(refdict[:AUCpct], sigdigits = 5)
@@ -379,8 +417,10 @@ dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
     @test round.(dsnca[:, :MRTinf], digits = 5) == round.(refdict[:MRTinf], digits = 5)
 
     # MRTinf_pred
+    @test round.(dsnca[:, :MRTinf_pred], digits = 5) == round.(refdict[:MRTinf_pred], digits = 5)
 
     # Cllast
+    
 
     # Clinf
     @test round.(dsnca[:, :Clinf], sigdigits = 6) == round.(refdict[:Clinf], sigdigits = 6)
@@ -1624,9 +1664,9 @@ end
         dt = MetidaNCA.DoseTime(dose = 110, time = 2.1, tau = 10)
         MetidaNCA.setdosetime!(ds[1], dt)
         dts = MetidaNCA.getdosetime(ds[1])
-        @test dts.dose == 110
-        @test dts.time == 2.1
-        @test dts.tau == 10
+        @test dts[1].dose == 110
+        @test dts[1].time == 2.1
+        @test dts[1].tau == 10
         dt2 = MetidaNCA.DoseTime(dose = 100, time = 2.2, tau = 9)
         MetidaNCA.setdosetime!(ds, dt2, 4)
         MetidaNCA.setdosetime!(ds, dt2, [1,2,3])
@@ -1652,24 +1692,24 @@ end
         kr =  MetidaNCA.ElimRange(kelstart = 12, kelend = 16)
         MetidaNCA.setkelrange!(ds[1], kr)
         dsnca2 = deepcopy(MetidaNCA.nca!(ds[1], adm = :ev, calcm = :luldt))
-        @test dsnca1.data.keldata.ar[3] ≈ 0.7147692761075757
-        @test dsnca1.data.keldata.ar[3] ≈ dsnca2.data.keldata.ar[1]
-        @test dsnca1.data.keldata.a[3] ≈ dsnca2.data.keldata.a[1]
-        @test dsnca1.data.keldata.b[3] ≈ dsnca2.data.keldata.b[1]
+        @test dsnca1.keldata.ar[3] ≈ 0.7147692761075757
+        @test dsnca1.keldata.ar[3] ≈ dsnca2.keldata.ar[1]
+        @test dsnca1.keldata.a[3] ≈ dsnca2.keldata.a[1]
+        @test dsnca1.keldata.b[3] ≈ dsnca2.keldata.b[1]
 
         kr =  MetidaNCA.ElimRange(kelstart = 12, kelend = 16, kelexcl = Int[5,6])
         MetidaNCA.setkelrange!(ds[1], kr)
         dsnca3 = deepcopy(MetidaNCA.nca!(ds[1], adm = :ev, calcm = :luldt))
-        @test dsnca1.data.keldata.ar[3] ≈ dsnca3.data.keldata.ar[1]
-        @test dsnca1.data.keldata.a[3] ≈ dsnca3.data.keldata.a[1]
-        @test dsnca1.data.keldata.b[3] ≈ dsnca3.data.keldata.b[1]
+        @test dsnca1.keldata.ar[3] ≈ dsnca3.keldata.ar[1]
+        @test dsnca1.keldata.a[3] ≈ dsnca3.keldata.a[1]
+        @test dsnca1.keldata.b[3] ≈ dsnca3.keldata.b[1]
 
         kr =  MetidaNCA.ElimRange(kelexcl = Int[5,6])
         MetidaNCA.setkelrange!(ds[1], kr; kelauto = true)
         dsnca4 = deepcopy(MetidaNCA.nca!(ds[1], adm = :ev, calcm = :luldt))
-        @test dsnca1.data.keldata.ar[3] ≈ dsnca4.data.keldata.ar[3]
-        @test dsnca1.data.keldata.a[3] ≈ dsnca4.data.keldata.a[3]
-        @test dsnca1.data.keldata.b[3] ≈ dsnca4.data.keldata.b[3]
+        @test dsnca1.keldata.ar[3] ≈ dsnca4.keldata.ar[3]
+        @test dsnca1.keldata.a[3] ≈ dsnca4.keldata.a[3]
+        @test dsnca1.keldata.b[3] ≈ dsnca4.keldata.b[3]
 
         kr =  MetidaNCA.ElimRange(kelstart = 4, kelend = 12, kelexcl = Int[5,6])
         MetidaNCA.setkelrange!(ds[1], kr)
@@ -1804,6 +1844,7 @@ end
     io = IOBuffer();
     pd_rds = MetidaNCA.nca!(pd; calcm = :luldt, verbose = 2, io = io, wm = true)
     @test pd_rds.metadata[:ncalog] == String(take!(io))
+
 end
 
 
@@ -1920,7 +1961,7 @@ end
     @test_nowarn MetidaNCA.nca!(pki)
 end
 
-@testset "  Development                                              " begin
+@testset "  Multiple dosing                                          " begin
     io = IOBuffer();
 
     pki  = @test_nowarn MetidaNCA.pkimport(pkdata2, :Time, :Concentration, :Subject; 
@@ -1941,12 +1982,46 @@ end
     pki  = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, :Subject; 
     dosetime = dtvec)
 
-    
     @test_nowarn MetidaNCA.nca!(pki)
 
-    @test_nowarn convert(typeof(MetidaNCA.DoseTime(dose = 100.0, time = 0.0, tau = 9)), MetidaNCA.DoseTime(dose = 100, time = 1, tau = 9))
+end
+@testset "  Multiple observation                                     " begin
+    io = IOBuffer();
 
-    @test_nowarn options = MetidaNCA.NCAOptions() 
+    pkdata22 = filter(:Concentration => x -> x > 0, pkdata2)
+    pkdata22.Concentration2 = copy(pkdata22.Concentration)
+    pkdata22.LogConcentration = log.(pkdata22.Concentration)
+
+    pki  = @test_nowarn MetidaNCA.pkimport(pkdata22, :Time, [:Concentration, :Concentration2], :Subject)
+
+    @test MetidaNCA.obsnames(pki[1]) == (:Concentration, :Concentration2)
+
+    params = [:Cmax, :Tmax, :AUClast, :Kel, :Rsq, :MRTinf]
+    ncares1 = MetidaNCA.nca!(pki, :Concentration)
+    ncares2 = MetidaNCA.nca!(pki, :Concentration2)
+
+    pki  = @test_nowarn MetidaNCA.pkimport(pkdata22, :Time, [:LogConcentration, :Concentration], :Subject)
+    ncares3 = MetidaNCA.nca!(pki, :Concentration)
+    @test MetidaNCA.obsnames(pki[1]) == (:LogConcentration, :Concentration)
+
+    pki  = @test_nowarn MetidaNCA.pkimport(pkdata22, :Time, [:Concentration, :LogConcentration], :Subject)
+    ncares4 = MetidaNCA.nca!(pki, :Concentration)
+    @test MetidaNCA.obsnames(pki[1]) == (:Concentration, :LogConcentration)
+
+    for p in params
+        @test ncares1[:, p] == ncares2[:, p]
+        @test ncares1[:, p] == ncares3[:, p]
+        @test ncares1[:, p] == ncares4[:, p]
+    end
+
+    @test_nowarn show(io, pki[1])
+
+    @test_nowarn  pkplt = MetidaNCA.pkplot(ncares4[1], obsname = :Concentration)
+    @test_nowarn  pkplt = MetidaNCA.pkplot(ncares4[1], obsname = :LogConcentration)
+    @test_nowarn  pkplt = MetidaNCA.pkplot(ncares4[1], obsname = :Concentration, elim = true)
 
 end
 
+@testset "  Development                                              " begin
+      @test_nowarn options = MetidaNCA.NCAOptions() 
+end

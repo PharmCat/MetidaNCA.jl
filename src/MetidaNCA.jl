@@ -1,13 +1,13 @@
-# Metida
-# Copyright © 2019-2020 Vladimir Arnautov aka PharmCat <mail@pharmcat.net>
-
+# MetidaNCA
+# Copyright © 2019-2025 Vladimir Arnautov aka PharmCat <mail@pharmcat.net>
+# SPDX-License-Identifier: MIT
 module MetidaNCA
 
 using RecipesBase
 
 import RecipesBase: plot!, plot
 import Statistics: mean, quantile
-import Base: length, push!, resize!, ht_keyindex, convert, first
+import Base: length, push!, resize!, ht_keyindex, convert, first, display, show
 import MetidaBase
 import MetidaBase: Tables, StatsBase, PrecompileTools,
 PrettyTables,
@@ -41,9 +41,9 @@ function __init__()
 
         function mergeplots!(sp1::Plots.Subplot, sp2::Plots.Subplot)
             append!(sp1.series_list, sp2.series_list)
-            Plots.expand_extrema!(sp1[:xaxis], xlims(sp2))
-            Plots.expand_extrema!(sp1[:yaxis], ylims(sp2))
-            Plots.expand_extrema!(sp1[:zaxis], zlims(sp2))
+            Plots.expand_extrema!(sp1[:xaxis], Plots.xlims(sp2))
+            Plots.expand_extrema!(sp1[:yaxis], Plots.ylims(sp2))
+            Plots.expand_extrema!(sp1[:zaxis], Plots.zlims(sp2))
             return sp1
         end
         
@@ -57,12 +57,25 @@ function __init__()
             end
             return plt
         end
+        function Plots.png(plt::PKPlot, io::IO)
+            Plots.png(plt.plot, io)
+        end
+        function Plots.png(plt::PKPlot, fn)
+            Plots.png(plt.plot, fn)
+        end
+        function Plots.png(plt::PKPlot)
+            Plots.png(plt.plot)
+        end
     end
 end
 
 function mergeplots! end
 
+function png end
+
 const LOG2 = log(2)
+
+const NCARESOBS = Symbol("")
 
     include("types.jl")
     include("setkelauto.jl")
@@ -70,7 +83,6 @@ const LOG2 = log(2)
     include("setdosetime.jl")
     include("getkeldata.jl")
     include("applylimitrule.jl")
-    include("show.jl")
     include("import.jl")
     include("nca.jl")
     include("plots.jl")
@@ -81,5 +93,6 @@ const LOG2 = log(2)
     include("sparse.jl")
     include("atomic.jl")
     include("precompile.jl")
+    include("show.jl")
 
 end # module
