@@ -121,6 +121,8 @@ include("refdicts.jl")
     @test isa(pl, Plots.Plot) == true
     pl = @test_nowarn MetidaNCA.pkplot(dsnca[1];  legend = false, elim = true)
     @test isa(pl, Plots.Plot) == true
+    pl = @test_nowarn MetidaNCA.pkplot(dsnca[1];  legend = false, kelpoints = false, elim = true)
+    @test isa(pl, Plots.Plot) == true
     pl = @test_nowarn MetidaNCA.pkplot(dsnca[1];  ls = true, elim = true)
     @test isa(pl, Plots.Plot) == true
 
@@ -136,7 +138,7 @@ include("refdicts.jl")
     pl = @test_nowarn MetidaNCA.pkplot(dsnca; typesort = :Subject, elim = true, legend = true)
 
     #png
-    png(pl[1], io)
+    @test_nowarn png(pl[1], io)
 
     #  mergeplots!
     mpl1 = @test_nowarn MetidaNCA.mergeplots!(pl[1].plot, pl[2].plot)
@@ -163,12 +165,13 @@ include("refdicts.jl")
 
     p = plot()
     MetidaNCA.pkplot!(ds[1]; ylims = (0, 250), yscale = :log10, legend = false)
-    #MetidaNCA.pkplot!(p, ds[1]; ylims = (0, 250), yscale = :log10, legend = false)
 
+    # ElimRange NCA PLOTS with ElimRange
     kr =  MetidaNCA.ElimRange(kelstart = 4, kelend = 12, kelexcl = Int[5,6])
     MetidaNCA.setkelrange!(ds, kr, [1,2,3])
     dsnca = MetidaNCA.nca!(ds)
-    pl = @test_nowarn MetidaNCA.pkplot(ds[1]; elim = true)
+    pl = @test_nowarn MetidaNCA.pkplot(dsnca[1]; elim = true)
+    pl = @test_nowarn MetidaNCA.pkplot(dsnca[1]; kelpoints = false, elim = true)
     MetidaNCA.setkelauto!(ds, true)
 
     #Plot from NCA result DataSet

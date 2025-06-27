@@ -49,7 +49,8 @@ end
 
 @userplot Subjectplot
 @userplot PKElimpPlot
-@userplot PKElimpDrop
+@userplot PKElimpDropPoints
+@userplot PKElimpPoints
 #@userplot PdHLine
 
 function luceil(x)
@@ -114,13 +115,24 @@ end
     (x, y)
 end
 
-@recipe function f(subj::PKElimpDrop)
+@recipe function f(subj::PKElimpDropPoints)
     x, y = subj.args
     seriestype        --> :scatter
     legend            --> false
-    markersize        --> 4
+    markersize        --> 5
     markercolor       --> :red
     markershape       --> :xcross
+    markerstrokewidth --> 2 
+    (x, y)
+end
+
+@recipe function f(subj::PKElimpPoints)
+    x, y = subj.args
+    seriestype        --> :scatter
+    legend            --> false
+    markersize        --> 5
+    markercolor       --> :green
+    markershape       --> :circle
     (x, y)
 end
 
@@ -202,7 +214,7 @@ function _subjplot(subj, kwargs, ls; obsname = nothing)
 end
 
 
-function _elimplot!(p, keldata, ls; obsname = nothing)
+function _elimplot!(p, subj, keldata, ls; kelexcl = true, kelpoints = true, obsname = nothing)
         if length(keldata) > 0
             arsq, rsqn = findmax(keldata.ar)
             lz        = keldata.a[rsqn]
@@ -216,7 +228,29 @@ function _elimplot!(p, keldata, ls; obsname = nothing)
                 x = collect(ts:(te-ts)/100:te)
                 y = @. exp(lzint + lz * x)
             end
-            pkelimpplot!(p, x, y; title =  p.attr[:plot_title]*"\n($(round(lzint, sigdigits = 4))+$(round(lz, sigdigits = 4))*Time; aR²=$(round(arsq, sigdigits = 3)))")
+            pkelimpplot!(p, x, y; title =  p.subplots[1].attr[:title]*"\n($(round(lzint, sigdigits = 4))+$(round(lz, sigdigits = 4))*Time; aR²=$(round(arsq, sigdigits = 3)))")
+            if kelexcl && length(subj.kelrange.kelexcl) > 0
+                times = gettime(subj)[subj.kelrange.kelexcl]
+                conc  = getobs(subj, obsname)[subj.kelrange.kelexcl]
+                if ls 
+                    @. conc = log(conc)
+                end
+                pkelimpdroppoints!(p, times, conc)
+            end
+            if kelpoints
+                tsn = findfirst(x-> x == ts, gettime(subj))
+                ten = findfirst(x-> x == te, gettime(subj))
+                timenrange = collect(tsn:ten)
+                if length(subj.kelrange.kelexcl) > 0
+                    filter!(x-> !(x in subj.kelrange.kelexcl), timenrange)
+                end
+                times = gettime(subj)[timenrange]
+                conc  = getobs(subj, obsname)[timenrange]
+                if ls 
+                    @. conc = log(conc)
+                end
+                pkelimppoints!(p, times, conc)
+            end
         end
     return p
 end
@@ -520,9 +554,9 @@ end
 
 
 """
-    pkplot(data::DataSet{T}; kwargs...) where T <: NCAResult
+    pkplot(data::DataSet{T}; elim = false, kelexcl = true, kelpoints = true, kwargs...) where T <: NCAResult
 """
-function pkplot(data::DataSet{T}; elim = false, kwargs...) where T <: NCAResult
+function pkplot(data::DataSet{T}; elim = false, kelexcl = true, kelpoints = true, kwargs...) where T <: NCAResult
     k = keys(kwargs)
     ds = map(x-> x.data, data)
     plts = pkplot(ds; kwargs...)
@@ -535,20 +569,23 @@ function pkplot(data::DataSet{T}; elim = false, kwargs...) where T <: NCAResult
         else
             ls = kwargs[:ls]
         end
-
         for i = 1:length(plts)
-            _elimplot!(plts[i].plot, data[i].keldata, ls; obsname = data[i].obsname)
+            _elimplot!(plts[i].plot, data[i].data, data[i].keldata, ls; kelexcl = kelexcl, kelpoints = kelpoints, obsname = data[i].obsname)
         end
     end
     plts
 end
 
 """
-    pkplot(data::NCAResult; elim = false, kwargs...) 
+    pkplot(data::NCAResult; elim = false, kelexcl = true, kelpoints = true, kwargs...)
+
+Plot PK profile with elmination results.
 
 * `elim` - draw elimination curve;
+* `kelexcl` - draw exclusions;
+* `kelpoints` - draw points for elimination calculation;
 """
-function pkplot(data::NCAResult; elim = false, kwargs...)
+function pkplot(data::NCAResult; elim = false, kelexcl = true, kelpoints = true, kwargs...)
     k = keys(kwargs)
     if !(:ls in k)
         ls = false
@@ -556,7 +593,7 @@ function pkplot(data::NCAResult; elim = false, kwargs...)
         ls = kwargs[:ls]
     end
     p = pkplot(data.data; kwargs...)
-    if elim _elimplot!(p, data.keldata, ls; obsname = data.obsname) end
+    if elim _elimplot!(p, data.data, data.keldata, ls; kelexcl = kelexcl, kelpoints = kelpoints, obsname = data.obsname) end
     p
 end
 

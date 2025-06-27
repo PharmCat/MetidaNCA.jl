@@ -292,8 +292,10 @@ end
 
 # 3
 # Elimination, TlastN, Tlast
-function step_3_elim!(result, data, adm, tmaxn, time_cp::AbstractVector{T}, obs_cp::AbstractVector{O}, time, keldata) where T where O
+function step_3_elim!(result, data, adm, tmaxn, time_cp::AbstractVector{T}, obs_cp::AbstractVector{O}, keldata, kelauto) where T where O
     resize!(keldata)
+
+    time   = gettime(data)
     obsnum = length(time_cp)
     # data.kelrange.kelexcl - indexes; excltime - time values
     excltime = time[data.kelrange.kelexcl]
@@ -304,7 +306,7 @@ function step_3_elim!(result, data, adm, tmaxn, time_cp::AbstractVector{T}, obs_
     tlastn   = findlast(x-> x > zero(x), r_obs_cp)
     tlast    = r_time_cp[tlastn]
 
-    if data.kelauto
+    if kelauto
         if (adm != :iv && obsnum - tmaxn > 2) || (adm == :iv && obsnum - tmaxn > 1)
             if adm == :iv
                 stimep = tmaxn
@@ -334,7 +336,15 @@ function step_3_elim!(result, data, adm, tmaxn, time_cp::AbstractVector{T}, obs_
         end
     else
         stimep = findfirst(x -> x >= time[data.kelrange.kelstart], time_cp)
+        if isnothing(stimep)
+            @warn "Start-time not found - automatic kel calclation used."
+            step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, keldata, kelauto)
+        end
         etimep = findlast(x -> x <= time[data.kelrange.kelend], time_cp)
+        if isnothing(stimep)
+            @warn "End-time not found - automatic kel calclation used."
+            step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, keldata, kelauto) 
+        end
         timep = collect(stimep:etimep)
         if length(data.kelrange.kelexcl) > 0
             @inbounds for i in data.kelrange.kelexcl
@@ -618,7 +628,7 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
     end
 
 
-    keldata, excltime, tlastn, tlast = step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, gettime(data), KelData(T[], T[], Float64[], Float64[], Float64[], Float64[], Int[]))
+    keldata, excltime, tlastn, tlast = step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, KelData(T[], T[], Float64[], Float64[], Float64[], Float64[], Int[]), data.kelauto)
     # C last and T last
     result[:Tlast]   = time_cp[tlastn]
     result[:Clast]   = obs_cp[tlastn]
@@ -1025,7 +1035,7 @@ function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}, obs::Union{Symbol, Nothi
 
     # STEP 3
     # Elimination
-    keldata, excltime = step_3_elim!(result, data, adm, tmaxn, mtime, exr, data.time, KelData(ttype[], ttype[], Float64[], Float64[], Float64[], Float64[], Int[]))
+    keldata, excltime = step_3_elim!(result, data, adm, tmaxn, mtime, exr, KelData(ttype[], ttype[], Float64[], Float64[], Float64[], Float64[], Int[]), data.kelauto)
 
     #result[:Kel]
     #result[:HL]

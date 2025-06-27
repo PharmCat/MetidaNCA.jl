@@ -144,8 +144,7 @@ dsnca[:, :Dose]
 
 ## Set range for elimination
 
-By default no exclusion or range specified. With [`setkelrange!`](@ref) elimination range and exclusion
-can be specified for whole subject set or for any selected subjects.
+By default no exclusions or range to calculate elimination parameters specified. With [`setkelrange!`](@ref) elimination range and exclusion can be specified for whole subject set or for any selected subjects. The observation number is used to indicate the boundaries of the elimination calculation and the observations to be excluded.
 
 ```@example ncaexample
 kr =  ElimRange(kelstart = 4, kelend = 12, kelexcl = Int[5,6])
@@ -154,11 +153,11 @@ setkelrange!(ds, kr, [1,2,3])
 
 dsnca = nca!(ds)
 
-p = pkplot(ds[1]; elim = true)
+p = pkplot(dsnca[1]; elim = true)
 
 png(p, "plot5.png")
 
-getkeldata(ds[1])
+getkeldata(dsnca[1])
 ```
 
 #### Plot 5
