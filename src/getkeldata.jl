@@ -5,5 +5,5 @@ end
     getkeldata(data::T) where T <: PKSubject
 """
 function getkeldata(ncar::T) where T <: NCAResult
-    getkeldata(ncar.keldata)
+    ncar.keldata
 end

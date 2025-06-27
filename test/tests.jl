@@ -197,7 +197,7 @@ include("refdicts.jl")
     show(io, MetidaNCA.getkelrange(ds))
     sbj = MetidaNCA.nca!(ds)
     show(io, sbj)
-    #show(io, MetidaNCA.getkeldata(sbj))
+    @test_nowarn show(io, MetidaNCA.getkeldata(sbj))
     ct = MetidaNCA.ctmax(ds)
     @test  sbj[:Cmax] == ct[1]
     @test  sbj[:Tmax] == ct[2]
