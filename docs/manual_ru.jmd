@@ -400,11 +400,11 @@ L"AUMC = \sum_{n=1}^N AUMC_{n}"
 #### Правило линейных трепеций
 
 ```julia; echo = false, results = "tex"
-"AUC\mid_{t_1}^{t_2} = \delta t \times \frac{C_1 + C_2}{2}"
+L"AUC\mid_{t_1}^{t_2} = \delta t \times \frac{C_1 + C_2}{2}"
 ```
 
 ```julia; echo = false, results = "tex"
-"AUMC\mid_{t_1}^{t_2} = \delta t \times \frac{t_1 \times C_1 + t_2 \times C_2}{2}"
+L"AUMC\mid_{t_1}^{t_2} = \delta t \times \frac{t_1 \times C_1 + t_2 \times C_2}{2}"
 ```
 
 #### Правило лог-трепеций
