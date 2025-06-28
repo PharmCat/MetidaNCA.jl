@@ -227,7 +227,7 @@ pkdata2  = CSV.File(joinpath(dirname(pathof(MetidaNCA)),
 pkdata2  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "pkdata2.csv")) |> DataFrame
 ```
 
-Подробная информация о работе с табличными данными при помощи пакета DataFrames: [Codecov.io](https://)
+Подробная информация о работе с табличными данными при помощи пакета DataFrames: [DataFrames](https://dataframes.juliadata.org/stable/)
 
 Пример табличных данных:
 
@@ -270,7 +270,7 @@ dsnca[3:4]
 
 Построение графиков выполняется с исползованием пакета RecipesBase. 
 Это значит, что для построения могут быть использованы пакеты совместимые с RecipesBase.jl 
-(на данный момент это Plots.jl).
+(на данный момент - Plots.jl).
 
 Для субъекта:
 
@@ -350,9 +350,33 @@ setkelrange!(ds, kr; kelauto = true)
 
 Подробное описание API составляется автоматически при релизе новой версии и доступно по адресу: [API](https://pharmcat.github.io/MetidaNCA.jl/stable/api/).
 
-# Вычисление основных параметров
+# Методы вычисление параметров фармакокинетики
 
-## Cmax
+## Основные этапы.
+
+Если не указано другое, то по умолчанию при вычислении ФК параметров используется последняя доза в списке событий дозирования. 
+При этом не учитываются все данные наблюдений, которые были получены до момента события. При помощи ключевого слова `usedose`
+можно указать номер события дозирования, который будет использоваться для вычислений.
+
+Вычисление ФК параметров выполняется в несколко этапов:
+
+1. Игнорируются все события до указанного события дозирования, игнорируются  `NaN` или  `missing` наблюдения.
+
+2. Вычисляются Cmax и Tmax, интерполируются `NaN` и `missing` значения.
+
+3. Вычисляются параметры элиминации.
+
+4. Выполняется сдвиг времени таким образом чтобы время дозировани ясчиталось "нулевой" точкой.
+
+5. Вычисляется Cdose.
+
+6. Вычисляются площади (AUC и AUMC).
+
+7. Вычисляются параметры "равновесной" ФК (в случае если указано tau).
+
+## Параметры
+
+### Cmax
 
 Максимальная концентрация измеренная после дозирования, исползуется первое значение. 
 
@@ -375,44 +399,42 @@ L"AUMC = \sum_{n=1}^N AUMC_{n}"
 
 #### Правило линейных трепеций
 
-```math
-AUC\mid_{t_1}^{t_2} = \delta t \times \frac{C_1 + C_2}{2}
+```julia; echo = false, results = "tex"
+"AUC\mid_{t_1}^{t_2} = \delta t \times \frac{C_1 + C_2}{2}"
 ```
 
-```math
-AUMC\mid_{t_1}^{t_2} = \delta t \times \frac{t_1 \times C_1 + t_2 \times C_2}{2}
+```julia; echo = false, results = "tex"
+"AUMC\mid_{t_1}^{t_2} = \delta t \times \frac{t_1 \times C_1 + t_2 \times C_2}{2}"
 ```
 
 #### Правило лог-трепеций
 
-```math
-AUC\mid_{t_1}^{t_2} =   \delta t \times \frac{ C_2 - C_1}{ln(C_2/C_1)}
+```julia; echo = false, results = "tex"
+L"AUC\mid_{t_1}^{t_2} =   \delta t \times \frac{ C_2 - C_1}{ln(C_2/C_1)}"
 ```
 
-```math
-AUMC\mid_{t_1}^{t_2} = \delta t \times \frac{t_2 \times C_2 - t_1 \times C_1}{ln(C_2/C_1)} -  \delta t^2 \times \frac{ C_2 - C_1}{ln(C_2/C_1)^2}
+```julia; echo = false, results = "tex"
+L"AUMC\mid_{t_1}^{t_2} = \delta t \times \frac{t_2 \times C_2 - t_1 \times C_1}{ln(C_2/C_1)} -  \delta t^2 \times \frac{ C_2 - C_1}{ln(C_2/C_1)^2}"
 ```
 
 ## Пропущенные значения и интерполяция
 
 ### Правило линейной интерполяции
 
-```math
-C_x = C_1 + \frac{(t_x-t_1)\times(C_2 - C_1)}{t_2 - t_1}
-```
+$C_x = C_1 + \frac{(t_x-t_1)\times(C_2 - C_1)}{t_2 - t_1}$
 
 ### Правило лог-интерполяции
 
-```math
-C_x = exp\left(ln(C_1) + \frac{(t_x-t_1)\times(ln(C_2) - ln(C_1))}{t_2 - t_1}\right)
+```julia; echo = false, results = "markup"
+L"C_x = exp\left(ln(C_1) + \frac{(t_x-t_1)\times(ln(C_2) - ln(C_1))}{t_2 - t_1}\right)"
 ```
 
 ### MRTlast
 
 Среднее время удержания:
 
-```math
-MRT_{last} = AUMC_{last} / AUC_{last}
+```julia; echo = false, results = "rst"
+L"MRT_{last} = AUMC_{last} / AUC_{last}"
 ```
 
 ### Kel
@@ -423,28 +445,28 @@ MRT_{last} = AUMC_{last} / AUC_{last}
 
 Время полувыведения; T1/2
 
-```math
-HL = ln(2) / \lambda_z
+```julia; echo = false, results = "tex"
+L"HL = ln(2) / \lambda_z"
 ```
 
 ### AUCinf
 
 
-```math
-AUC_\infty = AUC_{last} + \frac{C_{last}}{\lambda_z}
+```julia; echo = false, results = "tex"
+L"AUC_\infty = AUC_{last} + \frac{C_{last}}{\lambda_z}"
 ```
 
 ### AUMCinf
 
-```math
-AUMC_\infty =  AUMC_{last} + \frac{t_{last}\times C_{last}}{\lambda_z} + \frac{C_{last}}{\lambda_z^2}
+```julia; echo = false, results = "tex"
+L"AUMC_\infty =  AUMC_{last} + \frac{t_{last}\times C_{last}}{\lambda_z} + \frac{C_{last}}{\lambda_z^2}"
 ```
 
 ### AUCpct
 
 
-```math
-AUCpct = (AUC_\infty - AUC_{last}) / AUC_\infty * 100 \%
+```julia; echo = false, results = "tex"
+L"AUCpct = (AUC_\infty - AUC_{last}) / AUC_\infty * 100 \%"
 ```
 
 \pagebreak
