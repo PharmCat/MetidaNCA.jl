@@ -46,28 +46,37 @@ end
 
 # Elimination settings
 """
-    ElimRange(kelstart::Int, kelend::Int, kelexcl::Vector{Int})::ElimRange
+    ElimRange(kelstart::T, kelend::T, kelexcl::Vector{T}; time = false)
 
 Elimination settings for PK subject.
 
-* `kelstart` - start point;
-* `kelend` - end point;
-* `kelexcl` - excluded points (not time value).
+* `kelstart` - start time;
+* `kelend` - end time;
+* `kelexcl` - excluded values.
+
+if keyword `time == false` (by default) - means that the time point number is used to specify start point, 
+end point and excluded values; `time == true`  - real time values will be used to declare range and exluded values.
 """
-mutable struct ElimRange{Symbol}
-    kelstart::Int
-    kelend::Int
-    kelexcl::Vector{Int}
-    function ElimRange(kelstart::Int, kelend::Int, kelexcl::Vector{Int}; time = false)::ElimRange
-        if kelstart > kelend throw(ArgumentError("Kel start > kel end")) end
-        if kelstart < 0 throw(ArgumentError("Kel start point < 0")) end
-        if kelend   < 0 throw(ArgumentError("Kel endpoint < 0")) end
-        if any(x -> x < 0, kelexcl) throw(ArgumentError("Exclude point < 0")) end
-        if kelstart in kelexcl || kelend in kelexcl throw(ArgumentError("Kel start or kel end in exclusion")) end
-        new{:point}(kelstart, kelend, kelexcl)::ElimRange
+mutable struct ElimRange{Symbol, T}
+    kelstart::T
+    kelend::T
+    kelexcl::Vector{T}
+    function ElimRange(kelstart::T, kelend::T, kelexcl::Vector{T}; time = false)::ElimRange where T
+        if time
+            if kelstart > kelend throw(ArgumentError("Kel start > kel end")) end
+            if kelstart in kelexcl || kelend in kelexcl throw(ArgumentError("Kel start or kel end in exclusions")) end
+            new{:time, T}(kelstart, kelend, kelexcl)::ElimRange
+        else
+            if kelstart > kelend throw(ArgumentError("Kel start > kel end")) end
+            if kelstart < 0 throw(ArgumentError("Kel start point < 0")) end
+            if kelend   < 0 throw(ArgumentError("Kel endpoint < 0")) end
+            if any(x -> x < 0, kelexcl) throw(ArgumentError("Exclude point < 0")) end
+            if kelstart in kelexcl || kelend in kelexcl throw(ArgumentError("Kel start or kel end in exclusions")) end
+            new{:point, T}(kelstart, kelend, kelexcl)::ElimRange
+        end
     end
-    function ElimRange(;kelstart = 0, kelend = 0, kelexcl = Int[])
-        ElimRange(kelstart, kelend, kelexcl)
+    function ElimRange(;kelstart = 0, kelend = 0, kelexcl = Int[], time = false)
+        ElimRange(kelstart, kelend, kelexcl; time = time)
     end
 end
 
