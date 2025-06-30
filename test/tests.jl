@@ -174,6 +174,15 @@ include("refdicts.jl")
     pl = @test_nowarn MetidaNCA.pkplot(dsnca[1]; kelpoints = false, elim = true)
     MetidaNCA.setkelauto!(ds, true)
 
+    kr =  MetidaNCA.ElimRange(1.5,  10.0, [2.0, 2.5]; time  = true)
+    MetidaNCA.setkelrange!(ds, kr, [1,2,3])
+    dsncat = MetidaNCA.nca!(ds)
+    pl = @test_nowarn MetidaNCA.pkplot(dsncat[1]; elim = true)
+    pl = @test_nowarn MetidaNCA.pkplot(dsncat[1]; elim = true, kelexcl = false)
+    pl = @test_nowarn MetidaNCA.pkplot(dsncat[1]; elim = true, kelpoints = false)
+    @test dsnca[:, :HL][1:3] ≈ dsncat[:, :HL][1:3]
+    MetidaNCA.setkelauto!(ds, true)
+
     #Plot from NCA result DataSet
     @test_nowarn MetidaNCA.pkplot(dsncafromds[1]; yscale = :log10, legend = false)
     @test_logs :info, "'elim' keyword ignored..." MetidaNCA.pkplot(dsncafromds; typesort = :Subject, pagesort = :Formulation, elim = true, ls = true, title = "Plots")

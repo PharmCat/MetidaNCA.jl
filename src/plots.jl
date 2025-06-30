@@ -229,20 +229,20 @@ function _elimplot!(p, subj, keldata, ls; kelexcl = true, kelpoints = true, obsn
                 y = @. exp(lzint + lz * x)
             end
             pkelimpplot!(p, x, y; title =  p.subplots[1].attr[:title]*"\n($(round(lzint, sigdigits = 4))+$(round(lz, sigdigits = 4))*Time; aR²=$(round(arsq, sigdigits = 3)))")
+            extimes, exinds = getexcltimes(gettime(subj), subj.kelrange)
             if kelexcl && length(subj.kelrange.kelexcl) > 0
-                times = gettime(subj)[subj.kelrange.kelexcl]
-                conc  = getobs(subj, obsname)[subj.kelrange.kelexcl]
+                exconc  = getobs(subj, obsname)[exinds]
                 if ls 
-                    @. conc = log(conc)
+                    @. exconc = log(exconc)
                 end
-                pkelimpdroppoints!(p, times, conc)
+                pkelimpdroppoints!(p, extimes, exconc)
             end
             if kelpoints
                 tsn = findfirst(x-> x == ts, gettime(subj))
                 ten = findfirst(x-> x == te, gettime(subj))
                 timenrange = collect(tsn:ten)
                 if length(subj.kelrange.kelexcl) > 0
-                    filter!(x-> !(x in subj.kelrange.kelexcl), timenrange)
+                    filter!(x-> !(x in exinds), timenrange)
                 end
                 times = gettime(subj)[timenrange]
                 conc  = getobs(subj, obsname)[timenrange]

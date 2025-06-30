@@ -290,6 +290,35 @@ function step_2_interpolate!(time, obs::AbstractVector{T}, inds, tmaxn, intpm) w
     end
 end
 
+
+function getexcltimes(time::AbstractVector{T}, excl::ElimRange{:time}) where T
+    if length(excl.kelexcl) > 0
+        inds = findall(x -> x in excl.kelexcl, time)
+        if isnothing(inds)
+            return T[], Int[] 
+        else
+            return time[inds], inds
+        end
+    else
+        return T[], Int[]
+    end
+end
+function getexcltimes(time, excl::ElimRange{:point})
+    return time[excl.kelexcl], excl.kelexcl
+end
+
+function getstimep(::Any, time_cp, excl::ElimRange{:time})
+    return findfirst(x -> x >= excl.kelstart, time_cp)
+end
+function getstimep(time, time_cp, excl::ElimRange{:point}) 
+    return findfirst(x -> x >= time[excl.kelstart], time_cp)
+end
+function getetimep(::Any, time_cp,  excl::ElimRange{:time})
+    return findlast(x -> x <= excl.kelend, time_cp)
+end
+function getetimep(time, time_cp, excl::ElimRange{:point}) 
+    return findlast(x -> x <= time[excl.kelend], time_cp)
+end
 # 3
 # Elimination, TlastN, Tlast
 function step_3_elim!(result, data, adm, tmaxn, time_cp::AbstractVector{T}, obs_cp::AbstractVector{O}, keldata, kelauto) where T where O
@@ -298,7 +327,7 @@ function step_3_elim!(result, data, adm, tmaxn, time_cp::AbstractVector{T}, obs_
     time   = gettime(data)
     obsnum = length(time_cp)
     # data.kelrange.kelexcl - indexes; excltime - time values
-    excltime = time[data.kelrange.kelexcl]
+    excltime, _ = getexcltimes(time, data.kelrange)
     # Unitful values
     r_time_cp = reinterpret(typeof(one(T)), time_cp)
     r_obs_cp  = reinterpret(typeof(one(O)), obs_cp)
@@ -335,12 +364,12 @@ function step_3_elim!(result, data, adm, tmaxn, time_cp::AbstractVector{T}, obs_
             end
         end
     else
-        stimep = findfirst(x -> x >= time[data.kelrange.kelstart], time_cp)
+        stimep = getstimep(time, time_cp, data.kelrange) 
         if isnothing(stimep)
             @warn "Start-time not found - automatic kel calclation used."
             step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, keldata, kelauto)
         end
-        etimep = findlast(x -> x <= time[data.kelrange.kelend], time_cp)
+        etimep = getetimep(time, time_cp, data.kelrange) 
         if isnothing(stimep)
             @warn "End-time not found - automatic kel calclation used."
             step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, keldata, kelauto) 
