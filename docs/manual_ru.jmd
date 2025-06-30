@@ -171,6 +171,8 @@ MetidaNCA поставляется с набором валидационных 
 import Pkg; Pkg.test("MetidaNCA")
 ```
 
+\pagebreak
+
 ## Покрытие
 
 Покрытие кода тестами контролируется с использованием ресурса: [Codecov.io](https://app.codecov.io/gh/PharmCat/MetidaNCA.jl)
@@ -221,7 +223,7 @@ show(latexify(dfn; latex=false))
 
 \pagebreak
 
-# Работа с пакетом MetidaNCA
+# Основные шаги при работе с пакетом MetidaNCA
 
 Стандартные сценарии использования пакета MetidaNCA обычно предполагают следующие этапы:
 
