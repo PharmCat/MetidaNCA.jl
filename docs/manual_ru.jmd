@@ -17,6 +17,11 @@ using Dates, DataFrames, CSV, PrettyTables, Latexify, LaTeXStrings, Plots
 
 # Введение
 
+## Что такое NCA?
+
+Некомпартментный анализ (NCA) — это метод оценки фармакокинетических параметров без предположений о структуре компартментной модели. 
+Он основан на прямом анализе данных концентрации лекарственного препарата во времени, что делает анализ интуитивно понятным простым и быстрым.
+
 ## MetidaNCA
 
 MetidaNCA позволяет проводить пакетное вычисление фармакокинетических (ФК) параметров 
@@ -51,6 +56,13 @@ ver = pkgversion(MetidaNCA)
 * Julia version: `j Sys.VERSION`
 * Current machine: `j Sys.MACHINE`
 * MetidaNCA: `ver`
+
+## Преимущества MetidaNCA
+
+* Бесплатность и открытый код.
+* Наличие документации и примеров использования.
+* Интеграция с экосистемой Julia для сложных вычислений.
+* Высокая скорость обработки данных благодаря Julia.
 
 ## Julia
 
@@ -138,6 +150,11 @@ import Pkg; Pkg.add(url="https://gitverse.ru/PharmCat/MetidaNCA.jl.git")
 import Pkg; Pkg.add(url="https://github.com/PharmCat/MetidaNCA.jl.git")
 ```
 
+**Совет**: Убедитесь, что у вас установлены пакеты CSV, DataFrames и Plots для импорта CSV файлов, работы с данными и графиками. 
+Импорт данных может быть выполнен из различных источников, к примеру используя фалы Microsoft EXCEL и пакет XLSX.jl.  
+Работа с данными может выполняться с использованием любых пакетов, которые поддерживают интерфейс Tables.jl.
+
+
 ## Пользовательская валидация
 
 MetidaNCA поставляется с набором валидационных (тестировочных) процедур, 
@@ -153,6 +170,8 @@ MetidaNCA поставляется с набором валидационных 
 ```julia; eval = false
 import Pkg; Pkg.test("MetidaNCA")
 ```
+
+\pagebreak
 
 ## Покрытие
 
@@ -204,7 +223,7 @@ show(latexify(dfn; latex=false))
 
 \pagebreak
 
-# Работа с пакетом MetidaNCA
+# Основные шаги при работе с пакетом MetidaNCA
 
 Стандартные сценарии использования пакета MetidaNCA обычно предполагают следующие этапы:
 
@@ -266,6 +285,15 @@ dsnca  = nca!(ds, adm = :ev, calcm = :lint)
 dsnca[3:4]
 ```
 
+Основные ключевые слова для функции 'nca!' определяют свойства анализа:
+
+* adm - тип приема плекарственного препарата: `:ev` - экстраваскулярный,`:iv` - внутрисосудисто болюсно;
+* calcm - метод вычисления трапеций: `:lint` - линейные трапеции, `:luld` - линейные трапеции для восходящих и лог-трапеции для нисходящих отрезков,
+`:luldt` - линейные трапеции для восходящих и лог-трапеции для нисходящих отрезков после Tmax, `:logt` - лог-трапеции после Tmax;
+* `intpm` - метод интерполяции: `:lint` - линейный,`:luld` - линейный для восходящих и логарифмический для нисходящих отрезков,
+`:luldt` - линейный для восходящих и логарифмический для нисходящих отрезков после Tmax,`:logt` - огарифмический после Tmax, 
+`:calcm` - тотже что указан для метод вычисления трапеций;
+
 ## Построение графиков
 
 Построение графиков выполняется с исползованием пакета RecipesBase. 
@@ -288,9 +316,6 @@ sort = Dict(:Formulation => "R"))
 ```
 
 ![Набор субъектов](`j pkplot(ds; typesort = :Subject, pagesort = MetidaNCA.NoPageSort(), sort = Dict(:Formulation => "R"))`)
-
-\pagebreak
-
 
 \pagebreak
 
@@ -355,8 +380,8 @@ setkelrange!(ds, kr; kelauto = true)
 ## Основные этапы.
 
 Если не указано другое, то по умолчанию при вычислении ФК параметров используется последняя доза в списке событий дозирования. 
-При этом не учитываются все данные наблюдений, которые были получены до момента события. При помощи ключевого слова `usedose`
-можно указать номер события дозирования, который будет использоваться для вычислений.
+При этом не учитываются все данные наблюдений, которые были получены до момента этого события. При помощи ключевого слова `usedose`
+можно указать номер события дозирования, которое будет использоваться для вычислений.
 
 Вычисление ФК параметров выполняется в несколко этапов:
 
@@ -378,44 +403,31 @@ setkelrange!(ds, kr; kelauto = true)
 
 ### Cmax
 
-Максимальная концентрация измеренная после дозирования, исползуется первое значение. 
+Максимальная концентрация измеренная после дозирования, исползуется первое значение после времени дозирования. 
 
 ### Tmax
 
-Время достижения максимальной концентрации, исползуется первое значение. 
+Время достижения максимальной концентрации, исползуется первое значение после времени дозирования. 
 
 ### AUC / AUMC
 
 Area under Curve / Area under the Moment Curve:
 
+$AUC = \sum_{n=1}^N AUC_{n}$
 
-```julia; echo = false, results = "tex"
-L"AUC = \sum_{n=1}^N AUC_{n}"
-```
-
-```julia; echo = false, results = "tex"
-L"AUMC = \sum_{n=1}^N AUMC_{n}"
-```
+$AUMC = \sum_{n=1}^N AUMC_{n}$
 
 #### Правило линейных трепеций
 
-```julia; echo = false, results = "tex"
-L"AUC\mid_{t_1}^{t_2} = \delta t \times \frac{C_1 + C_2}{2}"
-```
+$AUC\mid_{t_1}^{t_2} = \delta t \times \frac{C_1 + C_2}{2}$
 
-```julia; echo = false, results = "tex"
-L"AUMC\mid_{t_1}^{t_2} = \delta t \times \frac{t_1 \times C_1 + t_2 \times C_2}{2}"
-```
+$AUMC\mid_{t_1}^{t_2} = \delta t \times \frac{t_1 \times C_1 + t_2 \times C_2}{2}$
 
 #### Правило лог-трепеций
 
-```julia; echo = false, results = "tex"
-L"AUC\mid_{t_1}^{t_2} =   \delta t \times \frac{ C_2 - C_1}{ln(C_2/C_1)}"
-```
+$AUC\mid_{t_1}^{t_2} =   \delta t \times \frac{ C_2 - C_1}{ln(C_2/C_1)}$
 
-```julia; echo = false, results = "tex"
-L"AUMC\mid_{t_1}^{t_2} = \delta t \times \frac{t_2 \times C_2 - t_1 \times C_1}{ln(C_2/C_1)} -  \delta t^2 \times \frac{ C_2 - C_1}{ln(C_2/C_1)^2}"
-```
+$AUMC\mid_{t_1}^{t_2} = \delta t \times \frac{t_2 \times C_2 - t_1 \times C_1}{ln(C_2/C_1)} -  \delta t^2 \times \frac{ C_2 - C_1}{ln(C_2/C_1)^2}$
 
 ## Пропущенные значения и интерполяция
 
@@ -425,55 +437,55 @@ $C_x = C_1 + \frac{(t_x-t_1)\times(C_2 - C_1)}{t_2 - t_1}$
 
 ### Правило лог-интерполяции
 
-```julia; echo = false, results = "markup"
-L"C_x = exp\left(ln(C_1) + \frac{(t_x-t_1)\times(ln(C_2) - ln(C_1))}{t_2 - t_1}\right)"
-```
+$C_x = exp\left(ln(C_1) + \frac{(t_x-t_1)\times(ln(C_2) - ln(C_1))}{t_2 - t_1}\right)$
 
 ### MRTlast
 
 Среднее время удержания:
 
-```julia; echo = false, results = "rst"
-L"MRT_{last} = AUMC_{last} / AUC_{last}"
-```
+$MRT_{last} = AUMC_{last} / AUC_{last}$
 
 ### Kel
 
-`\lambda_z` - константа элиминации. Для расчета используется линейная регрессия для логарифмированных данных на терминальном участке.
+$\lambda_z$ - константа элиминации. Для расчета используется линейная регрессия для логарифмированных данных на терминальном участке.
 
 ### HL
 
 Время полувыведения; T1/2
 
-```julia; echo = false, results = "tex"
-L"HL = ln(2) / \lambda_z"
-```
+$HL = ln(2) / \lambda_z$
 
 ### AUCinf
 
-
-```julia; echo = false, results = "tex"
-L"AUC_\infty = AUC_{last} + \frac{C_{last}}{\lambda_z}"
-```
+$AUC_\infty = AUC_{last} + \frac{C_{last}}{\lambda_z}$
 
 ### AUMCinf
 
-```julia; echo = false, results = "tex"
-L"AUMC_\infty =  AUMC_{last} + \frac{t_{last}\times C_{last}}{\lambda_z} + \frac{C_{last}}{\lambda_z^2}"
-```
+$AUMC_\infty =  AUMC_{last} + \frac{t_{last}\times C_{last}}{\lambda_z} + \frac{C_{last}}{\lambda_z^2}$
 
 ### AUCpct
 
+$AUCpct = (AUC_\infty - AUC_{last}) / AUC_\infty * 100 \%$
 
-```julia; echo = false, results = "tex"
-L"AUCpct = (AUC_\infty - AUC_{last}) / AUC_\infty * 100 \%"
-```
 
 \pagebreak
 
 # Валидация
 
 Информация о валидации программного обеспечения представлена в отчете: [MetidaNCA Validation Report](https://pharmcat.github.io/MetidaNCA.jl/stable/validation_report.pdf).
+
+# Типичные ошибки и их устранение
+
+* Неверный формат данных
+Проверьте, что столбцы Time и Concentration имеют тип Float64. Убедитесь, что данные не содержат текстовых значений.
+В некоторых случаях возможен автоматический парсинг строк, но желательно не допускать таких событий,
+ т.к. возможен некорректный или неполный парсинг значений.
+
+* Проблемы с графиками
+
+Убедитесь, что пакет Plots установлен (import Pkg; Pkg.add("Plots")).
+Проверьте правильность параметров typesort и pagesort.
+Работа MetidaNCA с другими пакетами для построения графиков не гарантируется.
 
 # Глоссарий
 
@@ -482,10 +494,13 @@ L"AUCpct = (AUC_\infty - AUC_{last}) / AUC_\infty * 100 \%"
   * Current machine - pc that used for validation report generating.
   * AUC - площадь под фармакокинетической кривой — кривой «концентрация—время».
   * AUMC - площадь под кривой «произведение времени на концентрацию препарата tC».
-  * HL - период полувыведения.
+  * Cmax - Максимальная концентрация препарата в крови.
+  * HL - период полувыведения (время, за которое концентрация препарата уменьшается вдвое).
+  * Kel - Константа элиминации (характерезует скорость выведения препарата).
   * LLOQ - Нижний предел количественного определения (Lower Limit of Quantification).
   * REPL (от англ. read-eval-print loop — «цикл "чтение — вычисление — вывод"») — форма организации простой интерактивной среды программирования в рамках средств интерфейса командной строки.
   * Tau - интервал дозирования (время).
+  * Tmax - Время достижения максимальной концентрации.
   * тестовое покрытие (test coverage): Степень, с которой данный тест проверяет требования для программного продукта 
 
 # Ссылки
@@ -501,5 +516,6 @@ L"AUCpct = (AUC_\infty - AUC_{last}) / AUC_\infty * 100 \%"
 
 * по адресу mail@pharmcat.net 
 * В разделе [Issues](https://github.com/PharmCat/MetidaNCA.jl/issues) на сайте github.com
+* Форум Julia: https://discourse.julialang.org
 
 
