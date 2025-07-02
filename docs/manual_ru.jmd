@@ -274,7 +274,7 @@ pkdata2[1:15, :]
 # Импорт данных
 
 ds = pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation];
-
+dosetime = DoseTime(dose = 100, time = 0))
 ```
 
 ## Выполнение вычислений
@@ -331,10 +331,13 @@ sort = Dict(:Formulation => "R"))
 plt = pkplot(ds; typesort = :Subject, pagesort = :Formulation)
 nothing
 ```
+Препарат 1:
 
 ![Препарат 1](`j plt[1]`)
 
-![Препарат 1](`j plt[2]`)
+Препарат 2:
+
+![Препарат 2](`j plt[2]`)
 
 
 \pagebreak
