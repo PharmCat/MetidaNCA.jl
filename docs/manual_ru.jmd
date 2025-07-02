@@ -206,14 +206,22 @@ dfn = DataFrame(
 "LZint" "Intercept" "Intercept (свободный член)"
 "Clast_pred" "Predicted Clast" "Предсказанная Clast"
 "AUCinf" "AUC extrapolated to infinity" "AUC экстраполированная до бесконечности"
+"AUCinf_pred" "AUC extrapolated to infinity using Clast_pred" "AUC экстраполированная до бесконечности используя Clast_pred"
 "AUCpct" "Percentage AUClast from AUCinf" "Доля AUClast в AUCinf (%)"
 "MRTlast" "Mean Residence Time (last)" "Среднее время удержания (Clast)"
 "MRTinf" "Mean Residence Time (inf)" "Среднее время удержания (inf)"
 "Clinf" "Clearence" "Клиренс (кажущийся)"
 "Vzinf" "Volume of distribution" "Объем распределения (кажущийся)"
+"Ctaumin" "Minimum concentration between dose time and dose time + Tau" "Минимальная концентрация и интервале от времени дозирования до времени дозирования + Tau"
+"Cavg" "AUCtau divided by Tau." "AUCtau разделенная на Tau."
+"Accind" "Accumulation Index" "Индекс аккумуляции"
+"Fluc" "Fluctuation" "Флуктуация"
+"MRTtauinf" "MRT based on Tau" "MRT в границах Tau"
+"MRTtauinf_pred" "Mean residence time (inf) predicted based on Tau" "MRT (inf) в границах Tau"
 "AUCtau" "AUC in Tau range" "AUC в границах Tau"
 "AUMCtau" "AUMC in Tau range" "AUMC в границах Tau"
 "MRTtauinf" "MRT based on Tau" "MRT в границах Tau"
+"MRTtauinf_pred" "MRT (inf) predicted based on Tau" "MRT в границах Tau используя AUCinf_pred" 
 "Cltau" "Clearence in Tau range" "Клиренс в границах Tau"
 "Vztau" "Volume of distribution in Tau range" "Объем распределения Tau"], ["Название", "Описание(EN)", "Описание(RU)"])
 #pretty_table(dfn; tf = tf_ascii_rounded)
@@ -467,6 +475,65 @@ $AUMC_\infty =  AUMC_{last} + \frac{t_{last}\times C_{last}}{\lambda_z} + \frac{
 
 $AUCpct = (AUC_\infty - AUC_{last}) / AUC_\infty * 100 \%$
 
+
+##  Параметры равновесной концентрации (если указано τ)
+
+$τ-time = dose_time + τ$
+
+### AUCtau
+
+AUC до τ-time.
+
+### AUMCtau
+
+AUMC до τ-time.
+
+### Ctau
+
+Концентрация в τ-time.
+
+### :Ctaumin
+
+Минимальная концертрация от времени дозирования до τ-time.
+
+### Cavg
+
+
+$C_{avg} = AUC_\tau / \tau$
+
+### Fluc
+
+Флуктуация
+
+$Fluc = ( C_{max} - C_{\tau min} ) / C_{avg} * 100 \%$
+
+### Fluctau
+
+Флуктуация Tau
+
+$Fluc\tau = ( C_{max} - C_{\tau} ) / C_{avg} * 100 \%$
+
+### Accind
+
+Индекс аккумуляции.
+
+$Accind = \frac{1}{1 - exp(-\lambda_z \tau)}$
+
+### MRTtauinf
+
+$MRT_{\tau\inf} = \frac{AUMC_\tau + \tau * (AUC_\infty - AUC_\tau)}{AUC_\tau}$
+
+### :MRTtauinf_pred
+
+$MRT_{\tau\inf} = \frac{AUMC_\tau + \tau * (AUC_{\infty pred} - AUC_\tau)}{AUC_\tau}$
+
+### Swing
+
+$Swing = (C_{max} - C_{\tau min}) / C_{\tau min}$
+
+### Swingtau
+
+$Swing_{\tau} = (C_{max} - C_{\tau}) / C_{\tau}$
 
 \pagebreak
 

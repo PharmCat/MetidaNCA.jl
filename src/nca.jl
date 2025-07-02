@@ -24,38 +24,50 @@ function firstobs(time::Vector{<:Tuple}, obs, vol, dosetime)
     end
     error("Observations not found")
 end
-
-function ctaumin(time::AbstractVector, obs::AbstractVector, taulastp::Int)
+#=
+function ctauminmax(time::AbstractVector, obs::AbstractVector, taulastp::Int)
     fi = 0
-    min = NaN
+    min = obs[1]
+    max = obs[1]
     for i = 1:taulastp
         if !isnanormissing(obs[i])
             fi = i
             min = obs[i]
+            max = obs[i]
             break
         end
     end
-    if length(obs) == 1 return min end
+    if length(obs) == 1 return min, max end
     @inbounds for i = fi:taulastp
         if !isnanormissing(obs[i]) && obs[i] < min  min = obs[i] end
+        if !isnanormissing(obs[i]) && obs[i] > max  max = obs[i] end
     end
-    min
+    min, max
 end
-
-function ctmax(time::AbstractVector, obs::AbstractVector{T}, taulastp) where T
-    cmax  = obs[1]
-    tmaxn = 1
-    if length(obs) == 1 return cmax, first(time), tmaxn end
+=#
+function ctmax(time::AbstractVector, obs::AbstractVector, taulastp::Int = length(obs)) 
     taulastp > length(obs) && error("taulastp > length(obs")
-    @inbounds for i = 2:taulastp
-        if !isnanormissing(obs[i]) && obs[i] > cmax
-            cmax  = obs[i]
-            tmaxn = i
+    f = findfirst(!isnanormissing, view(obs, 1:taulastp))
+    if isnothing(f) return NaN, NaN, 0, NaN end
+    cmax  = obs[f]
+    cmin  = obs[f]
+    tmaxn = f
+    if taulastp == f return cmax, first(time), tmaxn, cmin end
+    @inbounds for i = f+1:taulastp
+        if !isnanormissing(obs[i])
+            if obs[i] > cmax
+                cmax  = obs[i]
+                tmaxn = i
+            elseif obs[i] < cmin
+                cmin = obs[i]
+            end
         end
     end
-    return cmax, time[tmaxn], tmaxn
+    return cmax, time[tmaxn], tmaxn, cmin
 end
+   #=
 function ctmax(time::AbstractVector, obs::AbstractVector)
+ 
     f = findfirst(!isnanormissing, obs)
     cmax  = obs[f]
     tmaxn = f
@@ -67,7 +79,9 @@ function ctmax(time::AbstractVector, obs::AbstractVector)
         end
     end
     return cmax, time[tmaxn], tmaxn
+   
 end
+ =#
 function ctmax(data::PKSubject, dt::Int = 0)
     if dt == 0 dt = length(data.dosetime) end
     datadt = data.dosetime[dt]
@@ -557,6 +571,7 @@ Steady-state parameters (tau used):
 * AUMCtau
 * Ctau
 * Cavg
+* Ctaumax
 * Ctaumin
 * Accind
 * Fluc
@@ -564,6 +579,7 @@ Steady-state parameters (tau used):
 * Swing
 * Swingtau
 * MRTtauinf
+* MRTtauinf_pred
 * Cltau
 * Vztau
 
@@ -634,11 +650,12 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
 
     if  used_dosetime_tau > zero(typeof(used_dosetime_tau))
         taulastp = findlast(x -> x <= used_dosetime_time + used_dosetime_tau, time_cp)
-        result[:Ctaumin] = ctaumin(time_cp, obs_cp, taulastp)
+        result[:Cmax], result[:Tmax], tmaxn, result[:Ctaumin] = ctmax(time_cp, obs_cp, taulastp)
     else
         taulastp = length(obs_cp)
+        result[:Cmax], result[:Tmax], tmaxn, _cmin = ctmax(time_cp, obs_cp)
     end
-    result[:Cmax], result[:Tmax], tmaxn = ctmax(time_cp, obs_cp, taulastp)
+    
 
     step_2_interpolate!(time_cp, obs_cp, einds, tmaxn, intpm)
 
@@ -798,6 +815,7 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
         if !isnan(result[:Kel])
             result[:Accind]   = 1 / (1 - (exp(-result[:Kel] * used_dosetime_tau)))
             result[:MRTtauinf]       = (result[:AUMCtau] + used_dosetime_tau * (result[:AUCinf] - result[:AUCtau])) / result[:AUCtau]
+            result[:MRTtauinf_pred]  = (result[:AUMCtau] + used_dosetime_tau * (result[:AUCinf_pred] - result[:AUCtau])) / result[:AUCtau]
             result[:Vztau]           = used_dosetime_dose / result[:AUCtau] / result[:Kel]
             result[:Vsstau]          = result[:Cltau] * result[:MRTtauinf]
         end
@@ -1046,7 +1064,7 @@ function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}, obs::Union{Symbol, Nothi
     pushfirst!(vol, zero(VOL))
     pushfirst!(exr, zero(eltype(exr)))
 
-    result[:Maxrate], result[:Tmax], tmaxn = ctmax(mtime, exr)
+    result[:Maxrate], result[:Tmax], tmaxn, result[:Minrate] = ctmax(mtime, exr)
 
     if data.dosetime.dose > zero(data.dosetime.dose)
         result[:Prec]  = result[:AR]/data.dosetime.dose * 100
@@ -1209,7 +1227,7 @@ function nca!(data::PDSubject{T,O}, obs::Union{Symbol, Nothing} = nothing; calcm
     result[:TH] = data.th
 
 
-    result[:Rmax], result[:Tmax], tmaxn = ctmax(time_cp, obs_cp, length(obs_cp))
+    result[:Rmax], result[:Tmax], tmaxn, result[:Rmin] = ctmax(time_cp, obs_cp, length(obs_cp))
 
 
     

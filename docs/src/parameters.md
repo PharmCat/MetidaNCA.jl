@@ -218,8 +218,20 @@ Accind = \frac{1}{1 - exp(-\lambda_z \tau)}
 ### :MRTtauinf
 
 ```math
-MRT_{\tau\inf} = (AUMC_\tau + \tau * (AUC_\infty - AUC_\tau)) / AUC_\tau
+MRT_{\tau\inf} = \frac{AUMC_\tau + \tau * (AUC_\infty - AUC_\tau)}{AUC_\tau}
 ```
+!!! note
+    Equal with Pjoenix WinNonlin parameter `MRTINF_obs` calculated for steady-state data.
+
+### :MRTtauinf_pred
+
+```math
+MRT_{\tau\inf} = \frac{AUMC_\tau + \tau * (AUC_{\infty pred} - AUC_\tau)}{AUC_\tau}
+```
+
+!!! note
+    Equal with Pjoenix WinNonlin parameter `MRTINF_pred` calculated for steady-state data. 
+
 
 ### :Swing
 
