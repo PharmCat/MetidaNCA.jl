@@ -1,0 +1,21 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: MetidaNCA
+message: 'If you use this software, please cite it as below.'
+type: software
+authors:
+  - given-names: Vladimir
+    family-names: Arnautov
+    orcid: 'https://orcid.org/0000-0003-3554-8941'
+identifiers:
+  - type: swh
+    value: 'swh:1:dir:6baf7f2dd0d2015104a23f04283937e1c4605c76'
+  - type: doi
+    value: 10.5281/zenodo.15793887
+repository-code: 'https://github.com/PharmCat/MetidaNCA.jl'
+abstract: 'Non-compartmental pharmacokinetics analysis for Julia. '
+keywords:
+  - 'nca, pk, pharmacokinetics, julia'
+license: MIT
