@@ -150,9 +150,22 @@ dfn = DataFrame(
 "MRTinf_pred" "Mean residence time (inf) predicted"
 "Clinf" "Clearence"
 "Vzinf" "Volume of distribution"
+# Ctau
+# Ctaumin
+"Ctaumin" "Minimum concentration between dose time and dose time + Tau"
+# Cavg
+"Cavg" "AUCtau divided by Tau."
+# Accind
+"Accind" "Accumulation Index"
+# Fluc
+"Fluc" "Fluctuation"
+# Fluctau
+# Swing
+# Swingtau
 "AUCtau" "AUC in Tau range"
 "AUMCtau" "AUMC in Tau range"
 "MRTtauinf" "MRT based on Tau"
+"MRTtauinf_pred" "Mean residence time (inf) predicted based on Tau"
 "Cltau" "Clearence in Tau range"
 "Vztau" "Volume of distribution in Tau range"], ["Name", "Description"])
 
@@ -166,6 +179,10 @@ sort!(ds, :Subject)
 show(latexify(dfn; latex=false))
 ```
 Table: Parameter description
+
+**Note!!!** When `tau` specified  additional MRT parameters calculated: `MRTtauinf`, `MRTtauinf_pred`; this  
+parameters are equal with Pjoenix WinNonlin parameters: `MRTINF_obs` and `MRTINF_pred` calculated for steady-state data.
+Parameters `MRTinf` and `MRTinf_pred` calculated as usual.
 
 \pagebreak
 
@@ -262,6 +279,11 @@ list = [:Cmax
 :AUClast
 :AUCtau
 :AUMCtau
+:Ctaumin
+:Ctau
+:Cavg
+:Fluc
+:Accind
 :AUCall
 :Rsq
 :ARsq
@@ -270,8 +292,8 @@ list = [:Cmax
 :Clast_pred
 :AUCinf
 :AUCpct
-:MRTinf_pred
 :MRTtauinf
+:MRTtauinf_pred
 :Cltau
 :Vztau]
 
@@ -321,7 +343,6 @@ list = [:Cmax
 :Clast_pred
 :AUCinf
 :AUCpct
-:MRTinf_pred
 :MRTtauinf
 :Cltau
 :Vztau]
@@ -340,6 +361,8 @@ for l in list
     df.Subject = string.(Int.(df.Subject))
     append!(dft, df)
 end
+dft.Parameter = map(dft.Parameter) do s return "\begin{verbatim}$(s)\end{verbatim}" end
+
 show(latexify(dft))
 ```
 Table: Plasma data results, Linear-trapezoidal rule, Intravascular
@@ -372,7 +395,6 @@ list = [:Cmax
 :Clast_pred
 :AUCinf
 :AUCpct
-:MRTinf_pred
 :MRTtauinf
 :Cltau
 :Vztau]
