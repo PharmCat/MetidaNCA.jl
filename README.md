@@ -2,9 +2,9 @@
 
 This program comes with absolutely no warranty. No liability is accepted for any loss and risk to public health resulting from use of this software.
 
-| Version | Cover | Build | Docs |
-|---------|-------|-------|------|
-|[![version](https://juliahub.com/docs/MetidaNCA/version.svg)](https://juliahub.com/ui/Packages/MetidaNCA/p2tSH)|[![codecov](https://codecov.io/gh/PharmCat/MetidaNCA.jl/branch/main/graph/badge.svg?token=A9eyT9g0WZ)](https://codecov.io/gh/PharmCat/MetidaNCA.jl)|![Tier 1](https://github.com/PharmCat/MetidaNCA.jl/workflows/Tier%201/badge.svg) | [![Latest docs](https://img.shields.io/badge/docs-latest-blue.svg)](https://pharmcat.github.io/MetidaNCA.jl/dev/) [![Stable docs](https://img.shields.io/badge/docs-stable-blue.svg)](https://pharmcat.github.io/MetidaNCA.jl/stable/)|
+| Version | Cover | Build | Docs | Citation |
+|---------|-------|-------|------|----------|
+|[![version](https://juliahub.com/docs/MetidaNCA/version.svg)](https://juliahub.com/ui/Packages/MetidaNCA/p2tSH)|[![codecov](https://codecov.io/gh/PharmCat/MetidaNCA.jl/branch/main/graph/badge.svg?token=A9eyT9g0WZ)](https://codecov.io/gh/PharmCat/MetidaNCA.jl)|![Tier 1](https://github.com/PharmCat/MetidaNCA.jl/workflows/Tier%201/badge.svg) | [![Latest docs](https://img.shields.io/badge/docs-latest-blue.svg)](https://pharmcat.github.io/MetidaNCA.jl/dev/) [![Stable docs](https://img.shields.io/badge/docs-stable-blue.svg)](https://pharmcat.github.io/MetidaNCA.jl/stable/)|[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15793888.svg)](https://doi.org/10.5281/zenodo.15793888)|
 
 
 Non-compartment PK analysis (NCA).
