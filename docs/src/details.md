@@ -98,13 +98,8 @@ Calculate steady-state parameters.
 ## [Unitful details](@id unitful_details)
 
 !!! warning
-  **Unitful.jl**
-  MetidaNCA can work with [Unitful.jl](https://painterqubits.github.io/Unitful.jl/stable/).
-  There is no guarantee that all functions will work without errors.
-  All validation procedures with Unitful should be done manually before use.
+  **Unitful.jl** MetidaNCA can work with [Unitful.jl](https://painterqubits.github.io/Unitful.jl/stable/). There is no guarantee that all functions will work without errors. All validation procedures with Unitful should be done manually before use.
 
 
 !!! warning
-  **Dose and time settings**
-  If you are using Unitful, check `dositime` settings: `DoseTime(dose = 100u"mg", time = 0u"hr")`.
-  For properly results all values should have units (including time and concentration data in data table).
+  **Dose and time settings** If you are using Unitful, check `dositime` settings: `DoseTime(dose = 100u"mg", time = 0u"hr")`. For properly results all values should have units (including time and concentration data in data table).
