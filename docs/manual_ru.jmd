@@ -274,7 +274,7 @@ pkdata2[1:15, :]
 # Импорт данных
 
 ds = pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation];
-dosetime = DoseTime(dose = 100, time = 0))
+
 ```
 
 ## Выполнение вычислений
@@ -325,6 +325,18 @@ sort = Dict(:Formulation => "R"))
 
 ![Набор субъектов](`j pkplot(ds; typesort = :Subject, pagesort = MetidaNCA.NoPageSort(), sort = Dict(:Formulation => "R"))`)
 
+При использовании ключевого слова `pagesort` - возможно выведение сгруппированных графиков:
+
+```julia; eval = false
+plt = pkplot(ds; typesort = :Subject, pagesort = :Formulation)
+nothing
+```
+
+![Препарат 1](`j plt[1]`)
+
+![Препарат 1](`j plt[2]`)
+
+
 \pagebreak
 
 ## Экспорт результатов
@@ -333,7 +345,8 @@ sort = Dict(:Formulation => "R"))
 
 ```julia; echo = true; wrap = false; line_width = 75
 dsnca = DataFrame(dsnca)
-dsnca[1:5, 1:7]
+
+show(latexify(dsnca[1:6, 1:6]; latex=false))
 ```
 
 С последующим сохранением в виде CSV или XLSX файла (CSV.jl, XLSX.jl)
@@ -427,11 +440,15 @@ $AUMC = \sum_{n=1}^N AUMC_{n}$
 
 #### Правило линейных трепеций
 
+Линейные трапеции расчитываются следующим образом: 
+
 $AUC\mid_{t_1}^{t_2} = \delta t \times \frac{C_1 + C_2}{2}$
 
 $AUMC\mid_{t_1}^{t_2} = \delta t \times \frac{t_1 \times C_1 + t_2 \times C_2}{2}$
 
 #### Правило лог-трепеций
+
+Лог-трапеции расчитываются следующим образом: 
 
 $AUC\mid_{t_1}^{t_2} =   \delta t \times \frac{ C_2 - C_1}{ln(C_2/C_1)}$
 
@@ -523,7 +540,7 @@ $Accind = \frac{1}{1 - exp(-\lambda_z \tau)}$
 
 $MRT_{\tau\inf} = \frac{AUMC_\tau + \tau * (AUC_\infty - AUC_\tau)}{AUC_\tau}$
 
-### :MRTtauinf_pred
+### MRTtauinf_pred
 
 $MRT_{\tau\inf} = \frac{AUMC_\tau + \tau * (AUC_{\infty pred} - AUC_\tau)}{AUC_\tau}$
 
