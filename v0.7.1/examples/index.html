@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Examples · MetidaNCA.jl</title><meta name="title" content="Examples · MetidaNCA.jl"/><meta property="og:title" content="Examples · MetidaNCA.jl"/><meta property="twitter:title" content="Examples · MetidaNCA.jl"/><meta name="description" content="Documentation for MetidaNCA.jl."/><meta property="og:description" content="Documentation for MetidaNCA.jl."/><meta property="twitter:description" content="Documentation for MetidaNCA.jl."/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">MetidaNCA.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li class="is-active"><a class="tocitem" href>Examples</a><ul class="internal"><li><a class="tocitem" href="#Import"><span>Import</span></a></li><li><a class="tocitem" href="#NCA"><span>NCA</span></a></li><li><a class="tocitem" href="#Partial-AUC"><span>Partial AUC</span></a></li><li><a class="tocitem" href="#Result-modification-or-custom-parameter-function"><span>Result modification or custom parameter function</span></a></li><li><a class="tocitem" href="#Print-output"><span>Print output</span></a></li><li><a class="tocitem" href="#Plotting"><span>Plotting</span></a></li><li><a class="tocitem" href="#Set-dose-time"><span>Set dose time</span></a></li><li><a class="tocitem" href="#Set-range-for-elimination"><span>Set range for elimination</span></a></li><li><a class="tocitem" href="#Without-import"><span>Without import</span></a></li><li><a class="tocitem" href="#PD-subject"><span>PD subject</span></a></li></ul></li><li><a class="tocitem" href="../details/">Details</a></li><li><a class="tocitem" href="../parameters/">Parameter list</a></li><li><a class="tocitem" href="../api/">API</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Examples</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Examples</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/PharmCat/MetidaNCA.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/PharmCat/MetidaNCA.jl/blob/main/docs/src/examples.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Examples"><a class="docs-heading-anchor" href="#Examples">Examples</a><a id="Examples-1"></a><a class="docs-heading-anchor-permalink" href="#Examples" title="Permalink"></a></h1><h2 id="Import"><a class="docs-heading-anchor" href="#Import">Import</a><a id="Import-1"></a><a class="docs-heading-anchor-permalink" href="#Import" title="Permalink"></a></h2><p>Use <a href="../api/#pkimport"><code>pkimport</code></a> to import PK data from table to subject set.</p><pre><code class="language-julia hljs">using MetidaNCA, CSV, DataFrames;
+
+pkdata2 = CSV.File(joinpath(dirname(pathof(MetidaNCA)), &quot;..&quot;, &quot;test&quot;, &quot;csv&quot;,  &quot;pkdata2.csv&quot;)) |&gt; DataFrame
+
+ds = pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = DoseTime(dose = 100, time = 0))
+
+sort!(ds, :Subject)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">DataSet: Pharmacokinetics subject
+Length: 10
+Subject 1: Subject =&gt; 1, Formulation =&gt; T, 
+Subject 2: Subject =&gt; 2, Formulation =&gt; R, 
+Subject 3: Subject =&gt; 3, Formulation =&gt; R, 
+Subject 4: Subject =&gt; 4, Formulation =&gt; R, 
+Subject 5: Subject =&gt; 5, Formulation =&gt; T, 
+Subject 6: Subject =&gt; 6, Formulation =&gt; T, 
+Subject 7: Subject =&gt; 7, Formulation =&gt; R, 
+Subject 8: Subject =&gt; 8, Formulation =&gt; R, 
+Subject 9: Subject =&gt; 9, Formulation =&gt; T, 
+Subject 10: Subject =&gt; 10, Formulation =&gt; R, 
+</code></pre><h2 id="NCA"><a class="docs-heading-anchor" href="#NCA">NCA</a><a id="NCA-1"></a><a class="docs-heading-anchor-permalink" href="#NCA" title="Permalink"></a></h2><p>Perform NCA analysis with <a href="../api/#nca!"><code>nca!</code></a>. Access to result set is similar to DataFrame or any table. Find parameter list <a href="../parameters/#parameter_list">here</a>.</p><pre><code class="language-julia hljs">dsnca = nca!(ds, adm = :ev, calcm = :lint)
+
+dsnca[:, :AUClast]</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">10-element Vector{Float64}:
+  9585.42175
+ 10112.175500000001
+  5396.549749999999
+  9317.83575
+  9561.26
+  6966.598000000001
+  7029.5735
+  7110.674499999999
+  8315.080249999999
+  5620.8945</code></pre><h2 id="Partial-AUC"><a class="docs-heading-anchor" href="#Partial-AUC">Partial AUC</a><a id="Partial-AUC-1"></a><a class="docs-heading-anchor-permalink" href="#Partial-AUC" title="Permalink"></a></h2><pre><code class="language-julia hljs">dsnca = nca!(ds, adm = :ev, calcm = :lint, partials = [(1, 7)])
+
+dsnca[:, :AUC_1_7]</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">10-element Vector{Float64}:
+  841.7427500000001
+ 1265.2779999999998
+  521.33225
+  924.9775
+  934.97
+  800.5465
+  782.66975
+  555.19825
+  864.5880000000001
+  678.70375</code></pre><h2 id="Result-modification-or-custom-parameter-function"><a class="docs-heading-anchor" href="#Result-modification-or-custom-parameter-function">Result modification or custom parameter function</a><a id="Result-modification-or-custom-parameter-function-1"></a><a class="docs-heading-anchor-permalink" href="#Result-modification-or-custom-parameter-function" title="Permalink"></a></h2><pre><code class="language-julia hljs"># Define modify! function for new parameter
+function newparam(data)
+    data.result[:AUChalf] = data.result[:AUClast] / 2
+end
+
+dsncanp = nca!(ds, modify!  = newparam)
+
+dsncanp[1][:AUChalf]</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">4792.710875</code></pre><p>Function <code>newparam</code> applyed to <a href="../api/#MetidaNCA.NCAResult"><code>NCAResult</code></a>.</p><h2 id="Print-output"><a class="docs-heading-anchor" href="#Print-output">Print output</a><a id="Print-output-1"></a><a class="docs-heading-anchor-permalink" href="#Print-output" title="Permalink"></a></h2><pre><code class="language-julia hljs">nca!(ds[1], adm = :ev, calcm = :lint, verbose = 2);</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">  PK/PD subject NCA result
+ -------------- -------------
+ <span class="sgr1">    Parameter </span> <span class="sgr1">       Value </span>
+ -------------- -------------
+          Rsqn           3.0
+        Vzlast       3.08222
+          Tmax           1.0
+  AUMCinf_pred     1.30681e7
+   MRTinf_pred       295.374
+          ARsq      0.714769
+       AUClast       9585.42
+        MRTinf       293.162
+   AUCinf_pred       44242.6
+            LZ   -0.00338474
+         LZint       5.00849
+        Obsnum          16.0
+         Clast       112.846
+          Dose         100.0
+          Tlag           0.0
+         Cdose           0.0
+       ⋮              ⋮
+ -------------- -------------
+<span class="sgr36">               17 rows omitted</span>
+</code></pre><h2 id="Plotting"><a class="docs-heading-anchor" href="#Plotting">Plotting</a><a id="Plotting-1"></a><a class="docs-heading-anchor-permalink" href="#Plotting" title="Permalink"></a></h2><pre><code class="language-julia hljs">using Plots
+
+# plot 1
+
+p = pkplot(ds; typesort = :Subject, pagesort = NoPageSort(), filter = Dict(:Formulation =&gt; &quot;R&quot;))
+
+png(p, &quot;plot1.png&quot;)
+
+# plot 2
+
+p = pkplot(ds; typesort = :Formulation, pagesort = NoPageSort(), legend = true)
+
+png(p, &quot;plot2.png&quot;)
+
+# plot 3
+# Plotting with elimination results (only for results)
+
+p = pkplot(dsnca; elim = true, ls = true)
+
+png(p[1], &quot;plot3.png&quot;)
+
+# plot 4
+
+p = pkplot(ds; typesort = :Subject, pagesort = :Formulation)
+
+png(p[1], &quot;plot4.png&quot;)
+
+# plot 5
+
+p = vpcplot(ds)
+
+png(p, &quot;vpcplot.png&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;vpcplot.png&quot;</code></pre><h4 id="Plot-1"><a class="docs-heading-anchor" href="#Plot-1">Plot 1</a><a id="Plot-1-1"></a><a class="docs-heading-anchor-permalink" href="#Plot-1" title="Permalink"></a></h4><p><img src="../plot1.png" alt/></p><h4 id="Plot-2"><a class="docs-heading-anchor" href="#Plot-2">Plot 2</a><a id="Plot-2-1"></a><a class="docs-heading-anchor-permalink" href="#Plot-2" title="Permalink"></a></h4><p><img src="../plot2.png" alt/></p><h4 id="Plot-3"><a class="docs-heading-anchor" href="#Plot-3">Plot 3</a><a id="Plot-3-1"></a><a class="docs-heading-anchor-permalink" href="#Plot-3" title="Permalink"></a></h4><p><img src="../plot3.png" alt/></p><h4 id="Plot-4"><a class="docs-heading-anchor" href="#Plot-4">Plot 4</a><a id="Plot-4-1"></a><a class="docs-heading-anchor-permalink" href="#Plot-4" title="Permalink"></a></h4><p><img src="../plot4.png" alt/></p><h4 id="Plot-5"><a class="docs-heading-anchor" href="#Plot-5">Plot 5</a><a id="Plot-5-1"></a><a class="docs-heading-anchor-permalink" href="#Plot-5" title="Permalink"></a></h4><p><img src="../vpcplot.png" alt/></p><h3 id="MetidaNCA.mergeplots!(plt,-plts...)"><a class="docs-heading-anchor" href="#MetidaNCA.mergeplots!(plt,-plts...)">MetidaNCA.mergeplots!(plt, plts...)</a><a id="MetidaNCA.mergeplots!(plt,-plts...)-1"></a><a class="docs-heading-anchor-permalink" href="#MetidaNCA.mergeplots!(plt,-plts...)" title="Permalink"></a></h3><p>If Plots.jl installed? you can use <code>MetidaNCA.mergeplots!</code> function to merge 2 or more plots. This function not exported.</p><pre><code class="nohighlight hljs">MetidaNCA.mergeplots!(plt, plts...)</code></pre><h2 id="Set-dose-time"><a class="docs-heading-anchor" href="#Set-dose-time">Set dose time</a><a id="Set-dose-time-1"></a><a class="docs-heading-anchor-permalink" href="#Set-dose-time" title="Permalink"></a></h2><p>You can set dose time with <a href="../api/#setdosetime!"><code>setdosetime!</code></a> for whole subject set or for selected subjects.</p><pre><code class="language-julia hljs">dt = DoseTime(dose = 200, time = 0)
+
+setdosetime!(ds, dt, Dict(:Formulation =&gt; &quot;R&quot;))
+
+dsnca = nca!(ds)
+
+dsnca[:, :Dose]</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">10-element Vector{Float64}:
+ 100.0
+ 200.0
+ 200.0
+ 200.0
+ 100.0
+ 100.0
+ 200.0
+ 200.0
+ 100.0
+ 200.0</code></pre><h2 id="Set-range-for-elimination"><a class="docs-heading-anchor" href="#Set-range-for-elimination">Set range for elimination</a><a id="Set-range-for-elimination-1"></a><a class="docs-heading-anchor-permalink" href="#Set-range-for-elimination" title="Permalink"></a></h2><p>By default no exclusions or range to calculate elimination parameters specified. With <a href="../api/#setkelrange!"><code>setkelrange!</code></a> elimination range and exclusion can be specified for whole subject set or for any selected subjects. The observation number is used to indicate the boundaries of the elimination calculation and the observations to be excluded.</p><pre><code class="language-julia hljs">kr =  ElimRange(kelstart = 4, kelend = 12, kelexcl = Int[5,6])
+
+setkelrange!(ds, kr, [1,2,3])
+
+dsnca = nca!(ds)
+
+p = pkplot(dsnca[1]; elim = true)
+
+png(p, &quot;plot5.png&quot;)
+
+getkeldata(dsnca[1])</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Elimination table:
+ ------------ ---------- ------------ --------- ---------- ------------- ---
+ <span class="sgr1"> Strat time </span> <span class="sgr1"> End time </span> <span class="sgr1">          a </span> <span class="sgr1">       b </span> <span class="sgr1">       r² </span> <span class="sgr1"> Adjusted r² </span> <span class="sgr1"> N </span>
+ ------------ ---------- ------------ --------- ---------- ------------- ---
+         1.5       10.0   -0.0127605   5.00469   0.128943     -0.045268   7
+ ------------ ---------- ------------ --------- ---------- ------------- ---
+</code></pre><h4 id="Plot-5-2"><a class="docs-heading-anchor" href="#Plot-5-2">Plot 5</a><a class="docs-heading-anchor-permalink" href="#Plot-5-2" title="Permalink"></a></h4><p><img src="../plot5.png" alt/></p><h2 id="Without-import"><a class="docs-heading-anchor" href="#Without-import">Without import</a><a id="Without-import-1"></a><a class="docs-heading-anchor-permalink" href="#Without-import" title="Permalink"></a></h2><p>You  can use <a href="../api/#nca"><code>nca</code></a> for NCA analysis directly from tabular data.</p><pre><code class="language-julia hljs">dsnca = nca(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; dosetime = DoseTime(dose = 100, time = 0))
+
+sort!(dsnca, :Subject)
+
+dsnca[:, :AUClast]</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">10-element Vector{Float64}:
+  9585.42175
+ 10112.175500000001
+  5396.549749999999
+  9317.83575
+  9561.26
+  6966.598000000001
+  7029.5735
+  7110.674499999999
+  8315.080249999999
+  5620.8945</code></pre><h2 id="PD-subject"><a class="docs-heading-anchor" href="#PD-subject">PD subject</a><a id="PD-subject-1"></a><a class="docs-heading-anchor-permalink" href="#PD-subject" title="Permalink"></a></h2><p>Use <a href="../api/#pdimport"><code>pdimport</code></a> to import PD data from table to subject set.</p><h4 id="Import-and-NCA"><a class="docs-heading-anchor" href="#Import-and-NCA">Import &amp; NCA</a><a id="Import-and-NCA-1"></a><a class="docs-heading-anchor-permalink" href="#Import-and-NCA" title="Permalink"></a></h4><pre><code class="language-julia hljs">pddata = CSV.File(joinpath(dirname(pathof(MetidaNCA)), &quot;..&quot;, &quot;test&quot;, &quot;csv&quot;,  &quot;pddata.csv&quot;)) |&gt; DataFrame
+
+pd =  MetidaNCA.pdimport(pddata, :time, :obs, :subj; bl = 1.5, th = 5.0)
+
+MetidaNCA.nca!(pd[1])</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">  PK/PD subject NCA result
+ ----------- ---------
+ <span class="sgr1"> Parameter </span> <span class="sgr1">   Value </span>
+ ----------- ---------
+       Tmax       5.0
+       TBBL    3.2381
+       Rmin       0.0
+    TIMEBTW       4.0
+     AUCBTW   11.7333
+     AUCBBL   1.80952
+    AUCNETT    -19.35
+     Obsnum      13.0
+     AUCABL   13.9595
+       TATH    1.7619
+         BL       1.5
+     AUCBTH   21.5762
+       TABL    5.7619
+       TBTH    7.2381
+         TH       5.0
+       Rmax       8.0
+     AUCATH   2.22619
+    AUCNETB     12.15
+ ----------- ---------
+</code></pre><h4 id="PD-subject-plotting"><a class="docs-heading-anchor" href="#PD-subject-plotting">PD subject plotting</a><a id="PD-subject-plotting-1"></a><a class="docs-heading-anchor-permalink" href="#PD-subject-plotting" title="Permalink"></a></h4><pre><code class="language-julia hljs">p = MetidaNCA.pkplot(pd[1], drawth = true, drawbl = true)
+
+png(p, &quot;plot6.png&quot;)
+
+# Plot DoseTime (can be used for PK plots)
+
+dt = DoseTime(dose = 200, time = 1.5)
+setdosetime!(pd, dt)
+
+p = MetidaNCA.pkplot(pd[1], drawdt = true)
+
+
+png(p, &quot;plot7.png&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;plot7.png&quot;</code></pre><h5 id="Plot-6"><a class="docs-heading-anchor" href="#Plot-6">Plot 6</a><a id="Plot-6-1"></a><a class="docs-heading-anchor-permalink" href="#Plot-6" title="Permalink"></a></h5><p><img src="../plot6.png" alt/></p><h5 id="Plot-7"><a class="docs-heading-anchor" href="#Plot-7">Plot 7</a><a id="Plot-7-1"></a><a class="docs-heading-anchor-permalink" href="#Plot-7" title="Permalink"></a></h5><p><img src="../plot7.png" alt/></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../details/">Details »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.13.0 on <span class="colophon-date" title="Wednesday 2 July 2025 19:45">Wednesday 2 July 2025</span>. Using Julia version 1.11.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
