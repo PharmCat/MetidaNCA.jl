@@ -311,7 +311,7 @@ for l in list
     df.Subject = string.(Int.(df.Subject))
     append!(dft, df)
 end
-show(latexify(dft))
+show(latexify(dft; latex=false))
 ```
 Table: Plasma data results, Linear-Up Log-Down, Extravascular
 
@@ -363,7 +363,7 @@ for l in list
 end
 #dft.Parameter = map(dft.Parameter) do s return replace(string(s), "_" => "_") end
 
-show(latexify(dft))
+show(latexify(dft; latex=false))
 ```
 Table: Plasma data results, Linear-trapezoidal rule, Intravascular
 
@@ -414,7 +414,7 @@ for l in list
     df.Subject = string.(Int.(df.Subject))
     append!(dft, df)
 end
-show(latexify(dft))
+show(latexify(dft; latex=false))
 ```
 Table: Plasma data results, Linear/Log Trapezoidal rule, Extravascular
 
@@ -447,7 +447,7 @@ end
 
   mx = hcat(pname, vals, refs, vals .- refs)
   df = DataFrame(mx, ["Parameter", "Value", "Reference", "Difference"])
-  show(latexify(df))
+  show(latexify(df; latex=false))
 ```
 Table: Urine data results
 
@@ -482,7 +482,7 @@ end
 
   mx = hcat(pname, vals, refs, vals .- refs)
   df = DataFrame(mx, ["Parameter", "Value", "Reference", "Difference"])
-  show(latexify(df))
+  show(latexify(df; latex=false))
 ```
 Table: Pharmacodynamics data results
 
