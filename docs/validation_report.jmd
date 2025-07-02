@@ -255,7 +255,7 @@ for l in list
     df.Subject = string.(Int.(df.Subject))
     append!(dft, df)
 end
-show(latexify(dft))
+show(latexify(dft, latex=false))
 ```
 Table: Plasma data results, Linear-trapezoidal rule, Extravascular
 
@@ -361,7 +361,7 @@ for l in list
     df.Subject = string.(Int.(df.Subject))
     append!(dft, df)
 end
-dft.Parameter = map(dft.Parameter) do s return "\begin{verbatim}$(s)\end{verbatim}" end
+#dft.Parameter = map(dft.Parameter) do s return replace(string(s), "_" => "_") end
 
 show(latexify(dft))
 ```

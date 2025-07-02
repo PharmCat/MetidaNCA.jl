@@ -212,21 +212,12 @@ dfn = DataFrame(
 "MRTinf" "Mean Residence Time (inf)" "Среднее время удержания (inf)"
 "Clinf" "Clearence" "Клиренс (кажущийся)"
 "Vzinf" "Volume of distribution" "Объем распределения (кажущийся)"
-
 "Ctaumin" "Minimum concentration between dose time and dose time + Tau" "Минимальная концентрация и интервале от времени дозирования до времени дозирования + Tau"
-# Cavg
-"Cavg" "AUCtau divided by Tau." "Cavg" "AUCtau разделенная на Tau."
-# Accind
+"Cavg" "AUCtau divided by Tau." "AUCtau разделенная на Tau."
 "Accind" "Accumulation Index" "Индекс аккумуляции"
-# Fluc
 "Fluc" "Fluctuation" "Флуктуация"
-# Fluctau
-# Swing
-# Swingtau
 "MRTtauinf" "MRT based on Tau" "MRT в границах Tau"
 "MRTtauinf_pred" "Mean residence time (inf) predicted based on Tau" "MRT (inf) в границах Tau"
-
-
 "AUCtau" "AUC in Tau range" "AUC в границах Tau"
 "AUMCtau" "AUMC in Tau range" "AUMC в границах Tau"
 "MRTtauinf" "MRT based on Tau" "MRT в границах Tau"
