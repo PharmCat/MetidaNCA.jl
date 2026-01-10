@@ -66,6 +66,12 @@ Exclude interpolated points from calculation (add to `excltime`). Elimination pa
 !!! note
     If `kelauto` is `true` than range of observations for elimination will start from Tmax if administration set as `iv`, and from next observation after Tmax in other cases.
 
+Adjusted R square user to choose best fit.
+
+```math
+R^2_{adj} = 1 \frac{(1 - R^2) \cdot (n - 1)}{(n - 2)}
+```
+
 ### Step 4
 
 Shift all time values by dose time.

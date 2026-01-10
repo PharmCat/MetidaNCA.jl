@@ -231,7 +231,7 @@ include("refdicts.jl")
 
 
     # Missing string LLOQ
-    MetidaNCA.pkimport(lloqpk, :Time, :Concentration, io = io, verbose = 2, warn = true)
+    MetidaNCA.pkimport(lloqpk, :Time, :Concentration, io = io, verbose = 2, warn = false)
     dsncafromds =  MetidaNCA.nca(lloqpk, :Time, :Concentration, io = io, verbose = 2, warn = false)
     @test  sbj[:AUClast]  ≈ dsncafromds[:AUClast]
 
@@ -252,7 +252,7 @@ include("refdicts.jl")
 
 
     # PD import
-    pd = MetidaNCA.pdimport(pddata, :time, :obs; bl = 3.0, th = 1.5, id = Dict(:subj => 1))
+    pd = MetidaNCA.pdimport(pddata, :time, :obs; bl = 3.0, th = 1.5, id = Dict(:subj => 1), warn = false)
     # draw PD
     pl = @test_nowarn MetidaNCA.pkplot(pd; legend = true, drawbl = true, drawth = true, drawdt = true)
     pl = @test_nowarn MetidaNCA.pkplot!(pd; legend = true, drawbl = true, drawth = true, drawdt = true)
@@ -1727,7 +1727,7 @@ end
 
     io = IOBuffer();
 
-    pd =  MetidaNCA.pdimport(pddata, :time, :obs, :subj; bl = 1.5, th = 5.0)
+    pd =  MetidaNCA.pdimport(pddata, :time, :obs, :subj; bl = 1.5, th = 5.0, warn = false)
     pd_res = MetidaNCA.nca!(pd[1], verbose = 2, io = io)
     pd_rds = MetidaNCA.nca!(pd, verbose = 2, io = io)
     pd_rds = MetidaNCA.nca!(pd; calcm = :luld, verbose = 2, io = io)
@@ -1877,8 +1877,7 @@ end
     dtvec = [MetidaNCA.DoseTime(dose = 100, time = 1),
     MetidaNCA.DoseTime(dose = 100, time = 0)
     ]
-    pki  = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, :Subject; 
-    dosetime = dtvec)
+    pki  = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, :Subject; dosetime = dtvec, warn = false)
 
     @test_nowarn MetidaNCA.nca!(pki)
 

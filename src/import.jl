@@ -195,7 +195,7 @@ function pkimport(data, time, obs, sort;
     dosetime_ = makedosetimevec(dosetime, zero(eltype(timec)))
 
     if !checkdosetime(dosetime_)
-        @warn "DoseTime sorted..."
+        warn && @warn "DoseTime sorted..."
         sort!(dosetime_, by = x -> x.time)
     end
 
@@ -276,7 +276,7 @@ function pkimport(data, time, obs; kelauto = true,  elimrange = ElimRange(), dos
     dosetime_ = makedosetimevec(dosetime, zero(eltype(timevals)))
 
     if !checkdosetime(dosetime_)
-        @warn "DoseTime sorted..."
+        warn && @warn "DoseTime sorted..."
         sort!(dosetime_, by = x -> x.time)
     end
 
@@ -308,7 +308,7 @@ function pkimport(time, obs; kelauto = true,  elimrange = ElimRange(), dosetime 
     dosetime_ = makedosetimevec(dosetime, zero(eltype(timevals)))
 
     if !checkdosetime(dosetime_)
-        @warn "DoseTime sorted..."
+        warn && @warn "DoseTime sorted..."
         sort!(dosetime_, by = x -> x.time)
     end
 
@@ -337,7 +337,7 @@ Import urine PK data from table `data`.
 * `vol` - volume column;
 * `sort` - subject sorting columns.
 """
-function upkimport(data, stime, etime, conc, vol, sort; kelauto = true,  elimrange = ElimRange(), dosetime = nothing)
+function upkimport(data, stime, etime, conc, vol, sort; kwargs...)
     
     sort = parse_gkw(sort)
 
@@ -357,8 +357,6 @@ function upkimport(data, stime, etime, conc, vol, sort; kelauto = true,  elimran
     concc = Tables.getcolumn(data, conc)
     volc = Tables.getcolumn(data, vol)
 
-    if isnothing(dosetime) dosetime = DoseTime(NaN, zero(promote_type(eltype(stimec), eltype(etimec))), NaN) end
-
     any(isnanormissing, stimec) && error("Some Start Time values is NaN or Missing!")
     any(isnanormissing, etimec) && error("Some End Time values is NaN or Missing!")
 
@@ -370,7 +368,7 @@ function upkimport(data, stime, etime, conc, vol, sort; kelauto = true,  elimran
         concvals  = view(concc, v)
         volvals   = view(volc, v)
 
-        sdata[i] = upkimport(stimevals, etimevals, concvals, volvals; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime, id = Dict(sort .=> k))
+        sdata[i] = upkimport(stimevals, etimevals, concvals, volvals; id = Dict(sort .=> k), kwargs...)
         i += one(Int)
     end
     return DataSet(identity.(sdata))
@@ -385,8 +383,8 @@ Import single urine PK data from table `data`.
 * `conc` - concentration column;
 * `vol` - volume column.
 """
-function upkimport(data, stime, etime, conc, vol; kelauto = true,  elimrange = ElimRange(), dosetime = nothing)
-    upkimport(Tables.getcolumn(data, stime), Tables.getcolumn(data, etime), Tables.getcolumn(data, conc), Tables.getcolumn(data, vol); kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime)
+function upkimport(data, stime, etime, conc, vol; kwargs...)
+    upkimport(Tables.getcolumn(data, stime), Tables.getcolumn(data, etime), Tables.getcolumn(data, conc), Tables.getcolumn(data, vol); kwargs...)
 end
 """
     upkimport(stime, etime, conc, vol; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
@@ -397,7 +395,7 @@ Import urine PK data from time vectors:
 * `conc` - concentrations;
 * `vol` - volumes.
 """
-function upkimport(stime, etime, conc, vol; kelauto = true,  elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}())
+function upkimport(stime, etime, conc, vol; kelauto = true,  elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), warn = true)
     any(isnanormissing, stime) && error("Some Start Time values is NaN or Missing!")
     any(isnanormissing, etime) && error("Some End Time values is NaN or Missing!")
     timeranges = collect(zip(stime, etime))
@@ -407,13 +405,15 @@ function upkimport(stime, etime, conc, vol; kelauto = true,  elimrange = ElimRan
     volvals_sp  = vol[sp]
 
 
+    #if isnothing(dosetime) dosetime = DoseTime(NaN, zero(promote_type(eltype(stimec), eltype(etimec))), NaN) end
+
     time_type = promote_type(typeof(zero(eltype(stime))), typeof(zero(eltype(stime))))
     zerotime  = zero(time_type)
     if isnothing(dosetime)
         dosetime = DoseTime(NaN, zerotime, NaN*zerotime)
     else
         if !(time_type <: typeof(dosetime.time)) && !(time_type <: Real)
-            @warn "Type of dose time can be wrong... try to fix it"
+            warn && @warn "Type of dose time can be wrong... try to fix it"
             dosetime = DoseTime(dosetime.dose, dosetime.time*oneunit(time_type), dosetime.tau)
         end
     end
