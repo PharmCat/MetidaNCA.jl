@@ -275,6 +275,18 @@ function pkimport(data, time, obs; kelauto = true,  elimrange = ElimRange(), dos
     
     dosetime_ = makedosetimevec(dosetime, zero(eltype(timevals)))
 
+    if length(timevals) > 1
+        for i = 1:length(timevals)-1
+            if timevals[i] > timevals[i+1]
+                spt = sortperm(timevals)
+                for o in obsvals
+                    permute!(o, spt)
+                end
+                permute!(timevals, spt)
+                break
+            end
+        end
+    end
     if !checkdosetime(dosetime_)
         warn && @warn "DoseTime sorted..."
         sort!(dosetime_, by = x -> x.time)
@@ -310,6 +322,17 @@ function pkimport(time, obs; kelauto = true,  elimrange = ElimRange(), dosetime 
     if !checkdosetime(dosetime_)
         warn && @warn "DoseTime sorted..."
         sort!(dosetime_, by = x -> x.time)
+    end
+
+    if length(timevals) > 1
+        for i = 1:length(timevals)-1
+            if timevals[i] > timevals[i+1]
+                spt = sortperm(timevals)
+                permute!(obsvals, spt)
+                permute!(timevals, spt)
+                break
+            end
+        end
     end
 
     pks = PKSubject(timevals, obsvals, kelauto, elimrange,  dosetime_, id)
