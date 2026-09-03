@@ -9,7 +9,7 @@ import RecipesBase: plot!, plot
 import Statistics: mean, quantile
 import Base: length, push!, resize!, ht_keyindex, convert, first, display, show
 import MetidaBase
-import PrettyTables
+import MetidaBase.PrettyTables
 import MetidaBase: Tables, StatsBase, PrecompileTools,
 AbstractIdData,
 AbstractSubject,
