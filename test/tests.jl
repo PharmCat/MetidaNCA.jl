@@ -231,7 +231,7 @@ include("refdicts.jl")
 
 
     # Missing string LLOQ
-    MetidaNCA.pkimport(lloqpk, :Time, :Concentration, io = io, verbose = 2, warn = true)
+    MetidaNCA.pkimport(lloqpk, :Time, :Concentration, io = io, verbose = 2, warn = false)
     dsncafromds =  MetidaNCA.nca(lloqpk, :Time, :Concentration, io = io, verbose = 2, warn = false)
     @test  sbj[:AUClast]  ≈ dsncafromds[:AUClast]
 
@@ -252,7 +252,7 @@ include("refdicts.jl")
 
 
     # PD import
-    pd = MetidaNCA.pdimport(pddata, :time, :obs; bl = 3.0, th = 1.5, id = Dict(:subj => 1))
+    pd = MetidaNCA.pdimport(pddata, :time, :obs; bl = 3.0, th = 1.5, id = Dict(:subj => 1), warn = false)
     # draw PD
     pl = @test_nowarn MetidaNCA.pkplot(pd; legend = true, drawbl = true, drawth = true, drawdt = true)
     pl = @test_nowarn MetidaNCA.pkplot!(pd; legend = true, drawbl = true, drawth = true, drawdt = true)
@@ -483,6 +483,7 @@ end
 # AUCall
     @test round.(dsnca[:, :AUCall], digits = 6) == round.(refdict2[:AUCall], digits = 6)
 # Rsq
+    @test round.(dsnca[:, :Rsq], digits = 6) == round.(refdict2[:Rsq], digits = 6)
 # Adjusted Rsq
     # LZint
     @test round.(dsnca[:, :LZint], digits = 6) == round.(refdict2[:LZint], digits = 6)
@@ -497,6 +498,7 @@ end
 # AUCinf_pred
     @test round.(dsnca[:, :AUCinf_pred], digits = 6) == round.(refdict2[:AUCinf_pred], digits = 6)
 # AUMCinf
+
 # AUMCinf_pred
 # AUCpct
     @test round.(dsnca[:, :AUCpct], digits = 6) == round.(refdict2[:AUCpct], digits = 6)
@@ -584,6 +586,8 @@ end
 
     # AUClast
     # AUMClast / AUMCtau
+    @test round.(dsnca[:, :AUMCtau], sigdigits = 6) == round.(refdict3[:AUMCtau], sigdigits = 6)
+
     # AUCall
     # Rsq
     # Adjusted Rsq
@@ -598,11 +602,13 @@ end
     # AUCpct
     # MRTlast
     # MRTinf / MRTtauinf
+    @test round.(dsnca[:, :MRTtauinf], sigdigits = 6) == round.(refdict3[:MRTtauinf], sigdigits = 6)
     # MRTinf_pred
     # Cllast
     # Clinf / Cltau
     # Vzlast
     # Vzinf / Vztau
+    @test round.(dsnca[:, :Vztau], sigdigits = 6) == round.(refdict3[:Vztau], sigdigits = 6)
     # Vssinf
 
     # AUCtau
@@ -645,7 +651,9 @@ end
 # AUCall
     @test round.(dsnca[:, :AUCall], digits = 4) == round.(refdict4[:AUCall], digits = 4)
 # Rsq
+    @test round.(dsnca[:, :Rsq], digits = 5) == round.(refdict4[:Rsq], digits = 5)
 # Adjusted Rsq
+    @test round.(dsnca[:, :ARsq], digits = 5) == round.(refdict4[:ARsq], digits = 5)
     # LZint
     @test round.(dsnca[:, :LZint], digits = 6) == round.(refdict4[:LZint], digits = 6)
 # Kel
@@ -677,80 +685,8 @@ end
 
     # AUCtau
     @test round.(dsnca[:, :AUCtau], digits = 4) == round.(refdict4[:AUCtau], digits = 4)
-    #=
-    @test dsnca[:, :Cmax] == [190.869
-    261.177
-    105.345
-    208.542
-    169.334
-    154.648
-    153.254
-    138.327
-    167.347
-    125.482]
+    
 
-    # Tmax
-    @test dsnca[:, :Tmax] == [1
-    1
-    1.5
-    1
-    4
-    2.5
-    2.5
-    4
-    3
-    2]
-
-    # Cdose
-    @test round.(dsnca[:, :Cdose], sigdigits = 6) == round.([0.0
-    0.0
-    0.0
-    0.0
-    0.0
-    0.0
-    0.0
-    0.0
-    0.0
-    0.0], sigdigits = 6)
-
-    # Tlag
-    #=
-    @test round.(dsnca[:, :Tlag], sigdigits = 6) == round.([0
-    0
-    0
-    0
-    0.5
-    0
-    0
-    0
-    0
-    0], sigdigits = 6)
-    =#
-
-    # Clast
-    @test dsnca[:, :Clast] == [112.846
-    85.241
-    67.901
-    97.625
-    110.778
-    69.501
-    58.051
-    74.437
-    93.44
-    42.191]
-
-    # AUClast
-    @test round.(dsnca[:, :AUClast], sigdigits = 6) == round.([9572.8582
-    10054.0370
-    5391.5322
-    9296.2179
-    9518.6531
-    6948.5757
-    6987.0645
-    7064.7816
-    8298.9634
-    5485.6538], sigdigits = 6)
-    =#
 end
 
 # This method not supported in PhoenixWinNonlin
@@ -1727,7 +1663,7 @@ end
 
     io = IOBuffer();
 
-    pd =  MetidaNCA.pdimport(pddata, :time, :obs, :subj; bl = 1.5, th = 5.0)
+    pd =  MetidaNCA.pdimport(pddata, :time, :obs, :subj; bl = 1.5, th = 5.0, warn = false)
     pd_res = MetidaNCA.nca!(pd[1], verbose = 2, io = io)
     pd_rds = MetidaNCA.nca!(pd, verbose = 2, io = io)
     pd_rds = MetidaNCA.nca!(pd; calcm = :luld, verbose = 2, io = io)
@@ -1877,8 +1813,7 @@ end
     dtvec = [MetidaNCA.DoseTime(dose = 100, time = 1),
     MetidaNCA.DoseTime(dose = 100, time = 0)
     ]
-    pki  = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, :Subject; 
-    dosetime = dtvec)
+    pki  = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, :Subject; dosetime = dtvec, warn = false)
 
     @test_nowarn MetidaNCA.nca!(pki)
 

@@ -1,4 +1,8 @@
 
+function valinrange(val, range::AbstractRange)
+    first(range) <= val <= last(range)
+end
+
 """
     timefilter(subj::PKSubject, time::AbstractRange)
 
@@ -8,7 +12,7 @@ function timefilter(subj::PKSubject, time::AbstractRange)
     subj_ = deepcopy(subj)
     inds = Int[]
     for n = 1:length(subj_)
-        if !(gettime(subj_)[n] in time) push!(inds, n) end
+        if !(valinrange(gettime(subj_)[n], time)) push!(inds, n) end
     end
     deleteat!(gettime(subj_), inds)
     obsn = obsnames(subj_)
@@ -19,7 +23,7 @@ function timefilter(subj::PKSubject, time::AbstractRange)
             deleteat!(getobs(subj_, n), inds)
         end
     end
-    if !(subj_.kelrange.kelstart in time) || !(subj_.kelrange.kelend in time) || any(x-> !(x in time), subj_.kelrange.kelexcl)
+    if !(valinrange(subj_.kelrange.kelstart, time)) || !(valinrange(subj_.kelrange.kelend, time)) || any(x-> !(valinrange(x, time)), subj_.kelrange.kelexcl)
         subj_.kelrange = ElimRange()
         subj_.kelauto = true
     end

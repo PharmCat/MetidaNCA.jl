@@ -128,11 +128,11 @@ Results from MetidaNCA compared with Phoenix WinNonlin 8.0 results, see Appendix
 ## Parameter's names description
 
 ```julia; echo = false, results = "tex"
-
 dfn = DataFrame(
 ["Cmax" "Maximum concentration"
 "Tmax" "Time at Cmax"
 "Cdose" "Concentration at dose time"
+# Tlag
 "Clast" "Last non-zero concentration"
 "AUClast" "AUC to Clast"
 "AUMClast" "AUMC to Clast"
@@ -144,12 +144,19 @@ dfn = DataFrame(
 "LZint" "Intercept"
 "Clast_pred" "Predicted Clast"
 "AUCinf" "AUC extrapolated to infinity"
+# AUCinf_pred
+# AUMCinf
+# AUMCinf_pred
 "AUCpct" "Percentage AUClast from AUCinf"
 "MRTlast" "Mean Residence Time (last)"
 "MRTinf" "Mean residence time (MRT) extrapolated to infinity"
 "MRTinf_pred" "Mean residence time (inf) predicted"
+# Cllast
 "Clinf" "Clearence"
+# Vzlast
 "Vzinf" "Volume of distribution"
+# Vssinf
+
 # Ctau
 # Ctaumin
 "Ctaumin" "Minimum concentration between dose time and dose time + Tau"
@@ -222,10 +229,11 @@ nca!(ds, adm = :ev, calcm = :lint)
 include("refdict.jl")
 
 header = ["Parameter", "Subject", "Value", "Reference", "Difference"]
-
+# NO TAU
 list = [:Cmax
 :Tmax
 :Cdose
+# Tlag
 :Clast
 :AUClast
 :AUMClast
@@ -234,14 +242,21 @@ list = [:Cmax
 :ARsq
 :Kel
 :HL
+# LZint
 :Clast_pred
 :AUCinf
+# AUCinf_pred
+# AUMCinf
+# AUMCinf_pred
 :AUCpct
 :MRTlast
 :MRTinf
 :MRTinf_pred
+# Cllast
 :Clinf
+# Vzlast
 :Vzinf]
+# Vssinf
 
 dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
 

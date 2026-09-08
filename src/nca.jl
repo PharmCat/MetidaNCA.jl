@@ -381,12 +381,12 @@ function step_3_elim!(result, data, adm, tmaxn, time_cp::AbstractVector{T}, obs_
         stimep = getstimep(time, time_cp, data.kelrange) 
         if isnothing(stimep)
             @warn "Start-time not found - automatic kel calclation used."
-            step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, keldata, kelauto)
+            return step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, keldata, true)
         end
         etimep = getetimep(time, time_cp, data.kelrange) 
         if isnothing(stimep)
             @warn "End-time not found - automatic kel calclation used."
-            step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, keldata, kelauto) 
+            return step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, keldata, true) 
         end
         timep = collect(stimep:etimep)
         if length(data.kelrange.kelexcl) > 0
@@ -682,7 +682,7 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
 
 ################################################################################
     # STEP 4
-    if  used_dosetime_tau > zero(used_dosetime_tau)
+    if  used_dosetime_time > zero(used_dosetime_time)
         time_cp .-= used_dosetime_time
     end
 ################################################################################
@@ -828,7 +828,7 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
             stime = prt[1]
             etime = prt[2]
             if stime <  used_dosetime_time error("Start time can't be less than dose time!") end
-            if stime <  used_dosetime_time error("End time can't be less than dose time!") end
+            if etime <  used_dosetime_time error("End time can't be less than dose time!") end
             if etime <= stime error("End time can't be less or equal start time!") end
             suffix = "_"*string(stime)*"_"*string(etime)
             stime = stime - used_dosetime_time
@@ -845,11 +845,13 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
                 firstpart += aucpart(stime, time_cp[firstp], firstpartc, obs_cp[firstp], calcm, stime > result[:Tmax])
                 #println("firstpartc = $firstpartc , firstpart = $firstpart")
             end
-            if etime > time_cp[lastp] && etime < last(time_cp) # if last time > etime -> interpolation
+            if etime == time_cp[lastp]
+                lastpartc = zero(O)
+            elseif etime > time_cp[lastp] && etime < last(time_cp) # if last time > etime -> interpolation
                 lastpartc  = interpolate(time_cp[lastp], time_cp[lastp + 1], etime, obs_cp[lastp], obs_cp[lastp + 1], intpm,  time_cp[lastp] > result[:Tmax])
                 lastpart +=  aucpart(time_cp[lastp], etime, obs_cp[lastp], lastpartc, calcm, time_cp[lastp] > result[:Tmax])
                 #println("lastpartc = $lastpartc , lastpart = $lastpart")
-            elseif etime >= time_cp[lastp] && prtext == :last
+            elseif etime > time_cp[lastp] && prtext == :last
                 lastpartc = zero(O)
             elseif etime > time_cp[lastp] && prtext == :extr && !isnan(result[:Kel])
                 lastpartc = exp(result[:LZint] + result[:LZ] * etime)
@@ -860,7 +862,7 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
             end
 
 
-            aucpartial = zero(T)*zero(O)
+            aucpartial = zero(T) * zero(O)
             if firstp != lastp
                 aucpartn = lastp - firstp
                 for i = 1:aucpartn

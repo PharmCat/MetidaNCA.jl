@@ -178,13 +178,12 @@ Pharmacokinetic subject.
 Fields:
 
 * time::Vector{T} - time values;
-* obs::Vector{O} - observations;
+* obs::O - observations;
+* covars::C - covariates;
 * kelauto::Bool 
 * kelrange::ElimRange
-* dosetime::DoseTime
-* keldata::KelData
+* dosetime::Vector{DoseTime}
 * id::Dict{Symbol, V}
-* ncaresobs::Symbol
 
 """
 mutable struct PKSubject{T <: Number, O, C <: Any, V <: Any} <: AbstractSubject
@@ -194,7 +193,6 @@ mutable struct PKSubject{T <: Number, O, C <: Any, V <: Any} <: AbstractSubject
     kelauto::Bool
     kelrange::ElimRange
     dosetime::Vector{DoseTime}
-    #keldata::KelData
     id::Dict{Symbol, V}
     function PKSubject(time::Vector{T}, conc::O, covars::C, kelauto::Bool, kelrange::ElimRange, dosetime, id::Dict{Symbol, V} = Dict{Symbol, Any}())  where T <: Number where O where C  where V
         if !checkdosetime(dosetime) error("DoseTime Vector should be sorted.") end
@@ -251,8 +249,8 @@ Fields:
 
 * data::T
 * options::Dict{Symbol}
-* obsname::Symbol
-* keldata::Union{KelData, Nothing}
+* obsname::Union{Symbol, Nothing}
+* keldata::KD
 * result::Dict{Symbol, U}
 """
 struct NCAResult{T, KD <: Union{KelData, Nothing}, U} <: AbstractSubjectResult{T}
@@ -299,6 +297,13 @@ struct LimitRule{T<:Real}
     atmax::Float64
     nan::Float64
     rm::Bool
+    # Need to rewrite intervals 
+    # drop before dosetime
+    # dosetieme - first
+    # first - Cmax
+    # aftet Cmax - last
+    # first afer last
+    # other 
     function LimitRule(lloq::T, btmax, atmax, nan, rm::Bool) where T <: Real
         new{T}(lloq, btmax, atmax, nan, rm)::LimitRule
     end

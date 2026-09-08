@@ -2,7 +2,7 @@
 @testset "  #6 Pharmacodynamics data; Linear-trapezoidal rule        " begin
     io = IOBuffer();
 
-    pd =  MetidaNCA.pdimport(pddata, :time, :obs, :subj; bl = 1.5, th = 5.0)
+    pd =  MetidaNCA.pdimport(pddata, :time, :obs, :subj; bl = 1.5, th = 5.0, warn = false)
 
     @test_nowarn MetidaNCA.pkplot(pd)
     @test_nowarn MetidaNCA.pkplot(pd[1], drawth = true, drawbl = true)
@@ -15,8 +15,8 @@
 
     @test last(pd[1].time) - first(pd[1].time) == pd_res[:TABL] + pd_res[:TBBL] == pd_res[:TATH] + pd_res[:TBTH]
 
-    nca_res = MetidaNCA.nca(pddata, :time, :obs, :subj)[1]
-    pd_res  = MetidaNCA.nca(pddata, :time, :obs, :subj, type = :pd, bl = 0.0, th = 0.0)[1]
+    nca_res = MetidaNCA.nca(pddata, :time, :obs, :subj; warn = false)[1]
+    pd_res  = MetidaNCA.nca(pddata, :time, :obs, :subj, type = :pd, bl = 0.0, th = 0.0; warn = false)[1]
 
     @test  pd_res[:AUCABL] == pd_res[:AUCATH] == nca_res[:AUClast]
 
@@ -42,7 +42,7 @@
     @test_throws ErrorException MetidaNCA.setbl!(pd, NaN)
     @test_throws ErrorException MetidaNCA.setth!(pd, NaN)
 
-    pd =  MetidaNCA.pdimport(pddata, :time, :obs; bl = 3.0, th = 1.5, id = Dict(:subj => 1))
+    pd =  MetidaNCA.pdimport(pddata, :time, :obs; bl = 3.0, th = 1.5, id = Dict(:subj => 1), warn = false)
     pd_rds = MetidaNCA.nca!(pd)
 
     @test  pd_rds[:Tmax] ≈ 5.0 atol=1E-6
@@ -61,7 +61,7 @@
     @test  pd_rds[:AUCNETT] ≈ 12.15 atol=1E-2
     @test  pd_rds[:TIMEBTW] ≈ 2.2809524 atol=1E-6
 
-    pd =  MetidaNCA.pdimport(pddata, :time, :obs; bl = 1.5, th = 3.0, id = Dict(:subj => 1))
+    pd =  MetidaNCA.pdimport(pddata, :time, :obs; bl = 1.5, th = 3.0, id = Dict(:subj => 1), warn = false)
     pd_rds = MetidaNCA.nca!(pd)
 
     @test  pd_rds[:AUCATH] ≈ 7.3857143 atol=1E-6
@@ -85,7 +85,7 @@ end
 
     io = IOBuffer();
 
-    pd =  MetidaNCA.pdimport(pddata, :time, :obs, :subj; bl = 1.5, th = 5.0)
+    pd =  MetidaNCA.pdimport(pddata, :time, :obs, :subj; bl = 1.5, th = 5.0, warn = false)
 
     dt = MetidaNCA.DoseTime(dose = 100, time = 0.0, tau = 9.0)
     MetidaNCA.setdosetime!(pd, dt)
@@ -131,7 +131,7 @@ end
 
     pddata2 = deepcopy(pddata)
     deleteat!(pddata2, 1)
-    pd2 =  MetidaNCA.pdimport(pddata2, :time, :obs, :subj; bl = 1.5, th = 5.0, dosetime = MetidaNCA.DoseTime(dose = 100, time = 0.0, tau = 9.0))
+    pd2 =  MetidaNCA.pdimport(pddata2, :time, :obs, :subj; bl = 1.5, th = 5.0, dosetime = MetidaNCA.DoseTime(dose = 100, time = 0.0, tau = 9.0), warn = false)
     pd_rds2 = MetidaNCA.nca!(pd2)
 
     @test  pd_rds2[1,:AUCATH] ≈ pd_rds2[1,:AUCATHtau] atol=1E-6

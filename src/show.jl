@@ -1,7 +1,14 @@
 
 function Base.show(io::IO, obj::DoseTime)
-    print(io, "Dose - $(obj.dose); Time - $(obj.time); Tau - $(obj.tau)")
-
+    print(io, "Dose: $(obj.dose); Time: $(obj.time); Tau: $(obj.tau)")
+    if !isnothing(obj.route)
+        print("; Route: $(obj.route)")
+    end 
+    if iszero(obj.rate) 
+        print(io, "; Instant")
+    else
+        print(io, "; Rate: $(obj.rate) (Duration: $(obj.dose/obj.rate))")
+    end
 end
 function Base.show(io::IO, obj::ElimRange)
     print(io, "Elimination range: $(obj.kelstart) - $(obj.kelend) ")

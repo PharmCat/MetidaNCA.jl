@@ -9,6 +9,7 @@ Apply rule to PK subject .
 * STEP 3 (remove NaN): `rm` == true, then remove all `NaN` and `missing` values.
 """
 function applylimitrule!(data::Union{PKSubject, PDSubject}, rule::LimitRule)
+    if rule.rm && length(getfield(data, :obs)) != 1 error("Can't remove observations if multiple data provided.") end
     applylimitrule!(data.time, getobs(data), rule)
     data
 end
