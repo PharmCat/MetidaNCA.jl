@@ -148,7 +148,8 @@ function plotlabel(d, ld = nothing)
     title = ""
     if isnothing(d) return title end
     if length(d) > 0
-        for (k, v) in d
+        for k in sort!(collect(keys(d)))
+            v  = d[k]
             kv = k
             if !isnothing(ld) && haskey(ld, kv)
                 kv = ld[kv]

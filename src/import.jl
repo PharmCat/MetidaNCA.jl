@@ -1,6 +1,10 @@
 # Заполняет словарь d индексами индивидуальных значений
 
-nonunique(v) = [k for (k, v) in StatsBase.countmap(v) if v > 1]
+function nonunique(v)
+    cm = StatsBase.countmap(v)
+    return [x for x in unique(v) if cm[x] > 1]
+end
+
 
 parse_gkw(s::String) = [Symbol(s)]
 parse_gkw(s::Symbol) = [s]
@@ -203,7 +207,9 @@ function pkimport(data, time, obs, sort;
 
     sdata = Vector{PKSubject}(undef, length(d))
     i = one(Int)
-    @inbounds for (k, v) in d
+    korder = sort!(collect(keys(d)), by = k -> first(d[k]))
+    @inbounds for k in korder
+        v = d[k]
         timevals = view(timec, v)
 
         if checktime && !allunique(timevals)
@@ -385,7 +391,9 @@ function upkimport(data, stime, etime, conc, vol, sort; kwargs...)
 
     sdata = Vector{UPKSubject}(undef, length(d))
     i = one(Int)
+    korder = sort!(collect(keys(d)), by = k -> first(d[k]))
     @inbounds for (k, v) in d
+        v = d[k]
         stimevals = view(stimec, v)
         etimevals = view(etimec, v)
         concvals  = view(concc, v)
@@ -494,7 +502,9 @@ function pdimport(data, time, obs, sort; bl = 0, th = 0, dosetime::Union{Nothing
 
     sdata = Vector{PDSubject}(undef, length(d))
     i = one(Int)
-    @inbounds for (k, v) in d
+    korder = sort!(collect(keys(d)), by = k -> first(d[k]))
+    @inbounds for k in korder
+        v = d[k]
         timevals = timec[v]
         obsvals  = obsc[v]
 

@@ -258,7 +258,12 @@ include("refdicts.jl")
     pl = @test_nowarn MetidaNCA.pkplot!(pd; legend = true, drawbl = true, drawth = true, drawdt = true)
     # Multiple time
 
-    @test_logs (:warn,"Subject: (1,), Not all time values is unique ([96.0, 4.0, 2.5]), function 'last' used to get observation!") (:warn,"Some concentration values maybe not a number, try to fix.") ds = MetidaNCA.pkimport(multtimepk, :Time, :Concentration, :Subject)
+    @test_logs (:warn, r"^Subject: \(1,\), Not all time values is unique \(.*\), function 'last' used to get observation!$") (:warn,"Some concentration values maybe not a number, try to fix.") ds = MetidaNCA.pkimport(multtimepk, :Time, :Concentration, :Subject)
+
+    @test Set(MetidaNCA.nonunique(multtimepk.Time)) == Set([96.0, 4.0, 2.5])
+
+    @test MetidaNCA.nonunique([3.0, 1.0, 3.0, 2.0, 1.0]) == [3.0, 1.0]
+
     dsmultt = MetidaNCA.pdimport(multtimepk, :Time, :Concentration, :Subject; warn = false)
     @test MetidaNCA.gettime(dsmultt[1]) ≈ [0.0
     0.5
@@ -314,8 +319,9 @@ include("refdicts.jl")
     @test MetidaNCA.makecovariate([3,4])[2] == 4
 
     ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; covars = [:Concentration, :Subject, :Formulation], dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
-    @test MetidaNCA.value(ds[1].covars.Subject) == 2
-    @test MetidaNCA.value(ds[1].covars.Concentration) == [ 0.0
+    sort!(ds, :Subject)
+    @test MetidaNCA.value(ds[2].covars.Subject) == 2
+    @test MetidaNCA.value(ds[2].covars.Concentration) == [ 0.0
     62.222
    261.177
    234.063
@@ -331,17 +337,17 @@ include("refdicts.jl")
    160.338
    110.28
     85.241]
-    @test ds[1].covars.Formulation[1] == "R"
-    @test ds[1].covars.Concentration[2] == 62.222
-    @test length(ds[1].covars.Formulation) == 1
-    @test length(ds[1].covars.Concentration) == 16
+    @test ds[2].covars.Formulation[1] == "R"
+    @test ds[2].covars.Concentration[2] == 62.222
+    @test length(ds[2].covars.Formulation) == 1
+    @test length(ds[2].covars.Concentration) == 16
 
     # Drop functions 
-    @test_nowarn MetidaNCA.dropnanormissing!(ds[1])   
-    @test_nowarn MetidaNCA.dropnanormissing(ds[1])    
+    @test_nowarn MetidaNCA.dropnanormissing!(ds[2])   
+    @test_nowarn MetidaNCA.dropnanormissing(ds[2])    
 
-    @test_nowarn MetidaNCA.dropnan!(ds[1])   
-    @test_nowarn MetidaNCA.dropnan(ds[1])   
+    @test_nowarn MetidaNCA.dropnan!(ds[2])   
+    @test_nowarn MetidaNCA.dropnan(ds[2])   
     
     @test_nowarn MetidaNCA.dropmissing!(ds[1]) 
     @test_nowarn MetidaNCA.dropmissing(ds[1])  
@@ -1780,13 +1786,15 @@ end
     dsdf =   @test_nowarn DataFrame(ds)
     @test size(dsdf) == (160, 3)
     @test dsdf[8, :time] == 4.0
-    @test dsdf[8, :obs] == 169.334
-    @test dsdf[8, :Subject] == 5
+    @test dsdf[8, :obs] == 150.854
+    @test dsdf[8, :Subject] == 1
     dsdf =   @test_nowarn DataFrame(ds; obstime = true)
     @test size(dsdf) == (160, 2)
     @test dsdf[8, :time] == 4.0
     dsdf =   @test_nowarn DataFrame(dsnca)
-    @test dsdf[1, :Cmax] == 169.334 
+    @test dsdf[:, :Subject] == collect(1:10)
+    @test dsdf[1, :Cmax] == 190.869
+
 end
 
 @testset "  Precompile                                               " begin
