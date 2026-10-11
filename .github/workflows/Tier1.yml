@@ -31,6 +31,13 @@ jobs:
         julia-version: ['1.8', '1.10', '1']
         julia-arch: [x64]
         os: [ubuntu-latest, windows-latest]
+        exclude:
+          # Test-only dependency chain Plots -> GR -> Qt6Base_jll: the Qt6 DLLs
+          # fail to link against the runtime shipped with old Julia on Windows
+          # (upstream Yggdrasil issue, not a package problem).
+          # Julia 1.8 passes the full suite on Linux, so only this pair is dropped.
+          - os: windows-latest
+            julia-version: '1.8'
         include:
           - os: macOS-latest
             julia-arch: 'aarch64'
