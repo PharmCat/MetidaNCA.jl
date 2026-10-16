@@ -8,7 +8,7 @@ date: `j import Dates; Dates.Date(Dates.now())`
 
 ```julia; echo = false
 # Loaded before the package imports, and in a chunk of its own, on purpose.
-# This file defines the recording and verdict functions; it must be in scope
+# This file defines the recording and verdict functions. They must be in scope
 # even if a package used only for display is missing from the active
 # environment, because the document generator aborts a chunk at the first
 # failing statement and carries on with the next one. Keeping the two apart
@@ -18,7 +18,7 @@ include("acceptance.jl")
 ```
 
 ```julia; echo = false
-using Dates, DataFrames, CSV, PrettyTables, Latexify, Statistics, Plots
+using Dates, DataFrames, CSV, PrettyTables, Statistics, Plots
 ```
 
 # Introduction and package description
@@ -40,23 +40,27 @@ implemented through software can be consistently fulfilled.
 
 ### Kinds of evidence
 
-Comparisons in this report rest on three kinds of reference, and they are not
+Comparisons in this report rest on four kinds of reference. The kinds are not
 interchangeable. The chapter *Validation coverage* reports, for every parameter and every
-capability, which of them applies.
+capability, which kind applies.
 
-  * **External** — the corresponding value from an independent implementation, Phoenix
-    WinNonlin 8.0 (see Appendix 2). This is the evidence for most of the report.
-  * **Analytic** — a closed-form value. Where it applies it is stronger than any comparison
-    with another program, because the reference is exact and belongs to no implementation.
-    The chapter on the integration rules rests on it.
-  * **Internal** — a value this package produced and that is carried forward unchanged. It
-    establishes that behaviour has not changed and **nothing more**; it is not evidence of
-    correctness. It is used only where no external reference can be obtained, which in this
-    report means the `:luldt` integration rule, for which Phoenix implements no counterpart.
-    Wherever an internal baseline is used, the report says so at the point of use.
+  * **External.** The corresponding value from an independent implementation, Phoenix
+    WinNonlin 8.0 (see Appendix 2). Most comparisons of the report are of this kind.
+  * **Analytic.** A closed-form value. The reference is exact and belongs to no
+    implementation. The chapter on the integration rules rests on references of this kind.
+  * **Derived.** The value computed from the identity that defines the parameter, where the
+    parameters on the right-hand side are themselves qualified. A derived comparison
+    inherits whatever its inputs inherit and establishes nothing about the inputs
+    themselves. It is used where no other program reports the parameter.
+  * **Internal.** A value this package produced, carried forward unchanged. An internal
+    baseline establishes that behaviour has not changed. An internal baseline is not
+    evidence of correctness. It is used only where no external reference can be obtained,
+    which in this report means the `:luldt` integration rule, for which Phoenix implements
+    no counterpart. Wherever an internal baseline is used, the report states the fact at
+    the point of use.
 
-Graphics are qualified operationally: the figure is reproduced for visual verification and
-the data it carries is compared with the data the package computed.
+Graphics are qualified operationally. The figure is reproduced for visual verification, and
+the data the figure carries is compared with the data the package computed.
 
 ### The criterion
 
@@ -65,44 +69,49 @@ A single comparison is accepted when
 $|x_{MetidaNCA} - x_{ref}| \le r_{tol} \times |x_{ref}| + a_{tol}$
 
 with $r_{tol}$ = `j ACCEPT_RTOL` and $a_{tol}$ = `j ACCEPT_ATOL`, that is, agreement to four
-significant digits. The same criterion is applied to all three kinds of reference, which is
-conservative in different ways for each. External reference values are transcribed with six
-significant digits, so the attainable agreement there is bounded by the transcription of the
-reference rather than by the computation; the largest deviation observed over the external
-scenarios of this report is of the order of $10^{-7}$, leaving about three orders of
-magnitude of margin. Against a closed form the bound is machine precision instead, and the
-deviations observed are of the order of $10^{-16}$ — the criterion is loose there by twelve
-orders of magnitude, and the agreement actually attained is reported in the tables of the
-integration-rules chapter. The checks on figures demand exact equality, since a plot carries
-the computed numbers and does not round them.
+significant digits. The same criterion is applied to every kind of reference.
+
+External reference values are transcribed with six significant digits. The attainable
+agreement is therefore bounded by the transcription of the reference and not by the
+computation. The largest deviation observed over the external scenarios of this report is of
+the order of $10^{-7}$, which leaves about three orders of magnitude of margin to the
+criterion.
+
+Against a closed form the bound is machine precision. The deviations observed are of the
+order of $10^{-16}$, that is, twelve orders of magnitude below the criterion. The agreement
+attained for each comparison is reported in the tables of the integration-rules chapter.
+
+The checks on figures require exact equality. A figure carries the computed numbers without
+rounding them.
 
 The report is accepted only when **all** of the following hold:
 
-  * every comparison is within the criteria above;
-  * the package test suite passes (see Testing results);
+  * every comparison is within the criteria above.
+  * the package test suite passes (see Testing results).
   * every required scenario reported its results.
 
-The third condition is not redundant: the document generator renders a failing code chunk
-into the document and carries on, which would otherwise drop a results table without any
-other sign. The same applies to the Conclusion, which marks itself once it has rendered.
+The third condition covers a failure the first two cannot detect. The document generator
+renders a failing code chunk into the document and carries on, which drops a results table
+without any other sign. The same applies to the Conclusion, which marks itself once it has
+rendered.
 
 ### Where the verdict is
 
 This report is produced whatever the outcome of the comparisons, and it carries its own
 verdict. Each comparison is recorded, as it is made, in
 `docs/src/validation_acceptance.tsv`. The Conclusion section states the verdict, summarises
-every scenario and lists **every divergence** — parameter, subject, computed value,
+every scenario and lists **every divergence** with its parameter, subject, computed value,
 reference value, difference, relative error and the criterion it was judged against. The
 same journal is written next to this report as `docs/src/validation_divergences.tsv`, so it
-can be read without opening the PDF. An empty journal is itself a statement: the file is
-written even when nothing diverged.
+can be read without opening the PDF. The file is written even when nothing diverged, so an
+empty journal states that no divergence was recorded.
 
 Independently of the report, `acceptance_verdict()` in `docs/acceptance.jl` is called
 outside the document generator, after the report is built, and aborts the documentation
-build on a negative verdict — the document generator swallows errors raised inside a code
+build on a negative verdict. The document generator swallows errors raised inside a code
 chunk, so a verdict computed only inside the report could never fail. Running the build
-with `VALIDATION_STRICT=false` suppresses the abort and leaves the report for inspection;
-the verdict and the journal are unaffected by that setting.
+with `VALIDATION_STRICT=false` suppresses the abort and leaves the report for inspection.
+The verdict and the journal are unaffected by that setting.
 
 ## Requirements
 
@@ -327,7 +336,7 @@ nca!(ds, adm = :ev, calcm = :lint)
 
 # The reference set is the single source of truth: test/csv/reference_values.csv,
 # the same file the package test suite checks against. The hand-written
-# dictionaries of docs/refdict.jl are no longer used — they held a subset of
+# dictionaries of docs/refdict.jl are no longer used. They held a subset of
 # this set, and the parameters they left out were the coverage gaps.
 REFSET = testcsv("reference_values.csv")
 isfile(REFSET) || error("Reference set not found next to the report (test/csv/" *
@@ -475,10 +484,10 @@ subjects = MetidaNCA.getid(dsnca, :, :Subject)
 # The path is resolved against THIS DOCUMENT, not against pathof(MetidaNCA).
 # The two differ whenever the documentation environment resolves the package to
 # a copy from the registry, and that copy need not contain a file added since
-# the release — the read then fails, and because this chunk is rendered as raw
+# the release. The read then fails, and because this chunk is rendered as raw
 # TeX, the Windows path in the error message reaches the typesetter as a string
-# of undefined control sequences and no PDF comes out at all. The repository is
-# where both this report and the reference set live, so that is what it asks.
+# of undefined control sequences and no PDF is produced. Both this report and
+# the reference set are in the repository, so the repository is what is asked.
 refs, list = scenario_references(REFSET, "pk_d120_dt0_tau12_luldt", subjects)
 dft = acceptance_table("PK-LULDT-EV-TAU12", dsnca, refs, list, subjects)
 print(mdtable(dft))
@@ -551,32 +560,32 @@ print(acceptance_note("PD-LINT"))
 
 # Analytic qualification of the integration rules
 
-The four integration rules are not four independent algorithms. They are two formulas — the
-linear and the logarithmic trapezoid — and a rule for choosing between them on each interval.
-Both parts can be qualified without a second implementation, and for `:luldt` they have to
-be: Phoenix WinNonlin offers no counterpart, so the preceding chapter could only fix a
-baseline.
+The four integration rules are composed of two formulas, the linear and the logarithmic
+trapezoid, together with a rule for choosing between them on each interval. Both components
+are qualified in this chapter without a second implementation. For `:luldt` no second
+implementation is available: Phoenix WinNonlin offers no counterpart, so the preceding
+chapter establishes a baseline only.
 
-The qualification rests on an exact property: **the logarithmic trapezoid is exact on a
-mono-exponential profile**, and the linear trapezoid is exact on piecewise-linear data. Where
-that holds, a closed form is an absolute reference, independent of any implementation, and
-stronger than a comparison with another program. Four blocks follow:
+The qualification rests on an exact property. The logarithmic trapezoid is exact on a
+mono-exponential profile, and the linear trapezoid is exact on piecewise-linear data. Where
+the property holds, a closed form is a reference independent of any implementation. Four
+blocks follow.
 
-  * on a mono-exponential profile the three rules that use the logarithmic formula must
-    reproduce the closed-form integral, and the whole `nca!` chain must reproduce the
-    closed forms for `AUClast`, `AUMClast`, `AUCinf`, `AUMCinf`, `Kel`, `HL` and `MRTinf`;
-  * on a strictly ascending profile no rule may apply the logarithmic formula, so all four
-    must return the area of the linear trapezoids;
-  * the switching rule is pinned by exact identities with `:logt` and `:luld`, both of which
-    are qualified externally in the preceding chapter. `:luldt` differs from `:logt` only on
-    an ascending interval **after** `Cmax`, and from `:luld` only on a descending interval
-    **before** `Cmax`; four profiles are chosen so that each identity and each difference is
-    exercised;
-  * the rules are rewritten here directly from the formulas and compared with the package
-    over every subject of the validation data set.
+  * On a mono-exponential profile the three rules that use the logarithmic formula reproduce
+    the closed-form integral, and the `nca!` chain reproduces the closed forms for
+    `AUClast`, `AUMClast`, `AUCinf`, `AUMCinf`, `Kel`, `HL` and `MRTinf`.
+  * On a strictly ascending profile the logarithmic formula is applicable to none of the
+    rules, so all four return the area of the linear trapezoids.
+  * The switching rule is established by exact identities with `:logt` and `:luld`, both
+    qualified externally in the preceding chapter. `:luldt` differs from `:logt` on an
+    ascending interval after `Cmax` and from `:luld` on a descending interval before
+    `Cmax`. Four profiles are chosen so that each identity and each difference is exercised.
+  * The rules are rewritten directly from the formulas and compared with the package over
+    every subject of the validation data set.
 
-This chapter also supplies the mono-exponential intravenous-bolus profile with analytically
-known values that a qualification data set is expected to contain.
+The mono-exponential intravenous-bolus profile of section 5.2 is the profile with
+analytically known values that a qualification data set is required to contain (chapter
+*Validation coverage*).
 
 ## The two formulas and the direct reimplementation
 
@@ -608,10 +617,12 @@ end
 A profile generated by $C(t) = C_0 e^{-kt}$ with $C_0$ = 100 and $k$ = 0.35 h⁻¹, sampled at
 0, 0.5, 1, 2, 3.5, 5, 8 and 12 h. The references are
 
-$$AUC_{0 \to t} = \frac{C_0 - C_{last}}{k}, \quad
-  AUMC_{0 \to t} = -\frac{t_{last} C_{last}}{k} + \frac{C_0 - C_{last}}{k^2}, \quad
-  AUC_{0 \to \infty} = \frac{C_0}{k}, \quad
-  AUMC_{0 \to \infty} = \frac{C_0}{k^2}$$
+$$\begin{aligned}
+AUC_{0 \to t} &= \frac{C_0 - C_{last}}{k},
+  &\qquad AUMC_{0 \to t} &= -\frac{t_{last} C_{last}}{k} + \frac{C_0 - C_{last}}{k^2}, \\[4pt]
+AUC_{0 \to \infty} &= \frac{C_0}{k},
+  &\qquad AUMC_{0 \to \infty} &= \frac{C_0}{k^2}
+\end{aligned}$$
 
 and $MRT_{0 \to \infty} = 1/k$, $HL = \ln 2 / k$, $\lambda_z = k$, $R^2 = 1$.
 
@@ -700,8 +711,8 @@ print(acceptance_note("TRAP-ASC"))
 `:logt` and `:luld` are qualified externally. `:luldt` is pinned relative to them: it must
 agree with `:logt` except on an ascending interval after `Cmax`, and with `:luld` except on a
 descending interval before `Cmax`. Profile B contains the first case, profile D the second,
-and the agreement there is required to break — a `:luldt` that silently coincided with its
-neighbours everywhere would not be `:luldt`.
+and for those two profiles the agreement is required to break. A `:luldt` that coincided
+with `:logt` and with `:luld` on every profile would not implement the switching rule.
 
 ```julia; echo = false, results = "tex"
 
@@ -798,26 +809,25 @@ print(acceptance_note("TRAP-REIMP"))
 
 # Derived parameters
 
-Some parameters have no external reference and cannot have one: no other program reports
-them. `Cllast` and `Vzlast` relate the dose to the observed area rather than to the
-extrapolated one; `Vsstau` is the steady-state volume over the dosing interval; `LZ` is the
-regression slope with its sign; `Rsqn` is which of the candidate intervals the terminal-phase
-search settled on. Phoenix WinNonlin publishes none of these.
+Six parameters have no external reference. `Cllast` and `Vzlast` relate the dose to the
+observed area, not to the extrapolated area. `Vsstau` is the steady-state volume over the
+dosing interval. `LZ` is the regression slope with its sign. `Rsqn` is the index of the
+candidate interval selected by the terminal-phase search. `AUCBTW` is the area between the
+baseline and the threshold. Phoenix WinNonlin publishes none of the six.
 
-One parameter that belongs in this chapter is not in it. `Minrate` is documented as the
-lowest excretion rate of a urine profile, and it cannot be qualified against that definition
-because it does not meet it: `nca!` prepends a zero to the excretion-rate vector to give the
-curve an origin, and computes `Minrate` after doing so, so the value is identically zero for
-every data set. Checked on two: observed rates 0.333–4.0 and 75–450, `Minrate` = 0.0 in both.
-There is nothing to qualify, and the coverage table reports it as not covered with this as
-the reason.
+For each of the six the report establishes that the computed value equals the value given by
+the identity that defines the parameter, where the parameters on the right-hand side are
+themselves qualified. The evidence is of the kind described as derived in section 1.2.1. A
+derived comparison inherits whatever its inputs inherit and establishes nothing about the
+inputs themselves. The reference is the right-hand side computed from the same result, so
+the comparison requires exact agreement.
 
-What can be established for them is that each is what its definition says it is, computed
-from parameters that are themselves qualified. That is weaker than an external comparison —
-it inherits whatever its inputs inherit and says nothing about them — but for a parameter
-nothing else reports it is the whole of what can be established, and it is a good deal
-stronger than leaving the parameter unchecked. The identities are verified exactly: the
-reference is the right-hand side computed from the same result.
+`Minrate` is documented as the lowest excretion rate of a urine profile and is not qualified
+in this chapter. The computed value does not meet the documented definition: `nca!` prepends
+a zero to the excretion-rate vector to give the curve an origin and computes `Minrate` after
+the insertion, so the value is identically zero. Two data sets were examined, with observed
+excretion rates of 0.333 to 4.0 and of 75 to 450. `Minrate` equals 0.0 in both. The coverage
+table reports `Minrate` as not covered and states the reason.
 
 ```julia; echo = false, results = "tex"
 
@@ -851,8 +861,8 @@ for (i, r) in enumerate(dsd)
     identity!(dfd, :Cllast, "Dose / AUClast",           s, res[:Cllast],  res[:Dose] / res[:AUClast])
     identity!(dfd, :Vzlast, "Dose / (AUClast * Kel)",   s, res[:Vzlast],  res[:Dose] / res[:AUClast] / res[:Kel])
     identity!(dfd, :Vssinf, "Clinf * MRTinf",           s, res[:Vssinf],  res[:Clinf] * res[:MRTinf])
-    # Rsqn names the interval the search chose; the adjusted coefficient of that
-    # interval has to be the one reported.
+    # Rsqn names the interval the search selected. The adjusted coefficient of
+    # that interval must equal the reported value.
     kd = MetidaNCA.getkeldata(r)
     identity!(dfd, :Rsqn,   "ARsq = keldata[Rsqn]",     s, kd.ar[Int(res[:Rsqn])], res[:ARsq])
 end
@@ -888,27 +898,29 @@ print(acceptance_note("DERIVED-ID"))
 
 # Graphics
 
-Plotting is part of the validated scope: a figure is a result that reaches the report, and a
-figure showing the wrong data misleads exactly as a wrong number does. The risk is not in the
-drawing but in what is handed to it — the wrong subject, the wrong column, a profile reordered
-on its way to the axes.
+Plotting belongs to the validated scope. A figure is a result that reaches the report, and a
+figure built from the wrong data reports the wrong result. The failure mode is in the data
+handed to the drawing code: the wrong subject, the wrong column, or a profile reordered on
+its way to the axes.
 
-So the figures below are reproduced for visual verification, and the data they carry is taken
-back out of the plot object and compared with the data the package computed. The comparison
-demands exact equality: a plot does not round.
+Each figure of this chapter is reproduced for visual verification. The data the figure
+carries is then read back out of the plot object and compared with the data the package
+computed. A figure carries the computed numbers without rounding them, so the comparison
+requires exact agreement.
 
 ## Figures
 
-Six figures, one per plotting entry point of the package. Each is followed by `\clearpage`:
-captioned figures are floats, and a run of them with no text in between exhausts the float
-queue of the typesetter and stops the build, so the queue is flushed as it goes.
+Seven figures, one per plotting entry point of the package. Each group of figures is
+followed by `\clearpage`. Captioned figures are floats, and a sequence of floats with no
+intervening text exhausts the float queue of the typesetter and stops the build, so the
+queue is flushed after each group.
 
 ### Individual profile
 
-The profile of one subject, on a linear and on a semi-logarithmic axis. The semi-logarithmic
-view is the one in which the terminal phase is judged by eye, and it is also where the
-handling of non-positive observations shows: they have no place on a logarithmic axis and are
-dropped, which the check below counts.
+The profile of one subject on a linear and on a semi-logarithmic axis. The semi-logarithmic
+axis is the axis on which the terminal phase is assessed visually. Non-positive observations
+cannot be placed on a logarithmic axis and are dropped. The number of dropped observations
+is compared with the number of non-positive observations in the table below.
 
 ```julia; echo = true; fig_cap = "Individual profile, linear scale"
 dsp   = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation];
@@ -925,9 +937,9 @@ pkplot(dsp[1]; yscale = :log10)
 
 ### Data set and mean profile
 
-Every subject of the data set on one pair of axes, then the mean profile with its interval.
-The overlay is the figure in which a misordered data set would be visible at once, and the
-check below compares all ten series with all ten subjects.
+Every subject of the data set on one pair of axes, followed by the mean profile with its
+interval. The overlay is the figure on which a misordered data set is visible. The check
+below compares all ten series with all ten subjects.
 
 ```julia; echo = true; fig_cap = "Data set, one series per subject"
 pkplot(dsp; typesort = :Subject, pagesort = MetidaNCA.NoPageSort())
@@ -941,9 +953,10 @@ vpcplot(dsp)
 
 ### Terminal phase and pharmacodynamics
 
-The terminal-phase figure draws the fitted line over the profile. The number of points it is
-built on is compared with `NpLZ`, the number the computation used, so the figure cannot show
-a line fitted to a different interval than the one the parameters came from.
+The terminal-phase figure draws the fitted line over the profile. The number of points of
+the fitted line is compared with `NpLZ`, the number of points the computation used. The
+comparison establishes that the line of the figure is fitted to the interval from which the
+reported parameters were obtained.
 
 ```julia; echo = true; fig_cap = "Terminal-phase interval and the points used for it"
 pkplot(dspr[1]; elim = true)
@@ -973,7 +986,7 @@ function graphcheck!(df, figure, what, value, reference)
     return st
 end
 
-# 1. individual profile — the series is the subject's own time and observations
+# 1. individual profile. The series holds the subject's own time and observations.
 p1 = pkplot(dsp[1])
 s1 = first(p1.series_list)
 graphcheck!(dfg, "Individual, linear", "series count", length(p1.series_list), 1)
@@ -982,8 +995,8 @@ graphcheck!(dfg, "Individual, linear", "time, max. difference",
 graphcheck!(dfg, "Individual, linear", "observations, max. difference",
             maxdiff(s1[:y], MetidaNCA.getobs(dsp[1])), 0)
 
-# 2. semi-logarithmic — the same data with non-positive observations dropped,
-#    because the logarithm of zero has no place on the axis
+# 2. semi-logarithmic. The same data with non-positive observations dropped,
+#    which a logarithmic axis cannot represent.
 obs1  = MetidaNCA.getobs(dsp[1])
 posi  = findall(x -> x > 0, obs1)
 p2 = pkplot(dsp[1]; yscale = :log10)
@@ -995,7 +1008,7 @@ graphcheck!(dfg, "Individual, semi-log", "observations, max. difference", maxdif
 graphcheck!(dfg, "Individual, semi-log", "points dropped",
             length(obs1) - length(s2[:y]), length(obs1) - length(posi))
 
-# 3. data set — one series per subject, and each series is its own subject's data
+# 3. data set. One series per subject, each series holding its own subject's data.
 p3 = pkplot(dsp; typesort = :Subject, pagesort = MetidaNCA.NoPageSort())
 graphcheck!(dfg, "Data set", "series count", length(p3.series_list), length(dsp))
 graphcheck!(dfg, "Data set", "all subjects, max. difference",
@@ -1003,7 +1016,7 @@ graphcheck!(dfg, "Data set", "all subjects, max. difference",
                         maxdiff(s[:y], MetidaNCA.getobs(dsp[i])))
                     for (i, s) in enumerate(p3.series_list)), 0)
 
-# 4. mean profile — the series is the mean over subjects at each time point
+# 4. mean profile. The series holds the mean over subjects at each time point.
 p4 = vpcplot(dsp)
 s4 = first(p4.series_list)
 utime = sort(unique(pkdata2.Time))
@@ -1011,8 +1024,8 @@ umean = [mean(pkdata2.Concentration[pkdata2.Time .== t]) for t in utime]
 graphcheck!(dfg, "Mean profile", "time, max. difference", maxdiff(s4[:x], utime), 0)
 graphcheck!(dfg, "Mean profile", "mean, max. difference", maxdiff(s4[:y], umean), 0)
 
-# 5. terminal-phase figure — carries the profile plus the fitted line, and the
-#    number of points of the fit must match the number the computation used
+# 5. terminal-phase figure. It carries the profile and the fitted line. The
+#    number of points of the fit must equal the number the computation used.
 p5 = pkplot(dspr[1]; elim = true)
 graphcheck!(dfg, "Terminal phase", "series count, minimum", length(p5.series_list) >= 2 ? 2 : 1, 2)
 graphcheck!(dfg, "Terminal phase", "profile obs., max. difference",
@@ -1020,7 +1033,7 @@ graphcheck!(dfg, "Terminal phase", "profile obs., max. difference",
 graphcheck!(dfg, "Terminal phase", "points in the fit",
             length(last(p5.series_list)[:x]), float(dspr[1][:NpLZ]))
 
-# 6. pharmacodynamics — the observations, and the baseline and threshold drawn
+# 6. pharmacodynamics. The observations, with the baseline and the threshold drawn.
 p6 = pkplot(pdp; drawbl = true, drawth = true)
 graphcheck!(dfg, "Pharmacodynamics", "observations, max. difference",
             maxdiff(first(p6.series_list)[:y], MetidaNCA.getobs(pdp)), 0)
@@ -1033,17 +1046,20 @@ Table: Data held by each figure against the data computed by the package
 
 ## Urine excretion rate
 
-A urine subject cannot be drawn the way a plasma subject is, and the reason is not
-presentational. Its observations are concentrations in a collected volume and its time field
-holds collection intervals, neither of which belongs on an axis as it stands. The curve a
-urine profile has is the excretion rate, $C \cdot Vol / (t_{end} - t_{start})$, and the
-coordinate it belongs to is the **midpoint** of the interval it was collected over — the same
-midpoint the analysis uses for it and for the regression of $\ln Rate$ that gives
-$\lambda_z$. Taking the start or the end of the interval instead shifts the whole curve, and
-with it `TmaxRate`, by up to half a collection interval; it is one of the standard errors in
-urine analysis.
+A urine subject is not drawn the way a plasma subject is drawn. Its observations are
+concentrations in a collected volume, and its time field holds collection intervals. Neither
+quantity is placed on an axis in that form.
 
-`midtime` and `excretionrate` return the two, and the figure is drawn from them.
+The quantity a urine profile has as a curve is the excretion rate,
+$C \cdot Vol / (t_{end} - t_{start})$. The time coordinate of the excretion rate is the
+midpoint of the interval over which the sample was collected. The midpoint is the coordinate
+the analysis uses for the excretion rate and for the regression of $\ln Rate$ that gives
+$\lambda_z$ (chapter *Performance qualification*, urine scenario). Use of the start or the
+end of the interval shifts the curve, and with it `TmaxRate`, by up to half a collection
+interval.
+
+`MetidaNCA.midtime` returns the midpoints and `MetidaNCA.excretionrate` returns the
+excretion rates. The figure is drawn from both.
 
 ```julia; echo = true; fig_cap = "Urine excretion rate against the midpoint of each collection interval"
 pkplot(upkp[1])
@@ -1060,9 +1076,9 @@ su  = first(pu.series_list)
 
 graphcheck!(dfu, "Urine", "series count", length(pu.series_list), 1)
 graphcheck!(dfu, "Urine", "midpoints, max. difference",
-            maxdiff(su[:x], midtime(upkp[1])), 0)
+            maxdiff(su[:x], MetidaNCA.midtime(upkp[1])), 0)
 graphcheck!(dfu, "Urine", "rate, max. difference",
-            maxdiff(su[:y], excretionrate(upkp[1])), 0)
+            maxdiff(su[:y], MetidaNCA.excretionrate(upkp[1])), 0)
 # The figure and the computation have to agree about where the maximum is and
 # how high it is: TmaxRate is a midpoint, and reading it off the start of an
 # interval instead is the error this check would catch.
@@ -1083,22 +1099,22 @@ print(acceptance_note("GRAPH-DATA"))
 
 # Validation coverage
 
-What this report establishes, and what it does not. Both tables are built from the same
-acceptance log as the verdict, so neither can claim coverage the report did not deliver: a
-parameter the package starts producing appears as NOT COVERED until some scenario compares
-it, and a capability whose scenario fails to report is shown as such instead of being taken
-on trust.
+The chapter states what the report establishes and what it does not establish. Both tables
+are built from the acceptance log that produced the verdict. A parameter the package begins
+to produce is reported as NOT COVERED until a scenario compares it, and a capability whose
+scenario did not report is shown with that status.
 
-Three kinds of evidence are distinguished throughout, and they are not interchangeable:
+The kinds of evidence are defined in section 1.2.1 and are not interchangeable.
 
-| Kind | What it establishes | Where it comes from |
+| Kind | What it establishes | Source of the reference |
 |---|---|---|
 | external | agreement with an independent implementation | Phoenix WinNonlin 8.0, Appendix 2 |
-| analytic | agreement with an exact closed form | the integration-rules chapter |
-| internal | that the behaviour has not changed | a value fixed by this package itself |
+| analytic | agreement with a closed form | chapter *Analytic qualification of the integration rules* |
+| derived | agreement with the identity that defines the parameter | chapter *Derived parameters* |
+| internal | that the behaviour has not changed | a value fixed by this package |
 
-An internal baseline is **not** evidence of correctness. It exists only where no external
-reference can be had, and the report says so at the point of use.
+An internal baseline is not evidence of correctness. It is used only where no external
+reference can be obtained, and the report states the fact at the point of use.
 
 ## Parameters
 
@@ -1140,10 +1156,11 @@ print(acceptance_coverage_summary(collect(producible)))
 
 ## Functionality
 
-The declared scope of the validation. The *Scenarios* column names the blocks of this report
-that exercise each capability and is filled from the log; *Evidence* is the kind of evidence
-those blocks provide, or, where this report does not cover the capability, where it is
-covered instead.
+The table states the declared scope of the validation. The *Scenarios* column names the
+blocks of this report that exercise each capability and is filled from the acceptance log.
+The *Evidence* column states the kind of evidence those blocks provide. Where this report
+does not cover a capability, the *Evidence* column states where the capability is covered
+instead.
 
 ```julia; echo = false, results = "tex"
 print(mdtable(acceptance_functionality_table()))
@@ -1166,18 +1183,21 @@ print(acceptance_conclusion_text())
 
 ## Summary by scenario
 
-Every scenario of this report, the number of comparisons it made against reference values
-(*Checks*) and the number of recorded outcomes that failed (*Failures*).
+The table lists every scenario of this report with the number of comparisons it made
+against reference values (*Checks*) and the number of recorded outcomes that failed
+(*Failures*).
 
   * For the plasma, urine and pharmacodynamics scenarios a failure is a comparison outside
     the acceptance criteria.
-  * `PKG-TEST` makes no numeric comparison: its single recorded outcome is the result of the
-    package test suite, so its *Checks* is zero and a failure there means the suite failed.
-  * A required scenario whose code chunk errored out produces no rows at all and is listed as
-    NOT REPORTED; its results table is then missing from the Results section as well.
+  * `PKG-TEST` makes no numeric comparison. Its single recorded outcome is the result of the
+    package test suite, so its *Checks* value is zero, and a failure of `PKG-TEST` means the
+    test suite failed.
+  * A required scenario whose code chunk errored out produces no rows and is listed as NOT
+    REPORTED. The results table of such a scenario is also absent from the Results chapter.
 
-The integration method is named in the table by its `calcm` value (`:lint`, `:luld`, `:logt`)
-and `dt` stands for the dose time; the Results section above spells each scenario out in full.
+The integration method is named in the table by its `calcm` value (`:lint`, `:luld`,
+`:logt`, `:luldt`). The abbreviation `dt` denotes the dose time. The Results chapter states
+each scenario in full.
 
 ```julia; echo = false, results = "tex"
 print(mdtable(acceptance_summary_table()))
@@ -1186,11 +1206,12 @@ Table: Comparisons and verdict by scenario
 
 ## Divergence journal
 
-Everything that failed acceptance, one row per item: a comparison outside the criteria
-stated in section *Acceptance criteria* ($r_{tol}$ = `j ACCEPT_RTOL`, $a_{tol}$ =
-`j ACCEPT_ATOL`), a failed test suite run, or a required scenario that did not report. For a
-comparison the row carries the computed value, the reference value, their difference and the
-relative error $|x - x_{ref}| / |x_{ref}|$.
+The journal lists every recorded outcome that failed acceptance, one row per outcome. Three
+kinds of outcome appear: a comparison outside the criteria stated in section *Acceptance
+criteria* ($r_{tol}$ = `j ACCEPT_RTOL`, $a_{tol}$ = `j ACCEPT_ATOL`), a failed test suite
+run, and a required scenario that did not report. For a comparison the row carries the
+computed value, the reference value, their difference and the relative error
+$|x - x_{ref}| / |x_{ref}|$.
 
 ```julia; echo = false, results = "tex"
 print(acceptance_journal_block())
@@ -1201,11 +1222,11 @@ print(acceptance_journal_block())
 # errored out records nothing, so a report that lost its verdict is caught by
 # the required-scenario check outside the document generator. The mark is made
 # before the journal is written, so that the file written here already carries
-# it; `validation.jl` writes the journal again in any case.
+# it. `validation.jl` writes the journal again in any case.
 acceptance_mark("CONCLUSION", true, "conclusion rendered")
 acceptance_write_journal()
-print("Full comparison log: docs/src/validation_acceptance.tsv. " *
-      "Divergence journal: docs/src/validation_divergences.tsv.")
+print("Full comparison log: docs/src/validation_acceptance.tsv\n\n" *
+      "Divergence journal: docs/src/validation_divergences.tsv")
 ```
 
 \pagebreak

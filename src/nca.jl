@@ -955,16 +955,30 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
     return ncares
 end
 
-function maxconc(subj::T; obsname::Union{Symbol, Nothing} = nothing) where T <: AbstractSubject
-    maximum(Iterators.filter(x-> !(ismissing(x) || isnan(x)), getobs(subj, obsname)))
-end
-function minconc(subj::T, pos = false; obsname::Union{Symbol, Nothing} = nothing) where T <: AbstractSubject
-    if pos
-        return minimum(Iterators.filter(x-> x > zero(x), getobs(subj, obsname)))
-    else
-        return minimum(Iterators.filter(x-> !(ismissing(x) || isnan(x)), getobs(subj, obsname)))
-    end
-end
+
+################################################################################
+# Urine data
+################################################################################
+
+"""
+    midtime(subj::UPKSubject)
+
+Midpoint of every collection interval, `(t_start + t_end) / 2`.
+
+This is the time coordinate of the excretion rate. Taking the start or the end
+of the interval instead shifts the whole excretion-rate curve, and with it
+`TmaxRate`, by up to half a collection interval.
+"""
+midtime(subj::UPKSubject) = map(x -> (x[1] + x[2]) / 2, gettime(subj))
+
+"""
+    excretionrate(subj::UPKSubject; obsname = nothing)
+
+Excretion rate of every collection interval, `C · Vol / (t_end - t_start)`,
+computed from the actual interval boundaries.
+"""
+excretionrate(subj::UPKSubject; obsname::Union{Symbol, Nothing} = nothing) =
+    exrate(gettime(subj), getobs(subj, obsname), subj.vol)
 
 function exrate(time::AbstractVector{Tuple{S, E}}, conc::AbstractVector{C}, vol::AbstractVector{V})  where S where E where C where V
     T = promote_type(S, E)

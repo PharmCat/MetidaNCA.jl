@@ -1,1 +1,11 @@
+% Text block of the report. The default LaTeX margins leave a measure of about
+% 13 cm on A4, which the wide comparison tables exceed.
 \usepackage[a4paper,text={16.5cm,25.2cm},centering]{geometry}
+
+% Font of the tables. The comparison tables hold up to seven columns of
+% parameter names, values and references. At the body size of 12 pt a row of a
+% seven-column table does not fit the text block, so the tables are set two
+% steps smaller. The column widths themselves come from the separator row of
+% each Markdown table, which `mdtable` in docs/acceptance.jl computes.
+\usepackage{etoolbox}
+\AtBeginEnvironment{longtable}{\footnotesize}

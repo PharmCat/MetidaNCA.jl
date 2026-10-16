@@ -148,6 +148,7 @@ function plotlabel(d, ld = nothing)
     title = ""
     if isnothing(d) return title end
     if length(d) > 0
+        # Порядок обхода Dict не определён. Подписи строятся в порядке сортировки ключей.
         for k in sort!(collect(keys(d)))
             v  = d[k]
             kv = k
@@ -160,10 +161,46 @@ function plotlabel(d, ld = nothing)
     return title
 end
 
+# ---- the range of the y axis ------------------------------------------------
+# Used by this file only
+function maxconc(subj::T; obsname::Union{Symbol, Nothing} = nothing) where T <: AbstractSubject
+    maximum(Iterators.filter(x-> !(ismissing(x) || isnan(x)), getobs(subj, obsname)))
+end
+function minconc(subj::T, pos = false; obsname::Union{Symbol, Nothing} = nothing) where T <: AbstractSubject
+    if pos
+        return minimum(Iterators.filter(x-> x > zero(x), getobs(subj, obsname)))
+    else
+        return minimum(Iterators.filter(x-> !(ismissing(x) || isnan(x)), getobs(subj, obsname)))
+    end
+end
+
+maxconc(subj::UPKSubject; obsname::Union{Symbol, Nothing} = nothing) =
+    maximum(Iterators.filter(x-> !(ismissing(x) || isnan(x)), excretionrate(subj; obsname = obsname)))
+function minconc(subj::UPKSubject, pos = false; obsname::Union{Symbol, Nothing} = nothing)
+    r = excretionrate(subj; obsname = obsname)
+    if pos
+        return minimum(Iterators.filter(x-> x > zero(x), r))
+    else
+        return minimum(Iterators.filter(x-> !(ismissing(x) || isnan(x)), r))
+    end
+end
+
+# ---- what a subject contributes to a figure ---------------------------------
+plottime(subj::AbstractSubject) = gettime(subj)
+plottime(subj::UPKSubject)      = midtime(subj)
+
+plotobs(subj::AbstractSubject, obsname = nothing) = getobs(subj, obsname)
+plotobs(subj::UPKSubject, obsname = nothing)      = excretionrate(subj; obsname = obsname)
+
+plotylabel(::AbstractSubject) = "Concentration"
+plotylabel(::UPKSubject)      = "Excretion rate"
+
 function _subjplot(subj, kwargs, ls; obsname = nothing)
 
-    subjobs = getobs(subj, obsname)
-    
+    # Что рисуется, определяют plotobs и plottime.
+    subjobs  = plotobs(subj, obsname)
+    subjtime = plottime(subj)
+
     k = keys(kwargs)
     if :yscale in k
         if kwargs[:yscale] in [:ln, :log, :log2, :log10]
@@ -171,7 +208,7 @@ function _subjplot(subj, kwargs, ls; obsname = nothing)
             if !(:minorticks in k) kwargs[:minorticks] = true end
 
             inds = findall(x-> x > 0, subjobs)
-            time = subj.time[inds]
+            time = subjtime[inds]
             obs  = subjobs[inds]
             if !(:yticks in k)
                 if kwargs[:yscale] == :log10
@@ -196,7 +233,7 @@ function _subjplot(subj, kwargs, ls; obsname = nothing)
             end
         end
     else
-        time = subj.time
+        time = subjtime
         obs  = subjobs
         if !(:ylims in k)
             kwargs[:ylims] = (minconc(subj; obsname = obsname), maxconc(subj; obsname = obsname)*1.15)
@@ -205,7 +242,7 @@ function _subjplot(subj, kwargs, ls; obsname = nothing)
 
     if ls == true
         inds = findall(x-> x > 0, subjobs)
-        time = subj.time[inds]
+        time = subjtime[inds]
         obs = log.(subjobs[inds])
         if (:ylims in k)
             kwargs[:ylims] = (0, log(kwargs[:ylims][2]))
@@ -312,10 +349,11 @@ function pkplot(subj::AbstractSubject; ls = false, xticksn = :auto, yticksn = :a
         kwargs[:legend] = true
     end
     if !(:ylabel in k)
-        kwargs[:ylabel] = "Concentration"
+        kwargs[:ylabel] = plotylabel(subj)
     end
     if !(:xlims in k)
-        kwargs[:xlims] = (minimum(subj.time), maximum(subj.time)*1.1)
+        ptime = plottime(subj)
+        kwargs[:xlims] = (minimum(ptime), maximum(ptime)*1.1)
     end
    
     time, obs = _subjplot(subj, kwargs, ls; obsname = obsname)

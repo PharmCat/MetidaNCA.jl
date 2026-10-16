@@ -26,7 +26,7 @@ const VALIDATION_PDF_FAILURE = joinpath(SRC_DIR, "validation_pdf_failure.txt")
 # and an acceptance log with nothing in it. Checking first turns that into one
 # line, before anything is built. This is an installation-qualification check,
 # not an acceptance check, so it is reported separately.
-const REPORT_PACKAGES = ["Dates", "DataFrames", "CSV", "PrettyTables", "Latexify",
+const REPORT_PACKAGES = ["Dates", "DataFrames", "CSV", "PrettyTables",
                          "Statistics", "Plots", "MetidaNCA", "Pkg"]
 
 function validation_preflight(; strict = true)
@@ -140,15 +140,7 @@ end
 acceptance_write_journal()
 
 # ------------------------------------------------------------ step 2: pandoc ---
-# The same command Weave's Pandoc2PDF format issues, with two differences: the
-# output is captured instead of discarded, and the `-V` options are passed as
-# separate arguments. Weave is given them as single strings with a space inside
-# ("-V colorlinks=true"), which reaches pandoc as one argument and sets a
-# variable whose name begins with a space - that is, it never worked.
 
-# Weave's own header template is a single \usepackage{geometry} line; it is
-# reproduced here so the conversion does not reach into Weave's internals and
-# can be repeated by hand.
 const PANDOC_HEADER = joinpath(DOCS_DIR, "pandoc_header.tex")
 isfile(PANDOC_HEADER) || write(PANDOC_HEADER,
     "\\usepackage[a4paper,text={16.5cm,25.2cm},centering]{geometry}\n")
@@ -206,7 +198,7 @@ if !PDF_OK
         $VALIDATION_MD
     and the figures at
         $figdir
-    ($(length(figs)) file(s)$(isempty(figs) ? " - none, which is itself the problem if the report has figures" : ""))
+    ($(length(figs)) file(s)$(isempty(figs) ? ". No figure was produced, which is itself the problem if the report has figures" : ""))
 
     ================================ pandoc output =================================
     $PANDOC_OUTPUT
@@ -235,10 +227,7 @@ if !PDF_OK
 end
 
 # ------------------------------------------------------------------- the gate ---
-# Prints the verdict and the full divergence journal. Raises - and therefore
-# fails the documentation build - when any comparison is outside the acceptance
-# criteria, when the test suite failed, or when a required scenario did not
-# report, unless VALIDATION_STRICT=false.
+
 const VALIDATION_OK = acceptance_verdict(; strict = VALIDATION_STRICT)
 
 #=

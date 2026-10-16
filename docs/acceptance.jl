@@ -10,6 +10,7 @@
 const ACCEPT_RTOL = 1.0e-4
 const ACCEPT_ATOL = 0.0
 
+
 const REQUIRED_SCENARIOS = [
     "PKG-TEST",
     "PK-LINT-EV-DT0",
@@ -81,7 +82,7 @@ const SCENARIO_TITLES = Dict(
 
 # Every comparison, pass or fail.
 const ACCEPT_LOG = joinpath(@__DIR__, "src", "validation_acceptance.tsv")
-# Divergences only - the journal.
+# Divergences only. 
 const ACCEPT_JOURNAL = joinpath(@__DIR__, "src", "validation_divergences.tsv")
 
 const ACCEPT_LOG_HEADER = ["scenario", "parameter", "subject", "value", "reference", "difference", "status"]
@@ -162,14 +163,14 @@ end
 # A numeric comparison carries a value
 _is_check(r) = r.value != "-"
 
-# Bookkeeping marks the report makes about itself. 
+# Bookkeeping marks the report makes about itself
 const SELF_MARKS = ["CONCLUSION"]
 
 # --------------------------------------------------------------- inspection ---
 # Everything below reads the log. None of it depends on DataFrames, so it can
 # be called from `validation.jl` as well as from the report.
 #
-# `inreport = true` is the view used by the Conclusion while it renders itself;
+# `inreport = true` is the view used by the Conclusion while it renders itself.
 # `inreport = false` (the default) is the full view used by the build gate.
 
 _rows(inreport) = inreport ? filter(r -> r.scenario ∉ SELF_MARKS, _read_log()) : _read_log()
@@ -268,7 +269,7 @@ end
     acceptance_write_journal() -> String
 
 Write the divergence journal to `ACCEPT_JOURNAL` and return its path. The file
-is written even when there are no divergences - an empty journal with a header
+is written even when there are no divergences. An empty journal with a header
 is a positive statement, a missing journal is not.
 
 Called from the Conclusion chunk, and again from `validation.jl` in case that
@@ -317,28 +318,93 @@ function scenario_references(path, scenario, subjects)
     return out, sort!(pars)
 end
 
+# Characters that carry Markdown markup inside a cell. Each one is written to
+# the document as itself.
+_mdesc(x) = replace(string(x),
+                    "\\" => "\\\\", "|" => "\\|", "_" => "\\_", "*" => "\\*",
+                    "`" => "\\`", "\$" => "\\\$", "<" => "\\<",
+                    "[" => "\\[", "]" => "\\]")
+
+# Width of the separator row, in dashes, for a table of `ncol` columns.
+_mdbudget(ncol) = max(4 * ncol, floor(Int, (469 - 12 * ncol) / 6.2))
+
+# Longest word a column is given whole.
+const MDTABLE_WORD = 22
+
+# Longest word, that is the longest run of characters between two spaces.
+_mdword(s) = maximum(length, split(s, ' '); init = 1)
+
+# Longest run of characters a line break cannot split.
+function _mdrun(s)
+    best = 1
+    cur = 0
+    for ch in s
+        if ch == ' '
+            cur = 0
+        else
+            cur += 1
+            best = max(best, cur)
+            ch == '-' && (cur = 0)
+        end
+    end
+    return best
+end
+
+# Dash count per column. Every column first receives the width its longest word
+# requires, up to the limit above, which is what keeps cells inside the page. The
+# remainder of the budget is shared out in proportion to the width each column
+# would take if it were never wrapped, and no column receives more than that
+# width. For a table whose unbreakable runs alone exceed the budget every
+# column receives its required width, which spreads the excess over all columns
+# in equal proportion instead of leaving it on one of them.
+function _mdslots(cols)
+    want = [maximum(length, c) for c in cols]
+    word = [maximum(_mdword, c) for c in cols]
+    run = [maximum(_mdrun, c) for c in cols]
+    need = min.(word, max.(run, MDTABLE_WORD), want)
+    budget = _mdbudget(length(cols))
+    sum(need) >= budget && return need
+    slots = copy(need)
+    extra = max.(want .- need, 0)
+    if sum(extra) > 0
+        rest = budget - sum(need)
+        slots .+= min.(extra, floor.(Int, rest .* extra ./ sum(extra)))
+    end
+    return slots
+end
+
 """
     mdtable(df) -> String
 
-Render a data frame as the Markdown pipe table the report embeds, with every
-`|` inside a cell or a column name escaped.
+Render a data frame as the Markdown pipe table the report embeds. Markdown
+markup inside a cell or a column name is escaped, and the column widths are set
+so that no cell protrudes into the page margin.
 """
 function mdtable(df)
-    esc(x) = replace(string(x), "|" => "\\|")
-    out = DataFrame()
+    hdr = string.(names(df))
+    isempty(hdr) && return ""
+    body = [[string(v) for v in df[!, n]] for n in hdr]
     found = String[]
-    for n in names(df)
+    for (n, col) in zip(hdr, body)
         occursin('|', n) && push!(found, "column name \"$n\"")
-        col = df[!, n]
-        for v in col
-            occursin('|', string(v)) && push!(found, "a cell of column \"$n\"")
-        end
-        out[!, esc(n)] = esc.(col)
+        any(v -> occursin('|', v), col) && push!(found, "a cell of column \"$n\"")
     end
     # `where` is a reserved word, so the key has to be something else.
     isempty(found) ||
         @warn "A Markdown table cell contained \"|\" and was escaped" places = unique(found)
-    return sprint(show, latexify(out; latex = false))
+
+    cols = [vcat([hdr[j]], body[j]) for j in eachindex(hdr)]
+    slots = _mdslots(cols)
+    width = [maximum(length, c) for c in cols]
+    row(cells) = "| " * join((lpad(_mdesc(cells[j]), width[j]) for j in eachindex(cells)),
+                             " | ") * " |"
+    io = IOBuffer()
+    println(io, row(hdr))
+    println(io, "|" * join((" " * "-"^max(slots[j], 3) * ":" for j in eachindex(hdr)), "|") * "|")
+    for i in eachindex(body[1])
+        println(io, row([body[j][i] for j in eachindex(hdr)]))
+    end
+    return String(take!(io))
 end
 
 """
@@ -386,8 +452,8 @@ function acceptance_table_single(scenario, result, refdict, list; index = nothin
         res = isnothing(index) ? result : result[index]
         res.result isa AbstractDict && !haskey(res.result, k) && continue
         v = float(isnothing(index) ? result[k] : result[index, k])
-        # scenario_references returns one value per subject; a single-subject
-        # scenario has one.
+        # scenario_references returns one value per subject. A single-subject
+        # scenario has one value.
         rv = refdict[k]
         r = float(rv isa AbstractVector ? first(rv) : rv)
         isnan(r) && !isnan(v) && continue
@@ -409,12 +475,13 @@ function acceptance_note(scenario)
     rows = filter(r -> r.scenario == scenario, _read_log())
     n = count(_is_check, rows)
     bad = filter(r -> r.status == "FAIL", rows)
-    isempty(bad) && return "Comparisons: $n; outside acceptance criteria: 0. Result: PASS."
+    isempty(bad) && return "Comparisons: $n. Outside acceptance criteria: 0. Result: PASS."
     named = unique([isempty(r.parameter) ? "-" : r.parameter for r in bad])
     shown = join(Iterators.take(named, 8), ", ")
     length(named) > 8 && (shown *= ", ...")
-    return "Comparisons: $n; outside acceptance criteria: $(length(bad)) " *
-           "($shown). Result: FAIL - see the divergence journal in the Conclusion."
+    return "Comparisons: $n. Outside acceptance criteria: $(length(bad)) " *
+           "($shown). Result: FAIL. Every divergence is listed in the journal of the " *
+           "Conclusion."
 end
 
 """
@@ -440,8 +507,8 @@ function acceptance_summary_table()
     return dft
 end
 
-# Full-precision values go to the TSV; the PDF gets six significant digits, so
-# that the journal table stays inside the page width.
+# Full-precision values go to the TSV. The PDF receives six significant
+# digits, so that the journal table stays inside the page width.
 function _fmt(s)
     v = _accnum(s)
     isnothing(v) && return s
@@ -452,10 +519,10 @@ end
 """
     acceptance_divergence_table(; limit = ACCEPT_JOURNAL_LIMIT) -> DataFrame
 
-The divergence journal as shown in the Conclusion. Empty when nothing diverged;
-truncated at `limit` rows, the untruncated journal being the TSV file. The
-per-row criterion is kept in the TSV only - in the report the criterion is the
-single `rtol` stated under Acceptance criteria.
+The divergence journal as shown in the Conclusion. The table is empty when
+nothing diverged and is truncated at `limit` rows, the untruncated journal being
+the TSV file. The per-row criterion is kept in the TSV only. In the report the
+criterion is the single `rtol` stated under Acceptance criteria.
 """
 function acceptance_divergence_table(; limit = ACCEPT_JOURNAL_LIMIT)
     dft = DataFrame("Scenario" => String[], "Parameter" => String[], "Subject" => String[],
@@ -486,7 +553,7 @@ function acceptance_journal_block()
     io = IOBuffer()
     if total == 0
         println(io, "No divergences. Every recorded comparison is within the acceptance ",
-                    "criteria, the package test suite passed and every required scenario ",
+                    "criteria. The package test suite passed. Every required scenario ",
                     "reported. The journal file `docs/src/validation_divergences.tsv` is ",
                     "written with its header and no rows.")
         return String(take!(io))
@@ -494,7 +561,7 @@ function acceptance_journal_block()
     print(io, mdtable(dft))
     println(io)
     println(io)
-    println(io, "Table: Divergence journal - every recorded outcome that failed acceptance")
+    println(io, "Table: Divergence journal, with every recorded outcome that failed acceptance")
     println(io)
     if total > ACCEPT_JOURNAL_LIMIT
         println(io, "Listed above: ", ACCEPT_JOURNAL_LIMIT, " of ", total,
@@ -503,8 +570,8 @@ function acceptance_journal_block()
     else
         println(io, "Divergences: ", total, ", all listed above.")
     end
-    println(io, "Values are shown to six significant digits; full precision and the ",
-                "per-row criterion are in `docs/src/validation_divergences.tsv`.")
+    println(io, "Values are shown to six significant digits. Full precision and the ",
+                "per-row criterion are given in `docs/src/validation_divergences.tsv`.")
     return String(take!(io))
 end
 
@@ -522,29 +589,31 @@ function acceptance_conclusion_text()
         println(io, "**Result: PASS.** ", c.checks, " comparisons over ",
                 c.scenarios, " scenarios, all within the acceptance criteria ",
                 "(rtol = ", ACCEPT_RTOL, ", atol = ", ACCEPT_ATOL, "). ",
-                "The package test suite passed and every required scenario reported. ",
-                "The divergence journal below is empty.")
+                "The package test suite passed. Every required scenario reported. ",
+                "The divergence journal below holds no rows.")
     else
         println(io, "**Result: FAIL.** ", c.checks, " comparisons over ",
-                c.scenarios, " scenarios; ", c.failed_checks,
-                " outside the acceptance criteria (rtol = ", ACCEPT_RTOL,
-                ", atol = ", ACCEPT_ATOL, ").")
+                c.scenarios, " scenarios. Outside the acceptance criteria (rtol = ",
+                ACCEPT_RTOL, ", atol = ", ACCEPT_ATOL, "): ", c.failed_checks, ".")
         c.failed_marks > 0 && println(io, "\nRecorded outcomes that failed: ",
                                       c.failed_marks,
-                                      " (see the per-scenario summary - a failed test suite is reported here).")
+                                      ". A failed test suite is reported in the per-scenario summary.")
         c.missing > 0 && println(io, "\nRequired scenarios that did not report: ",
                                  join(acceptance_missing(; inreport = true), ", "),
-                                 ". A scenario reports nothing when its code chunk errored out, ",
-                                 "so its results table is missing from this report as well.")
+                                 ". A scenario reports nothing when its code chunk errored out. ",
+                                 "The results table of such a scenario is also absent from ",
+                                 "this report.")
         println(io, "\nEvery divergence is listed in the journal below and in ",
                 "`docs/src/validation_divergences.tsv`. ",
-                "This report is not evidence of conformance in its present state.")
+                "In the present state the report does not establish conformance.")
     end
     return String(take!(io))
 end
 
 # ------------------------------------------------------------------ coverage ---
-# The coverage tables are derived from the same log as the verdict
+# The coverage tables are derived from the same log as the verdict, so they
+# cannot drift away from what the report actually did. A parameter the package
+# starts producing shows up as NOT COVERED until some scenario checks it.
 
 """
     acceptance_parameter_kinds() -> Dict{String, Vector{String}}
@@ -557,7 +626,7 @@ function acceptance_parameter_kinds()
     for r in _rows(true)
         _is_check(r) || continue
         # An operational block (graphics) checks properties of a figure, not the
-        # value of a parameter
+        # value of a parameter, so its rows have no place on the parameter axis.
         scenario_kind(r.scenario) == "operational" && continue
         push!(get!(out, r.parameter, Set{String}()), scenario_kind(r.scenario))
     end
@@ -584,13 +653,16 @@ _mark(b) = b ? "yes" : "-"
 """
     acceptance_coverage_table(producible) -> DataFrame
 
-Parameter-level coverage. 
+Parameter-level coverage. `producible` is the list of parameter names the
+package produced during this build, collected by the report itself, so a
+parameter that exists in the package but is checked by nothing appears here as
+NOT COVERED rather than being silently absent.
 
 Status is:
 
-  * `qualified`       - compared with an external or an analytic reference;
-  * `regression only` - compared only with a value this package itself fixed;
-  * `NOT COVERED`     - not compared with anything in this report.
+  * `qualified`       compared with an external or an analytic reference.
+  * `regression only` compared only with a value this package itself fixed.
+  * `NOT COVERED`     not compared with anything in this report.
 """
 function acceptance_coverage_table(producible)
     kinds  = acceptance_parameter_kinds()
@@ -634,22 +706,23 @@ function acceptance_coverage_summary(producible)
     if nd > 0
         print(io, "\n\nIdentity only: ",
                   join(dft.Parameter[dft.Status .== "derived"], ", "),
-                  ". No other program reports these, so there is nothing to compare them ",
-                  "with; what the report establishes is that each is what its definition ",
-                  "says it is, computed from parameters that are themselves qualified.")
+                  ". No other program reports these parameters. For each of them the report ",
+                  "establishes that the computed value equals the value given by its ",
+                  "defining identity, computed from parameters that are themselves ",
+                  "qualified (chapter *Derived parameters*).")
     end
     if nr > 0
         print(io, "\n\nRegression baseline only: ",
                   join(dft.Parameter[dft.Status .== "regression only"], ", "),
-                  ". A baseline shows that behaviour has not changed; it is not evidence of ",
-                  "correctness.")
+                  ". A baseline establishes that behaviour has not changed. A baseline is ",
+                  "not evidence of correctness.")
     end
     if nn > 0
         print(io, "\n\nNot covered: ",
                   join(dft.Parameter[dft.Status .== "NOT COVERED"], ", "),
-                  ". These are computed by the package and reported to the user, but no ",
-                  "comparison in this report establishes their values. Where they are ",
-                  "exercised by the package test suite, that is an operational check, not a ",
+                  ". The package computes these parameters and reports them to the user. No ",
+                  "comparison in this report establishes their values. Where the package ",
+                  "test suite exercises them, the coverage is operational and is not a ",
                   "numeric qualification.")
     end
     return String(take!(io))
@@ -660,16 +733,16 @@ end
 # status column is derived from the log, so an item claiming coverage by a
 # scenario that did not report is shown as such rather than taken on trust.
 #
-# `scenarios` are the scenario codes that exercise the item in THIS report;
+# `scenarios` are the scenario codes that exercise the item in THIS report.
 # `elsewhere` says where the item is covered when this report does not cover it.
 const COVERAGE_ITEMS = [
-    (item = "pkimport - plasma data import",
+    (item = "Plasma data import (pkimport)",
      scenarios = ["PK-LINT-EV-DT0", "PK-LULD-EV-DT025-TAU9"], elsewhere = "",
      note = "Every plasma scenario imports through it"),
-    (item = "upkimport - urine data import",
+    (item = "Urine data import (upkimport)",
      scenarios = ["URINE-LINT"], elsewhere = "",
      note = ""),
-    (item = "pdimport - pharmacodynamics import",
+    (item = "Pharmacodynamics import (pdimport)",
      scenarios = ["PD-LINT"], elsewhere = "",
      note = ""),
     (item = "calcm = :lint",
@@ -683,7 +756,7 @@ const COVERAGE_ITEMS = [
      note = ""),
     (item = "calcm = :luldt",
      scenarios = ["PK-LULDT-EV-TAU12", "TRAP-EXP", "TRAP-ID", "TRAP-REIMP"], elsewhere = "",
-     note = "No external counterpart exists; qualified analytically, see the integration-rules chapter"),
+     note = "No external counterpart exists. Qualified analytically, see the integration-rules chapter"),
     (item = "adm = :ev",
      scenarios = ["PK-LINT-EV-DT0", "PK-LOGT-EV-TAU12"], elsewhere = "",
      note = ""),
@@ -692,7 +765,7 @@ const COVERAGE_ITEMS = [
      note = ""),
     (item = "Infusion (DoseTime rate, IT)",
      scenarios = String[], elsewhere = "not implemented",
-     note = "DoseTime.rate is stored and printed but enters no computation; MRT carries no IT/2 correction"),
+     note = "DoseTime.rate is stored and printed but enters no computation. MRT carries no IT/2 correction"),
     (item = "Steady state (tau): AUCtau, Ctau, Cavg, Fluc, Swing, Accind",
      scenarios = ["PK-LULD-EV-DT025-TAU9", "PK-LINT-IV-TAU12", "PK-LOGT-EV-TAU12"], elsewhere = "",
      note = ""),
@@ -704,7 +777,7 @@ const COVERAGE_ITEMS = [
      note = "Kel, HL, Rsq, ARsq, NpLZ compared in every plasma scenario"),
     (item = "Terminal phase: user-set interval (ElimRange, setkelrange!, kelexcl)",
      scenarios = String[], elsewhere = "package test suite",
-     note = "Exercised by the test suite; no reference comparison in this report"),
+     note = "Exercised by the test suite. No reference comparison in this report"),
     (item = "Partial AUC (partials, prtext)",
      scenarios = String[], elsewhere = "package test suite",
      note = "Exercised by the test suite; no reference comparison in this report"),
@@ -713,7 +786,7 @@ const COVERAGE_ITEMS = [
      note = "Exercised by the test suite; no reference comparison in this report"),
     (item = "Sparse data (auc_sparse)",
      scenarios = String[], elsewhere = "package test suite",
-     note = "Formula checked by the test suite; standard errors are not implemented"),
+     note = "Formula checked by the test suite. Standard errors are not implemented"),
     (item = "Multiple dose times (usedose)",
      scenarios = String[], elsewhere = "package test suite",
      note = ""),
@@ -728,7 +801,7 @@ const COVERAGE_ITEMS = [
      note = "Row and subject order checked by the test suite"),
     (item = "Graphics: individual profile, linear and semi-logarithmic",
      scenarios = ["GRAPH-DATA"], elsewhere = "",
-     note = "Figures reproduced below; the data they carry is compared with the computed data"),
+     note = "Figures reproduced below. The data they carry is compared with the computed data"),
     (item = "Graphics: data set overlay, mean profile",
      scenarios = ["GRAPH-DATA"], elsewhere = "",
      note = ""),
@@ -746,7 +819,7 @@ const COVERAGE_ITEMS = [
      note = "Identically zero: nca! prepends a zero to the rate vector for the curve origin and takes the minimum after that (nca.jl, urine branch)"),
     (item = "Derived parameters (Cllast, Vzlast, Vsstau, LZ, Rsqn, AUCBTW)",
      scenarios = ["DERIVED-ID"], elsewhere = "",
-     note = "No external counterpart exists; each is checked against the identity that defines it"),
+     note = "No external counterpart exists. Each is checked against the identity that defines it"),
     (item = "Descriptive statistics (n, mean, SD, CV, geometric mean and CV, median, range)",
      scenarios = String[], elsewhere = "not implemented",
      note = "The package computes individual parameters only"),
@@ -797,10 +870,11 @@ function acceptance_functionality_summary()
               ". Exercised by the package test suite only: ", suite,
               ". Not implemented, not supported, or not validated anywhere: ", absent, ".")
     declared > 0 && print(io, " Declared as covered by a scenario that did not report: ",
-                          declared, " - see the Conclusion.")
-    print(io, "\n\nA capability exercised by the test suite is covered operationally: the code runs ",
-              "and its result is self-consistent. That is weaker than a comparison with an ",
-              "external or analytic reference, and this table keeps the two apart on purpose.")
+                          declared, ". The Conclusion names them.")
+    print(io, "\n\nA capability exercised by the test suite is covered operationally. The code ",
+              "runs and its result is self-consistent. Operational coverage establishes less ",
+              "than a comparison with an external or an analytic reference, and the table ",
+              "reports the two separately.")
     return String(take!(io))
 end
 
@@ -832,8 +906,8 @@ function acceptance_verdict(; io = stdout, strict = true)
         # to by the chunks. A header and nothing else means every chunk that
         # should have recorded something failed, which in practice means the
         # preamble failed and took the whole document with it.
-        println(msg, "VALIDATION FAILED: acceptance log at $ACCEPT_LOG has its header and no rows -")
-        println(msg, "not one comparison was recorded, although the log was created, so the build did start.")
+        println(msg, "VALIDATION FAILED: acceptance log at $ACCEPT_LOG has its header and no rows.")
+        println(msg, "Not one comparison was recorded, although the log was created, so the build did start.")
         println(msg, "")
         println(msg, "Every chunk that records a comparison failed. The usual cause is the preamble:")
         println(msg, "the document generator aborts a chunk at its first failing statement and carries")
@@ -841,8 +915,8 @@ function acceptance_verdict(; io = stdout, strict = true)
         println(msg, "error in `include(\"acceptance.jl\")`, leaves every later chunk without the")
         println(msg, "recording functions. The report is then built out of error messages.")
         println(msg, "")
-        println(msg, "Open the generated report and find the FIRST line beginning with \"Error:\" -")
-        println(msg, "that is the failure; the rest are its consequences. Then:")
+        println(msg, "Open the generated report and find the FIRST line beginning with \"Error:\".")
+        println(msg, "That line is the failure, and the rest are its consequences. Then:")
         println(msg, "  * a missing package: instantiate the documentation environment and build with it")
         println(msg, "        julia --project=docs -e 'using Pkg; Pkg.develop(path=\".\"); Pkg.instantiate()'")
         println(msg, "        julia --project=docs docs/make.jl")
@@ -902,7 +976,7 @@ function acceptance_verdict(; io = stdout, strict = true)
         error(text)
     else
         print(io, text)
-        println(io, "VALIDATION_STRICT=false - the build is not aborted; inspect the report and the journal above.")
+        println(io, "VALIDATION_STRICT=false, so the build is not aborted. Inspect the report and the journal above.")
         return false
     end
 end
