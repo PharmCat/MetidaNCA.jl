@@ -23,3 +23,9 @@ bin-release/
 
 docs/src/validation_acceptance.tsv
 docs/src/validation_divergences.tsv
+
+docs/src/manual_ru.pdf
+docs/src/validation_report.pdf
+docs/src/validation_build.log
+docs/build_md
+docs/src/jl_*
