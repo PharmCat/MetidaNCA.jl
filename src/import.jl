@@ -392,7 +392,7 @@ function upkimport(data, stime, etime, conc, vol, sort; kwargs...)
     sdata = Vector{UPKSubject}(undef, length(d))
     i = one(Int)
     korder = sort!(collect(keys(d)), by = k -> first(d[k]))
-    @inbounds for (k, v) in d
+    @inbounds for k in korder
         v = d[k]
         stimevals = view(stimec, v)
         etimevals = view(etimec, v)
