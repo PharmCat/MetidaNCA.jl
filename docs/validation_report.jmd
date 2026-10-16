@@ -7,7 +7,18 @@ date: `j import Dates; Dates.Date(Dates.now())`
 
 
 ```julia; echo = false
-using Dates, DataFrames, CSV, PrettyTables, Latexify
+# Loaded before the package imports, and in a chunk of its own, on purpose.
+# This file defines the recording and verdict functions. They must be in scope
+# even if a package used only for display is missing from the active
+# environment, because the document generator aborts a chunk at the first
+# failing statement and carries on with the next one. Keeping the two apart
+# means a missing display package costs the tables, not the record of every
+# comparison the report made.
+include("acceptance.jl")
+```
+
+```julia; echo = false
+using Dates, DataFrames, CSV, PrettyTables, Statistics, Plots
 ```
 
 # Introduction and package description
@@ -24,6 +35,83 @@ See documentation:
 The main validation purpose is confirmation by examination and provision of objective evidence that software
 specifications conform to user needs and intended uses, and that the particular requirements
 implemented through software can be consistently fulfilled.
+
+## Acceptance criteria
+
+### Kinds of evidence
+
+Comparisons in this report rest on four kinds of reference. The kinds are not
+interchangeable. The chapter *Validation coverage* reports, for every parameter and every
+capability, which kind applies.
+
+  * **External.** The corresponding value from an independent implementation, Phoenix
+    WinNonlin 8.0 (see Appendix 2). Most comparisons of the report are of this kind.
+  * **Analytic.** A closed-form value. The reference is exact and belongs to no
+    implementation. The chapter on the integration rules rests on references of this kind.
+  * **Derived.** The value computed from the identity that defines the parameter, where the
+    parameters on the right-hand side are themselves qualified. A derived comparison
+    inherits whatever its inputs inherit and establishes nothing about the inputs
+    themselves. It is used where no other program reports the parameter.
+  * **Internal.** A value this package produced, carried forward unchanged. An internal
+    baseline establishes that behaviour has not changed. An internal baseline is not
+    evidence of correctness. It is used only where no external reference can be obtained,
+    which in this report means the `:luldt` integration rule, for which Phoenix implements
+    no counterpart. Wherever an internal baseline is used, the report states the fact at
+    the point of use.
+
+Graphics are qualified operationally. The figure is reproduced for visual verification, and
+the data the figure carries is compared with the data the package computed.
+
+### The criterion
+
+A single comparison is accepted when
+
+$|x_{MetidaNCA} - x_{ref}| \le r_{tol} \times |x_{ref}| + a_{tol}$
+
+with $r_{tol}$ = `j ACCEPT_RTOL` and $a_{tol}$ = `j ACCEPT_ATOL`, that is, agreement to four
+significant digits. The same criterion is applied to every kind of reference.
+
+External reference values are transcribed with six significant digits. The attainable
+agreement is therefore bounded by the transcription of the reference and not by the
+computation. The largest deviation observed over the external scenarios of this report is of
+the order of $10^{-7}$, which leaves about three orders of magnitude of margin to the
+criterion.
+
+Against a closed form the bound is machine precision. The deviations observed are of the
+order of $10^{-16}$, that is, twelve orders of magnitude below the criterion. The agreement
+attained for each comparison is reported in the tables of the integration-rules chapter.
+
+The checks on figures require exact equality. A figure carries the computed numbers without
+rounding them.
+
+The report is accepted only when **all** of the following hold:
+
+  * every comparison is within the criteria above.
+  * the package test suite passes (see Testing results).
+  * every required scenario reported its results.
+
+The third condition covers a failure the first two cannot detect. The document generator
+renders a failing code chunk into the document and carries on, which drops a results table
+without any other sign. The same applies to the Conclusion, which marks itself once it has
+rendered.
+
+### Where the verdict is
+
+This report is produced whatever the outcome of the comparisons, and it carries its own
+verdict. Each comparison is recorded, as it is made, in
+`docs/src/validation_acceptance.tsv`. The Conclusion section states the verdict, summarises
+every scenario and lists **every divergence** with its parameter, subject, computed value,
+reference value, difference, relative error and the criterion it was judged against. The
+same journal is written next to this report as `docs/src/validation_divergences.tsv`, so it
+can be read without opening the PDF. The file is written even when nothing diverged, so an
+empty journal states that no divergence was recorded.
+
+Independently of the report, `acceptance_verdict()` in `docs/acceptance.jl` is called
+outside the document generator, after the report is built, and aborts the documentation
+build on a negative verdict. The document generator swallows errors raised inside a code
+chunk, so a verdict computed only inside the report could never fail. Running the build
+with `VALIDATION_STRICT=false` suppresses the abort and leaves the report for inspection.
+The verdict and the journal are unaffected by that setting.
 
 ## Requirements
 
@@ -88,12 +176,78 @@ performed before merging into JuliaRegistries/General repository
 using MetidaNCA, Pkg
 pkgversion(m::Module) = Pkg.TOML.parsefile(joinpath(dirname(string(first(methods(m.eval)).file)), "..", "Project.toml"))["version"]
 ver = pkgversion(MetidaNCA)
+
+# Project file of the package under test. The path is the one the loaded module
+# came from, which `validation_subject_check()` in validation.jl has already
+# matched against the repository this report describes.
+METIDANCA_PROJECT = Pkg.TOML.parsefile(joinpath(pkgdir(MetidaNCA), "Project.toml"))
+METIDANCA_COMPAT  = get(METIDANCA_PROJECT, "compat", Dict{String, Any}())
+JULIA_BOUND       = Text(string(get(METIDANCA_COMPAT, "julia", "-")))
+
+# Dependencies of the package, each with the version loaded during this build.
+# `Pkg.dependencies()` reports the whole active environment, which also holds
+# the packages this report and the test suite need, so the listing is restricted
+# to what is reachable from MetidaNCA itself.
+function dependency_table()
+    info = Pkg.dependencies()
+    root = nothing
+    for (u, p) in info
+        p.name == "MetidaNCA" && (root = u)
+    end
+    isnothing(root) && error("MetidaNCA is not resolved in the active environment, " *
+                             "so its dependencies cannot be listed.")
+    direct = Set(values(info[root].dependencies))
+    seen = Set{Base.UUID}()
+    queue = collect(direct)
+    while !isempty(queue)
+        u = pop!(queue)
+        u in seen && continue
+        push!(seen, u)
+        for v in values(info[u].dependencies)
+            v in seen || push!(queue, v)
+        end
+    end
+    rows = [(name = info[u].name,
+             version = isnothing(info[u].version) ? "standard library" :
+                       string(info[u].version),
+             bound = string(get(METIDANCA_COMPAT, info[u].name, "-")),
+             level = u in direct ? "direct" : "indirect") for u in seen]
+    sort!(rows, by = r -> (r.level == "direct" ? 0 : 1, lowercase(r.name)))
+    return DataFrame("Dependency"   => [r.name for r in rows],
+                     "Version"      => [r.version for r in rows],
+                     "Compat bound" => [r.bound for r in rows],
+                     "Level"        => [r.level for r in rows])
+end
+dfdep = dependency_table()
 ```
 
 Current package version:
 ```julia; echo = false; results = "tex"
 ver
 ```
+
+### Dependencies
+
+The table lists every dependency of MetidaNCA with the version loaded during this build.
+A direct dependency is declared in the `[deps]` section of the package `Project.toml`, and
+the bound declared for it in the `[compat]` section is given in the same row. An indirect
+dependency is loaded through a direct one and carries no bound of its own. The resolver
+installs a version that satisfies every bound, and a version outside the bounds leaves the
+environment unresolvable, so the build does not start.
+
+Packages used by this report and by the test suite are not dependencies of the package and
+are not listed. The bound on the Julia version is `j JULIA_BOUND`, and the version in use
+is stated under System information.
+
+Dependencies loaded during this build: `j nrow(dfdep)`, of which direct:
+`j count(==("direct"), dfdep.Level)`. The list includes the standard libraries of Julia
+that the dependencies load, and their versions are the versions of the Julia release in
+use.
+
+```julia; echo = false, results = "tex"
+print(mdtable(dfdep))
+```
+Table: Dependencies of MetidaNCA and the versions loaded during this build
 
 # Operation qualification
 
@@ -114,8 +268,19 @@ Validation data available in the repository and included in the package. See App
 
 ## Testing results
 
-```julia
-Pkg.test("MetidaNCA")
+The outcome is recorded and enforced: a failing test suite makes `acceptance_verdict()` abort
+the build (see Acceptance criteria). The `try`/`catch` below exists only because the document
+generator does not propagate errors raised inside a chunk.
+
+```julia; echo = true; wrap = false
+test_passed = try
+    Pkg.test("MetidaNCA")
+    true
+catch err
+    @error "MetidaNCA test suite failed" exception = (err, catch_backtrace())
+    false
+end
+acceptance_mark("PKG-TEST", test_passed, "Pkg.test(MetidaNCA)")
 ```
 
 \pagebreak
@@ -176,14 +341,23 @@ dfn = DataFrame(
 "Cltau" "Clearence in Tau range"
 "Vztau" "Volume of distribution in Tau range"], ["Name", "Description"])
 
-pkdata2  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "pkdata2.csv")) |> DataFrame
-upkdata  = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "upkdata.csv")) |> DataFrame
-pddata   = CSV.File(joinpath(dirname(pathof(MetidaNCA)), "..", "test", "csv", "pddata.csv")) |> DataFrame
+# Resolved against the document, not against pathof(MetidaNCA): the two differ
+# when the documentation environment resolves the package to a copy from the
+# registry, and the validation data then comes out of that copy rather than out
+# of the repository the report claims to describe.
+#
+# @__DIR__ is the document's own directory. A bare relative path would NOT do:
+# Weave evaluates chunks with `out_path` as the working directory, not with the
+# directory of the document.
+testcsv(name) = normpath(joinpath(@__DIR__, "..", "test", "csv", name))
+pkdata2  = CSV.File(testcsv("pkdata2.csv")) |> DataFrame
+upkdata  = CSV.File(testcsv("upkdata.csv")) |> DataFrame
+pddata   = CSV.File(testcsv("pddata.csv"))  |> DataFrame
 ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation]; 
 dosetime = MetidaNCA.DoseTime(dose = 100, time = 0))
 sort!(ds, :Subject)
 #pretty_table(dfn; tf = tf_ascii_rounded)
-show(latexify(dfn; latex=false))
+print(mdtable(dfn))
 ```
 Table: Parameter description
 
@@ -226,53 +400,29 @@ nca!(ds, adm = :ev, calcm = :lint)
 
 ```julia; echo = false, results = "tex"
 
-include("refdict.jl")
+# The reference set is the single source of truth: test/csv/reference_values.csv,
+# the same file the package test suite checks against. The hand-written
+# dictionaries of docs/refdict.jl are no longer used. They held a subset of
+# this set, and the parameters they left out were the coverage gaps.
+REFSET = testcsv("reference_values.csv")
+isfile(REFSET) || error("Reference set not found next to the report (test/csv/" *
+                        "reference_values.csv). Build from the repository working tree.")
 
-header = ["Parameter", "Subject", "Value", "Reference", "Difference"]
 # NO TAU
-list = [:Cmax
-:Tmax
-:Cdose
-# Tlag
-:Clast
-:AUClast
-:AUMClast
-:AUCall
-:Rsq
-:ARsq
-:Kel
-:HL
-# LZint
-:Clast_pred
-:AUCinf
-# AUCinf_pred
-# AUMCinf
-# AUMCinf_pred
-:AUCpct
-:MRTlast
-:MRTinf
-:MRTinf_pred
-# Cllast
-:Clinf
-# Vzlast
-:Vzinf]
 # Vssinf
 
 dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
 
 subjects = MetidaNCA.getid(dsnca, :, :Subject)
-dft = DataFrame("Parameter"=>[], "Subject"=>[], "Value"=>[], "Reference"=>[], "Difference"=>[])
-for l in list
-    vals = round.(dsnca[:, l], sigdigits = 6)
-    refs = round.(refdict[l], sigdigits = 6)
-    mx = hcat(fill(l, length(vals)), subjects, vals, refs, vals .- refs)
-    df = DataFrame(mx, header)
-    df.Subject = string.(Int.(df.Subject))
-    append!(dft, df)
-end
-show(latexify(dft, latex=false))
+refs, list = scenario_references(REFSET, "pk_d100_dt0_notau_lint", subjects)
+dft = acceptance_table("PK-LINT-EV-DT0", dsnca, refs, list, subjects)
+print(mdtable(dft))
 ```
 Table: Plasma data results, Linear-trapezoidal rule, Extravascular
+
+```julia; echo = false, results = "tex"
+print(acceptance_note("PK-LINT-EV-DT0"))
+```
 
 \pagebreak
 
@@ -287,48 +437,21 @@ nca!(ds, adm = :ev, calcm = :luld)
 
 ```julia; echo = false, results = "tex"
 
-list = [:Cmax
-:Tmax
-:Cdose
-:Clast
-:AUClast
-:AUCtau
-:AUMCtau
-:Ctaumin
-:Ctau
-:Cavg
-:Fluc
-:Accind
-:AUCall
-:Rsq
-:ARsq
-:Kel
-:HL
-:Clast_pred
-:AUCinf
-:AUCpct
-:MRTtauinf
-:MRTtauinf_pred
-:Cltau
-:Vztau]
 
 dt = MetidaNCA.DoseTime(dose = 100, time = 0.25, tau = 9)
 MetidaNCA.setdosetime!(ds, dt)
 dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luld)
 
 subjects = MetidaNCA.getid(dsnca, :, :Subject)
-dft = DataFrame("Parameter"=>[], "Subject"=>[], "Value"=>[], "Reference"=>[], "Difference"=>[])
-for l in list
-    vals = round.(dsnca[:, l], sigdigits = 6)
-    refs = round.(refdict2[l], sigdigits = 6)
-    mx = hcat(fill(l, length(vals)), subjects, vals, refs, vals .- refs)
-    df = DataFrame(mx, header)
-    df.Subject = string.(Int.(df.Subject))
-    append!(dft, df)
-end
-show(latexify(dft; latex=false))
+refs, list = scenario_references(REFSET, "pk_d100_dt0.25_tau9_luld", subjects)
+dft = acceptance_table("PK-LULD-EV-DT025-TAU9", dsnca, refs, list, subjects)
+print(mdtable(dft))
 ```
 Table: Plasma data results, Linear-Up Log-Down, Extravascular
+
+```julia; echo = false, results = "tex"
+print(acceptance_note("PK-LULD-EV-DT025-TAU9"))
+```
 
 \pagebreak
 
@@ -343,44 +466,21 @@ nca!(ds, adm = :iv, calcm = :lint)
 
 ```julia; echo = false, results = "tex"
 
-list = [:Cmax
-:Tmax
-:Cdose
-:Clast
-:AUClast
-:AUCtau
-:AUMCtau
-:AUCall
-:Rsq
-:ARsq
-:Kel
-:HL
-:Clast_pred
-:AUCinf
-:AUCpct
-:MRTtauinf
-:Cltau
-:Vztau]
 
 dt = MetidaNCA.DoseTime(dose = 120, time = 0.0, tau = 12)
 MetidaNCA.setdosetime!(ds, dt)
 dsnca = MetidaNCA.nca!(ds, adm = :iv, calcm = :lint)
 
 subjects = MetidaNCA.getid(dsnca, :, :Subject)
-dft = DataFrame("Parameter"=>[], "Subject"=>[], "Value"=>[], "Reference"=>[], "Difference"=>[])
-for l in list
-    vals = round.(dsnca[:, l], sigdigits = 6)
-    refs = round.(refdict3[l], sigdigits = 6)
-    mx = hcat(fill(l, length(vals)), subjects, vals, refs, vals .- refs)
-    df = DataFrame(mx, header)
-    df.Subject = string.(Int.(df.Subject))
-    append!(dft, df)
-end
-#dft.Parameter = map(dft.Parameter) do s return replace(string(s), "_" => "_") end
-
-show(latexify(dft; latex=false))
+refs, list = scenario_references(REFSET, "pk_d120_dt0_tau12_lint_iv", subjects)
+dft = acceptance_table("PK-LINT-IV-TAU12", dsnca, refs, list, subjects)
+print(mdtable(dft))
 ```
 Table: Plasma data results, Linear-trapezoidal rule, Intravascular
+
+```julia; echo = false, results = "tex"
+print(acceptance_note("PK-LINT-IV-TAU12"))
+```
 
 \pagebreak
 
@@ -395,24 +495,6 @@ nca!(ds, adm = :ev, calcm = :logt)
 
 ```julia; echo = false, results = "tex"
 
-list = [:Cmax
-:Tmax
-:Cdose
-:Clast
-:AUClast
-:AUCtau
-:AUMCtau
-:AUCall
-:Rsq
-:ARsq
-:Kel
-:HL
-:Clast_pred
-:AUCinf
-:AUCpct
-:MRTtauinf
-:Cltau
-:Vztau]
 
 dt = MetidaNCA.DoseTime(dose = 120, time = 0.0, tau = 12)
 MetidaNCA.setdosetime!(ds, dt)
@@ -420,18 +502,67 @@ MetidaNCA.setdosetime!(ds, dt)
 dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :logt)
 
 subjects = MetidaNCA.getid(dsnca, :, :Subject)
-dft = DataFrame("Parameter"=>[], "Subject"=>[], "Value"=>[], "Reference"=>[], "Difference"=>[])
-for l in list
-    vals = round.(dsnca[:, l], sigdigits = 6)
-    refs = round.(refdict4[l], sigdigits = 6)
-    mx = hcat(fill(l, length(vals)), subjects, vals, refs, vals .- refs)
-    df = DataFrame(mx, header)
-    df.Subject = string.(Int.(df.Subject))
-    append!(dft, df)
-end
-show(latexify(dft; latex=false))
+refs, list = scenario_references(REFSET, "pk_d120_dt0_tau12_logt", subjects)
+dft = acceptance_table("PK-LOGT-EV-TAU12", dsnca, refs, list, subjects)
+print(mdtable(dft))
 ```
 Table: Plasma data results, Linear/Log Trapezoidal rule, Extravascular
+
+```julia; echo = false, results = "tex"
+print(acceptance_note("PK-LOGT-EV-TAU12"))
+```
+
+\pagebreak
+
+### Linear-Up Log-Down to Cmax (:luldt); Extravascular; Dosetime 0.0; Tau 12; Dose 120
+
+`:luldt` applies the linear rule up to `Cmax` and the linear-up/log-down rule after it.
+**Phoenix WinNonlin implements no counterpart**, so no external reference exists for this
+method and none can be obtained. The values below are an internal baseline: they were
+produced by this package and are carried forward unchanged, which establishes that the
+behaviour has not changed and nothing more.
+
+The method itself is qualified in the next chapter, where it is compared with closed-form
+values and with the two externally qualified methods it is built out of. The baseline here
+and the analytic qualification there answer different questions, and the report keeps them
+apart: *has anything moved* against *is it right*.
+
+**Code:**
+
+```julia; eval = false
+setdosetime!(ds, DoseTime(dose = 120, time = 0.0, tau = 12))
+nca!(ds, adm = :ev, calcm = :luldt)
+```
+
+```julia; echo = false, results = "tex"
+
+dt = MetidaNCA.DoseTime(dose = 120, time = 0.0, tau = 12)
+MetidaNCA.setdosetime!(ds, dt)
+
+dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luldt)
+
+subjects = MetidaNCA.getid(dsnca, :, :Subject)
+
+# The baseline is read from the reference set the test suite uses, so there is
+# one source of truth for it. Values are indexed by subject rather than taken in
+# file order, so the table cannot be misaligned if the import order changes.
+#
+# The path is resolved against THIS DOCUMENT, not against pathof(MetidaNCA).
+# The two differ whenever the documentation environment resolves the package to
+# a copy from the registry, and that copy need not contain a file added since
+# the release. The read then fails, and because this chunk is rendered as raw
+# TeX, the Windows path in the error message reaches the typesetter as a string
+# of undefined control sequences and no PDF is produced. Both this report and
+# the reference set are in the repository, so the repository is what is asked.
+refs, list = scenario_references(REFSET, "pk_d120_dt0_tau12_luldt", subjects)
+dft = acceptance_table("PK-LULDT-EV-TAU12", dsnca, refs, list, subjects)
+print(mdtable(dft))
+```
+Table: Plasma data results, Linear-Up Log-Down to Cmax, Extravascular (internal baseline)
+
+```julia; echo = false, results = "tex"
+print(acceptance_note("PK-LULDT-EV-TAU12"))
+```
 
 \pagebreak
 
@@ -447,24 +578,19 @@ MetidaNCA.nca!(upkds)
 
 ```julia; echo = false, results = "tex"
 
-list = collect(keys(urefdict))
 
 upkds = MetidaNCA.upkimport(upkdata, :st, :et, :conc, :vol, :subj;
 dosetime =  MetidaNCA.DoseTime(dose = 100))
 dsnca  = MetidaNCA.nca!(upkds)
-pname = string.(list)
-vals = zeros(Float64, length(list))
-refs = zeros(Float64, length(list))
-for i = 1: length(list)
-    vals[i] = round(dsnca[1, list[i]], sigdigits = 6)
-    refs[i] = round(urefdict[list[i]], sigdigits = 6)
-end
-
-  mx = hcat(pname, vals, refs, vals .- refs)
-  df = DataFrame(mx, ["Parameter", "Value", "Reference", "Difference"])
-  show(latexify(df; latex=false))
+refs, list = scenario_references(REFSET, "urine_d100_lint", [1])
+df = acceptance_table_single("URINE-LINT", dsnca, refs, list; index = 1)
+print(mdtable(df))
 ```
 Table: Urine data results
+
+```julia; echo = false, results = "tex"
+print(acceptance_note("URINE-LINT"))
+```
 
 \pagebreak
 
@@ -482,24 +608,692 @@ pdres = MetidaNCA.nca!(pd)
 
 ```julia; echo = false, results = "tex"
 
-list = collect(keys(pdrefdict))
 
 pd =  MetidaNCA.pdimport(pddata, :time, :obs; 
 bl = 3.0, th = 1.5, id = Dict(:subj => 1))
 pdres = MetidaNCA.nca!(pd)
-pname = string.(list)
-vals = zeros(Float64, length(list))
-refs = zeros(Float64, length(list))
-for i = 1: length(list)
-    vals[i] = round(pdres[list[i]], sigdigits = 6)
-    refs[i] = round(pdrefdict[list[i]], sigdigits = 6)
-end
-
-  mx = hcat(pname, vals, refs, vals .- refs)
-  df = DataFrame(mx, ["Parameter", "Value", "Reference", "Difference"])
-  show(latexify(df; latex=false))
+refs, list = scenario_references(REFSET, "pd_bl3_th1.5", [1])
+df = acceptance_table_single("PD-LINT", pdres, refs, list)
+print(mdtable(df))
 ```
 Table: Pharmacodynamics data results
+
+```julia; echo = false, results = "tex"
+print(acceptance_note("PD-LINT"))
+```
+
+\pagebreak
+
+# Analytic qualification of the integration rules
+
+The four integration rules are composed of two formulas, the linear and the logarithmic
+trapezoid, together with a rule for choosing between them on each interval. Both components
+are qualified in this chapter without a second implementation. For `:luldt` no second
+implementation is available: Phoenix WinNonlin offers no counterpart, so the preceding
+chapter establishes a baseline only.
+
+The qualification rests on an exact property. The logarithmic trapezoid is exact on a
+mono-exponential profile, and the linear trapezoid is exact on piecewise-linear data. Where
+the property holds, a closed form is a reference independent of any implementation. Four
+blocks follow.
+
+  * On a mono-exponential profile the three rules that use the logarithmic formula reproduce
+    the closed-form integral, and the `nca!` chain reproduces the closed forms for
+    `AUClast`, `AUMClast`, `AUCinf`, `AUMCinf`, `Kel`, `HL` and `MRTinf`.
+  * On a strictly ascending profile the logarithmic formula is applicable to none of the
+    rules, so all four return the area of the linear trapezoids.
+  * The switching rule is established by exact identities with `:logt` and `:luld`, both
+    qualified externally in the preceding chapter. `:luldt` differs from `:logt` on an
+    ascending interval after `Cmax` and from `:luld` on a descending interval before
+    `Cmax`. Four profiles are chosen so that each identity and each difference is exercised.
+  * The rules are rewritten directly from the formulas and compared with the package over
+    every subject of the validation data set.
+
+The mono-exponential intravenous-bolus profile of section 5.2 is the profile with
+analytically known values that a qualification data set is required to contain (chapter
+*Validation coverage*).
+
+## The two formulas and the direct reimplementation
+
+```julia; echo = true; wrap = false
+# Written from the formulas, with no reference to the internals of the package.
+lintrap(t₁, t₂, c₁, c₂) = (t₂ - t₁) * (c₁ + c₂) / 2
+logtrap(t₁, t₂, c₁, c₂) = (t₂ - t₁) * (c₂ - c₁) / log(c₂ / c₁)
+
+function trapauc(time, obs, rule)
+    tmaxn = argmax(obs)                        # first maximum, as in Cmax
+    s = zero(eltype(obs)) * zero(eltype(time))
+    for i in 1:length(time) - 1
+        t₁, t₂, c₁, c₂ = time[i], time[i+1], obs[i], obs[i+1]
+        after = i >= tmaxn
+        uselog =
+            rule === :lint  ? false :
+            rule === :logt  ? (after && c₁ > 0 && c₂ > 0) :
+            rule === :luld  ? (c₁ > c₂ > 0) :
+            rule === :luldt ? (after && c₁ > c₂ > 0) :
+            error("Unknown rule: $rule")
+        s += uselog ? logtrap(t₁, t₂, c₁, c₂) : lintrap(t₁, t₂, c₁, c₂)
+    end
+    return s
+end
+```
+
+## Mono-exponential profile against closed forms
+
+A profile generated by $C(t) = C_0 e^{-kt}$ with $C_0$ = 100 and $k$ = 0.35 h⁻¹, sampled at
+0, 0.5, 1, 2, 3.5, 5, 8 and 12 h. The references are
+
+$$\begin{aligned}
+AUC_{0 \to t} &= \frac{C_0 - C_{last}}{k},
+  &\qquad AUMC_{0 \to t} &= -\frac{t_{last} C_{last}}{k} + \frac{C_0 - C_{last}}{k^2}, \\[4pt]
+AUC_{0 \to \infty} &= \frac{C_0}{k},
+  &\qquad AUMC_{0 \to \infty} &= \frac{C_0}{k^2}
+\end{aligned}$$
+
+and $MRT_{0 \to \infty} = 1/k$, $HL = \ln 2 / k$, $\lambda_z = k$, $R^2 = 1$.
+
+```julia; echo = false, results = "tex"
+
+k, C0 = 0.35, 100.0
+texp = [0.0, 0.5, 1.0, 2.0, 3.5, 5.0, 8.0, 12.0]
+cexp = C0 .* exp.(-k .* texp)
+tl, cl = last(texp), last(cexp)
+
+exp_ref = Dict(:AUClast  => (C0 - cl) / k,
+               :AUMClast => -tl * cl / k + (C0 - cl) / k^2,
+               :AUCinf   => C0 / k,
+               :AUMCinf  => C0 / k^2,
+               :Kel      => k,
+               :HL       => log(2) / k,
+               :MRTinf   => 1 / k,
+               :Rsq      => 1.0)
+
+dfe = DataFrame("Parameter" => String[], "Rule" => String[], "Value" => Any[],
+                "Closed form" => Any[], "Difference" => Any[], "Status" => String[])
+
+for rule in (:logt, :luld, :luldt)
+    # the integral alone, through the atomic function
+    v = MetidaNCA.auc(texp, cexp; calcm = rule)
+    r = exp_ref[:AUClast]
+    st = acceptance_record("TRAP-EXP", :AUClast, rule, v, r)
+    push!(dfe, ("AUClast (auc)", string(rule), round(v, sigdigits = 8),
+                round(r, sigdigits = 8), round(v - r, sigdigits = 3), st))
+    # and the whole chain
+    subj = MetidaNCA.pkimport(texp, cexp;
+                              dosetime = MetidaNCA.DoseTime(dose = 1.0, time = 0.0))
+    res = MetidaNCA.nca!(subj; adm = :iv, calcm = rule)
+    for p in (:Rsq, :Kel, :HL, :AUClast, :AUMClast, :AUCinf, :AUMCinf, :MRTinf)
+        v = float(res[p]); r = exp_ref[p]
+        st = acceptance_record("TRAP-EXP", p, rule, v, r)
+        push!(dfe, (string(p), string(rule), round(v, sigdigits = 8),
+                    round(r, sigdigits = 8), round(v - r, sigdigits = 3), st))
+    end
+end
+
+# The linear rule must OVERestimate the area of a convex decreasing function.
+# This is a property, not a value, so it is recorded as an outcome.
+acceptance_mark("TRAP-EXP", MetidaNCA.auc(texp, cexp; calcm = :lint) > exp_ref[:AUClast],
+                "linear rule overestimates a convex decreasing profile")
+
+print(mdtable(dfe))
+```
+Table: Mono-exponential profile, computed values against closed forms
+
+```julia; echo = false, results = "tex"
+print(acceptance_note("TRAP-EXP"))
+```
+
+\pagebreak
+
+## Strictly ascending profile
+
+With concentrations rising at every interval the logarithmic formula is applicable to none of
+the rules, so all four must return the same number: the area of the linear trapezoids.
+
+```julia; echo = false, results = "tex"
+
+tasc = [0.0, 1.0, 2.5, 4.0, 7.0]
+casc = [0.0, 20.0, 55.0, 80.0, 140.0]
+lin  = sum(lintrap(tasc[i], tasc[i+1], casc[i], casc[i+1]) for i in 1:length(tasc)-1)
+
+dfa = DataFrame("Rule" => String[], "Value" => Any[], "Linear trapezoids" => Any[],
+                "Difference" => Any[], "Status" => String[])
+for rule in (:lint, :logt, :luld, :luldt)
+    v = MetidaNCA.auc(tasc, casc; calcm = rule)
+    st = acceptance_record("TRAP-ASC", :AUClast, rule, v, lin)
+    push!(dfa, (string(rule), round(v, sigdigits = 8), round(lin, sigdigits = 8),
+                round(v - lin, sigdigits = 3), st))
+end
+print(mdtable(dfa))
+```
+Table: Strictly ascending profile, all four rules against the linear trapezoids
+
+```julia; echo = false, results = "tex"
+print(acceptance_note("TRAP-ASC"))
+```
+
+## Switching-rule identities
+
+`:logt` and `:luld` are qualified externally. `:luldt` is pinned relative to them: it must
+agree with `:logt` except on an ascending interval after `Cmax`, and with `:luld` except on a
+descending interval before `Cmax`. Profile B contains the first case, profile D the second,
+and for those two profiles the agreement is required to break. A `:luldt` that coincided
+with `:logt` and with `:luld` on every profile would not implement the switching rule.
+
+```julia; echo = false, results = "tex"
+
+prof = [(tag = "A", name = "A single peak",
+         t = [0.0, 1.0, 2.0, 3.0, 5.0, 8.0, 12.0],
+         c = [0.0, 50.0, 100.0, 70.0, 40.0, 15.0, 5.0],
+         logt = :equal, luld = :equal),
+        (tag = "B", name = "B rise after Cmax",
+         t = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 8.0, 12.0],
+         c = [0.0, 50.0, 100.0, 70.0, 40.0, 60.0, 45.0, 20.0, 6.0],
+         logt = :differ, luld = :equal),
+        (tag = "C", name = "C monotone decline",
+         t = [0.0, 1.0, 2.0, 4.0, 6.0, 10.0],
+         c = [100.0, 70.0, 50.0, 25.0, 12.0, 4.0],
+         logt = :equal, luld = :equal),
+        (tag = "D", name = "D dip before Cmax",
+         t = [0.0, 1.0, 2.0, 3.0, 4.0, 6.0, 9.0, 14.0],
+         c = [0.0, 80.0, 45.0, 120.0, 70.0, 40.0, 18.0, 6.0],
+         logt = :equal, luld = :differ)]
+
+dfi = DataFrame("Profile" => String[], "Against" => String[], "Required" => String[],
+                ":luldt" => Any[], "Other rule" => Any[], "Status" => String[])
+
+for p in prof
+    a = MetidaNCA.auc(p.t, p.c; calcm = :luldt)
+    for (other, req) in ((:logt, p.logt), (:luld, p.luld))
+        b = MetidaNCA.auc(p.t, p.c; calcm = other)
+        if req === :equal
+            st = acceptance_record("TRAP-ID", :AUClast, "$(p.tag) vs :$other", a, b)
+        else
+            ok = !isapprox(a, b; rtol = ACCEPT_RTOL)
+            acceptance_mark("TRAP-ID", ok,
+                            "profile $(p.tag): :luldt must differ from :$other")
+            st = ok ? "PASS" : "FAIL"
+        end
+        push!(dfi, (p.name, ":$other", req === :equal ? "equal" : "differ",
+                    round(a, sigdigits = 8), round(b, sigdigits = 8), st))
+    end
+end
+
+# Control: the profiles really do contain the intervals the identities turn on.
+acceptance_mark("TRAP-ID",
+                any(i -> i >= argmax(prof[2].c) && prof[2].c[i] < prof[2].c[i+1],
+                    1:length(prof[2].c)-1),
+                "profile B contains an ascending interval after Cmax")
+acceptance_mark("TRAP-ID",
+                any(i -> i < argmax(prof[4].c) && prof[4].c[i] > prof[4].c[i+1],
+                    1:length(prof[4].c)-1),
+                "profile D contains a descending interval before Cmax")
+
+print(mdtable(dfi))
+```
+Table: Switching-rule identities of `:luldt` against the externally qualified rules
+
+```julia; echo = false, results = "tex"
+print(acceptance_note("TRAP-ID"))
+```
+
+\pagebreak
+
+## Direct reimplementation on the validation data set
+
+The four rules as written above, against the package, over every subject of the plasma data
+set. This is a second implementation of the same formulas, so it catches an error in the
+package's own loop structure that a closed form on a smooth profile would not.
+
+```julia; echo = false, results = "tex"
+
+dfr = DataFrame("Rule" => String[], "Subjects" => Int[], "Max. difference" => Any[],
+                "Status" => String[])
+for rule in (:lint, :logt, :luld, :luldt)
+    worst = 0.0
+    n = 0
+    allok = true
+    for s in sort(unique(pkdata2.Subject))
+        g = pkdata2[pkdata2.Subject .== s, :]
+        tt = float.(g.Time); cc = float.(g.Concentration)
+        v = MetidaNCA.auc(tt, cc; calcm = rule)
+        r = trapauc(tt, cc, rule)
+        allok &= acceptance_record("TRAP-REIMP", :AUClast, "$rule / subject $s", v, r) == "PASS"
+        worst = max(worst, abs(v - r)); n += 1
+    end
+    push!(dfr, (string(rule), n, round(worst, sigdigits = 3), allok ? "PASS" : "FAIL"))
+end
+print(mdtable(dfr))
+```
+Table: Direct reimplementation of the four rules against the package, by rule
+
+```julia; echo = false, results = "tex"
+print(acceptance_note("TRAP-REIMP"))
+```
+
+\pagebreak
+
+# Derived parameters
+
+Six parameters have no external reference. `Cllast` and `Vzlast` relate the dose to the
+observed area, not to the extrapolated area. `Vsstau` is the steady-state volume over the
+dosing interval. `LZ` is the regression slope with its sign. `Rsqn` is the index of the
+candidate interval selected by the terminal-phase search. `AUCBTW` is the area between the
+baseline and the threshold. Phoenix WinNonlin publishes none of the six.
+
+For each of the six the report establishes that the computed value equals the value given by
+the identity that defines the parameter, where the parameters on the right-hand side are
+themselves qualified. The evidence is of the kind described as derived in section 1.2.1. A
+derived comparison inherits whatever its inputs inherit and establishes nothing about the
+inputs themselves. The reference is the right-hand side computed from the same result, so
+the comparison requires exact agreement.
+
+`Minrate` is documented as the lowest excretion rate of a urine profile and is not qualified
+in this chapter. The computed value does not meet the documented definition: `nca!` prepends
+a zero to the excretion-rate vector to give the curve an origin and computes `Minrate` after
+the insertion, so the value is identically zero. Two data sets were examined, with observed
+excretion rates of 0.333 to 4.0 and of 75 to 450. `Minrate` equals 0.0 in both. The coverage
+table reports `Minrate` as not covered and states the reason.
+
+```julia; echo = false, results = "tex"
+
+# The urine and pharmacodynamics subjects are built here and reused by the
+# chapter on graphics below.
+upkp = MetidaNCA.upkimport(upkdata, :st, :et, :conc, :vol, :subj;
+                           dosetime = MetidaNCA.DoseTime(dose = 100))
+pdp  = MetidaNCA.pdimport(pddata, :time, :obs; bl = 3.0, th = 1.5, id = Dict(:subj => 1))
+
+dfd = DataFrame("Parameter" => String[], "Identity" => String[], "Subject" => String[],
+                "Value" => Any[], "Identity gives" => Any[], "Status" => String[])
+
+function identity!(df, par, identity, subject, value, reference)
+    st = acceptance_record("DERIVED-ID", par, subject, float(value), float(reference))
+    push!(df, (string(par), identity, string(subject),
+               round(float(value), sigdigits = 8), round(float(reference), sigdigits = 8), st))
+    return st
+end
+
+# Plasma: single dose, extravascular, so that Cllast and Vzlast exist and the
+# steady-state volume does not.
+dtd = MetidaNCA.DoseTime(dose = 100, time = 0.0)
+MetidaNCA.setdosetime!(ds, dtd)
+dsd = MetidaNCA.nca!(ds; adm = :ev, calcm = :lint)
+subjd = MetidaNCA.getid(dsd, :, :Subject)
+
+for (i, r) in enumerate(dsd)
+    s = Int(subjd[i])
+    res = r.result
+    identity!(dfd, :LZ,     "-Kel",                     s, res[:LZ],     -res[:Kel])
+    identity!(dfd, :Cllast, "Dose / AUClast",           s, res[:Cllast],  res[:Dose] / res[:AUClast])
+    identity!(dfd, :Vzlast, "Dose / (AUClast * Kel)",   s, res[:Vzlast],  res[:Dose] / res[:AUClast] / res[:Kel])
+    identity!(dfd, :Vssinf, "Clinf * MRTinf",           s, res[:Vssinf],  res[:Clinf] * res[:MRTinf])
+    # Rsqn names the interval the search selected. The adjusted coefficient of
+    # that interval must equal the reported value.
+    kd = MetidaNCA.getkeldata(r)
+    identity!(dfd, :Rsqn,   "ARsq = keldata[Rsqn]",     s, kd.ar[Int(res[:Rsqn])], res[:ARsq])
+end
+
+# Steady state, for the parameters that only exist with a dosing interval.
+dts = MetidaNCA.DoseTime(dose = 120, time = 0.0, tau = 12)
+MetidaNCA.setdosetime!(ds, dts)
+dss = MetidaNCA.nca!(ds; adm = :ev, calcm = :lint)
+subjs = MetidaNCA.getid(dss, :, :Subject)
+for (i, r) in enumerate(dss)
+    s = Int(subjs[i])
+    res = r.result
+    identity!(dfd, :Vsstau,      "Cltau * MRTtauinf",               s, res[:Vsstau],      res[:Cltau] * res[:MRTtauinf])
+    identity!(dfd, :MRTinf_pred, "AUMCinf_pred / AUCinf_pred",      s, res[:MRTinf_pred], res[:AUMCinf_pred] / res[:AUCinf_pred])
+end
+
+# Pharmacodynamics: the area between baseline and threshold, which with the
+# threshold below the baseline is the area below the baseline less the area
+# below the threshold.
+pdd = MetidaNCA.nca!(pdp)
+identity!(dfd, :AUCBTW, "AUCBBL - AUCBTH", "-",
+          pdd[:AUCBTW], pdd[:AUCBBL] - pdd[:AUCBTH])
+
+print(mdtable(dfd))
+```
+Table: Derived parameters against the identities that define them
+
+```julia; echo = false, results = "tex"
+print(acceptance_note("DERIVED-ID"))
+```
+
+\pagebreak
+
+# Graphics
+
+Plotting belongs to the validated scope. A figure is a result that reaches the report, and a
+figure built from the wrong data reports the wrong result. The failure mode is in the data
+handed to the drawing code: the wrong subject, the wrong column, or a profile reordered on
+its way to the axes.
+
+Each figure of this chapter is reproduced for visual verification. The data the figure
+carries is then read back out of the plot object and compared with the data the package
+computed. A figure carries the computed numbers without rounding them, so the comparison
+requires exact agreement.
+
+## Figures
+
+Seven figures, one per plotting entry point of the package. Each group of figures is
+followed by `\clearpage`. Captioned figures are floats, and a sequence of floats with no
+intervening text exhausts the float queue of the typesetter and stops the build, so the
+queue is flushed after each group.
+
+### Individual profile
+
+The profile of one subject on a linear and on a semi-logarithmic axis. The semi-logarithmic
+axis is the axis on which the terminal phase is assessed visually. Non-positive observations
+cannot be placed on a logarithmic axis and are dropped. The number of dropped observations
+is compared with the number of non-positive observations in the table below.
+
+```julia; echo = true; fig_cap = "Individual profile, linear scale"
+dsp   = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation];
+                           dosetime = MetidaNCA.DoseTime(dose = 100, time = 0.0))
+dspr  = MetidaNCA.nca!(dsp)
+pkplot(dsp[1])
+```
+
+```julia; echo = true; fig_cap = "Individual profile, semi-logarithmic scale"
+pkplot(dsp[1]; yscale = :log10)
+```
+
+\clearpage
+
+### Data set and mean profile
+
+Every subject of the data set on one pair of axes, followed by the mean profile with its
+interval. The overlay is the figure on which a misordered data set is visible. The check
+below compares all ten series with all ten subjects.
+
+```julia; echo = true; fig_cap = "Data set, one series per subject"
+pkplot(dsp; typesort = :Subject, pagesort = MetidaNCA.NoPageSort())
+```
+
+```julia; echo = true; fig_cap = "Mean profile with interval"
+vpcplot(dsp)
+```
+
+\clearpage
+
+### Terminal phase and pharmacodynamics
+
+The terminal-phase figure draws the fitted line over the profile. The number of points of
+the fitted line is compared with `NpLZ`, the number of points the computation used. The
+comparison establishes that the line of the figure is fitted to the interval from which the
+reported parameters were obtained.
+
+```julia; echo = true; fig_cap = "Terminal-phase interval and the points used for it"
+pkplot(dspr[1]; elim = true)
+```
+
+```julia; echo = true; fig_cap = "Pharmacodynamics profile with baseline and threshold"
+pkplot(pdp; drawbl = true, drawth = true)
+```
+
+\clearpage
+
+## The figures carry the computed data
+
+```julia; echo = false, results = "tex"
+
+# Maximum absolute difference between what the plot holds and what was computed.
+# The reference is zero and the tolerance is relative, so anything but exact
+# equality fails.
+maxdiff(a, b) = length(a) == length(b) ? maximum(abs.(float.(a) .- float.(b))) : Inf
+
+dfg = DataFrame("Figure" => String[], "Checked" => String[], "Value" => Any[],
+                "Reference" => Any[], "Status" => String[])
+
+function graphcheck!(df, figure, what, value, reference)
+    st = acceptance_record("GRAPH-DATA", Symbol(what), figure, float(value), float(reference))
+    push!(df, (figure, what, value, reference, st))
+    return st
+end
+
+# 1. individual profile. The series holds the subject's own time and observations.
+p1 = pkplot(dsp[1])
+s1 = first(p1.series_list)
+graphcheck!(dfg, "Individual, linear", "series count", length(p1.series_list), 1)
+graphcheck!(dfg, "Individual, linear", "time, max. difference",
+            maxdiff(s1[:x], MetidaNCA.gettime(dsp[1])), 0)
+graphcheck!(dfg, "Individual, linear", "observations, max. difference",
+            maxdiff(s1[:y], MetidaNCA.getobs(dsp[1])), 0)
+
+# 2. semi-logarithmic. The same data with non-positive observations dropped,
+#    which a logarithmic axis cannot represent.
+obs1  = MetidaNCA.getobs(dsp[1])
+posi  = findall(x -> x > 0, obs1)
+p2 = pkplot(dsp[1]; yscale = :log10)
+s2 = first(p2.series_list)
+graphcheck!(dfg, "Individual, semi-log", "series count", length(p2.series_list), 1)
+graphcheck!(dfg, "Individual, semi-log", "time, max. difference",
+            maxdiff(s2[:x], MetidaNCA.gettime(dsp[1])[posi]), 0)
+graphcheck!(dfg, "Individual, semi-log", "observations, max. difference", maxdiff(s2[:y], obs1[posi]), 0)
+graphcheck!(dfg, "Individual, semi-log", "points dropped",
+            length(obs1) - length(s2[:y]), length(obs1) - length(posi))
+
+# 3. data set. One series per subject, each series holding its own subject's data.
+p3 = pkplot(dsp; typesort = :Subject, pagesort = MetidaNCA.NoPageSort())
+graphcheck!(dfg, "Data set", "series count", length(p3.series_list), length(dsp))
+graphcheck!(dfg, "Data set", "all subjects, max. difference",
+            maximum(max(maxdiff(s[:x], MetidaNCA.gettime(dsp[i])),
+                        maxdiff(s[:y], MetidaNCA.getobs(dsp[i])))
+                    for (i, s) in enumerate(p3.series_list)), 0)
+
+# 4. mean profile. The series holds the mean over subjects at each time point.
+p4 = vpcplot(dsp)
+s4 = first(p4.series_list)
+utime = sort(unique(pkdata2.Time))
+umean = [mean(pkdata2.Concentration[pkdata2.Time .== t]) for t in utime]
+graphcheck!(dfg, "Mean profile", "time, max. difference", maxdiff(s4[:x], utime), 0)
+graphcheck!(dfg, "Mean profile", "mean, max. difference", maxdiff(s4[:y], umean), 0)
+
+# 5. terminal-phase figure. It carries the profile and the fitted line. The
+#    number of points of the fit must equal the number the computation used.
+p5 = pkplot(dspr[1]; elim = true)
+graphcheck!(dfg, "Terminal phase", "series count, minimum", length(p5.series_list) >= 2 ? 2 : 1, 2)
+graphcheck!(dfg, "Terminal phase", "profile obs., max. difference",
+            maxdiff(first(p5.series_list)[:y], MetidaNCA.getobs(dsp[1])), 0)
+graphcheck!(dfg, "Terminal phase", "points in the fit",
+            length(last(p5.series_list)[:x]), float(dspr[1][:NpLZ]))
+
+# 6. pharmacodynamics. The observations, with the baseline and the threshold drawn.
+p6 = pkplot(pdp; drawbl = true, drawth = true)
+graphcheck!(dfg, "Pharmacodynamics", "observations, max. difference",
+            maxdiff(first(p6.series_list)[:y], MetidaNCA.getobs(pdp)), 0)
+graphcheck!(dfg, "Pharmacodynamics", "series count, minimum",
+            length(p6.series_list) >= 3 ? 3 : length(p6.series_list), 3)
+
+print(mdtable(dfg))
+```
+Table: Data held by each figure against the data computed by the package
+
+## Urine excretion rate
+
+A urine subject is not drawn the way a plasma subject is drawn. Its observations are
+concentrations in a collected volume, and its time field holds collection intervals. Neither
+quantity is placed on an axis in that form.
+
+The quantity a urine profile has as a curve is the excretion rate,
+$C \cdot Vol / (t_{end} - t_{start})$. The time coordinate of the excretion rate is the
+midpoint of the interval over which the sample was collected. The midpoint is the coordinate
+the analysis uses for the excretion rate and for the regression of $\ln Rate$ that gives
+$\lambda_z$ (chapter *Performance qualification*, urine scenario). Use of the start or the
+end of the interval shifts the curve, and with it `TmaxRate`, by up to half a collection
+interval.
+
+`MetidaNCA.midtime` returns the midpoints and `MetidaNCA.excretionrate` returns the
+excretion rates. The figure is drawn from both.
+
+```julia; echo = true; fig_cap = "Urine excretion rate against the midpoint of each collection interval"
+pkplot(upkp[1])
+```
+
+```julia; echo = false, results = "tex"
+
+dfu = DataFrame("Figure" => String[], "Checked" => String[], "Value" => Any[],
+                "Reference" => Any[], "Status" => String[])
+
+upr = MetidaNCA.nca!(upkp)
+pu  = pkplot(upkp[1])
+su  = first(pu.series_list)
+
+graphcheck!(dfu, "Urine", "series count", length(pu.series_list), 1)
+graphcheck!(dfu, "Urine", "midpoints, max. difference",
+            maxdiff(su[:x], MetidaNCA.midtime(upkp[1])), 0)
+graphcheck!(dfu, "Urine", "rate, max. difference",
+            maxdiff(su[:y], MetidaNCA.excretionrate(upkp[1])), 0)
+# The figure and the computation have to agree about where the maximum is and
+# how high it is: TmaxRate is a midpoint, and reading it off the start of an
+# interval instead is the error this check would catch.
+graphcheck!(dfu, "Urine", "time of the maximum",
+            su[:x][argmax(su[:y])], float(upr[1][:Tmax]))
+graphcheck!(dfu, "Urine", "height of the maximum",
+            maximum(su[:y]), float(upr[1][:Maxrate]))
+
+print(mdtable(dfu))
+```
+Table: The urine figure against the computed excretion rate
+
+```julia; echo = false, results = "tex"
+print(acceptance_note("GRAPH-DATA"))
+```
+
+\pagebreak
+
+# Validation coverage
+
+The chapter states what the report establishes and what it does not establish. Both tables
+are built from the acceptance log that produced the verdict. A parameter the package begins
+to produce is reported as NOT COVERED until a scenario compares it, and a capability whose
+scenario did not report is shown with that status.
+
+The kinds of evidence are defined in section 1.2.1 and are not interchangeable.
+
+| Kind | What it establishes | Source of the reference |
+|---|---|---|
+| external | agreement with an independent implementation | Phoenix WinNonlin 8.0, Appendix 2 |
+| analytic | agreement with a closed form | chapter *Analytic qualification of the integration rules* |
+| derived | agreement with the identity that defines the parameter | chapter *Derived parameters* |
+| internal | that the behaviour has not changed | a value fixed by this package |
+
+An internal baseline is not evidence of correctness. It is used only where no external
+reference can be obtained, and the report states the fact at the point of use.
+
+## Parameters
+
+```julia; echo = false, results = "tex"
+
+# The parameters the package actually produced during this build. Collected by
+# running the configurations rather than listed by hand, so a parameter added to
+# the package shows up here on the next build without anyone remembering to add
+# it.
+producible = Set{Symbol}()
+dsc = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
+# The dose time matters here as much as the method: with dosetime 0 the first
+# observation of this data set is zero, so Cmin is zero and the parameters that
+# divide by it (Swing) are not produced at all. A configuration with a non-zero
+# dose time is included so that they are listed.
+for (a, cm, dtm, tau) in ((:ev, :lint, 0.0, nothing), (:ev, :luld, 0.0, 12.0),
+                          (:iv, :lint, 0.0, 12.0),    (:ev, :logt, 0.0, 12.0),
+                          (:ev, :luldt, 0.0, 12.0),   (:iv, :luld, 0.0, nothing),
+                          (:ev, :luld, 0.25, 9.0),    (:iv, :luld, 0.25, 9.0))
+    dtc = isnothing(tau) ? MetidaNCA.DoseTime(dose = 100, time = dtm) :
+                           MetidaNCA.DoseTime(dose = 100, time = dtm, tau = tau)
+    MetidaNCA.setdosetime!(dsc, dtc)
+    for r in MetidaNCA.nca!(dsc; adm = a, calcm = cm)
+        union!(producible, keys(r.result))
+    end
+end
+for r in MetidaNCA.nca!(upkp); union!(producible, keys(r.result)); end
+union!(producible, keys(MetidaNCA.nca!(pdp).result))
+
+print(mdtable(acceptance_coverage_table(collect(producible))))
+```
+Table: Coverage of every parameter produced during this build
+
+```julia; echo = false, results = "tex"
+print(acceptance_coverage_summary(collect(producible)))
+```
+
+\pagebreak
+
+## Functionality
+
+The table states the declared scope of the validation. The *Scenarios* column names the
+blocks of this report that exercise each capability and is filled from the acceptance log.
+The *Evidence* column states the kind of evidence those blocks provide. Where this report
+does not cover a capability, the *Evidence* column states where the capability is covered
+instead.
+
+```julia; echo = false, results = "tex"
+print(mdtable(acceptance_functionality_table()))
+```
+Table: Coverage of the package functionality by this report
+
+```julia; echo = false, results = "tex"
+print(acceptance_functionality_summary())
+```
+
+\pagebreak
+
+# Conclusion
+
+## Verdict
+
+```julia; echo = false, results = "tex"
+print(acceptance_conclusion_text())
+```
+
+## Summary by scenario
+
+The table lists every scenario of this report with the number of comparisons it made
+against reference values (*Checks*) and the number of recorded outcomes that failed
+(*Failures*).
+
+  * For the plasma, urine and pharmacodynamics scenarios a failure is a comparison outside
+    the acceptance criteria.
+  * `PKG-TEST` makes no numeric comparison. Its single recorded outcome is the result of the
+    package test suite, so its *Checks* value is zero, and a failure of `PKG-TEST` means the
+    test suite failed.
+  * A required scenario whose code chunk errored out produces no rows and is listed as NOT
+    REPORTED. The results table of such a scenario is also absent from the Results chapter.
+
+The integration method is named in the table by its `calcm` value (`:lint`, `:luld`,
+`:logt`, `:luldt`). The abbreviation `dt` denotes the dose time. The Results chapter states
+each scenario in full.
+
+```julia; echo = false, results = "tex"
+print(mdtable(acceptance_summary_table()))
+```
+Table: Comparisons and verdict by scenario
+
+## Divergence journal
+
+The journal lists every recorded outcome that failed acceptance, one row per outcome. Three
+kinds of outcome appear: a comparison outside the criteria stated in section *Acceptance
+criteria* ($r_{tol}$ = `j ACCEPT_RTOL`, $a_{tol}$ = `j ACCEPT_ATOL`), a failed test suite
+run, and a required scenario that did not report. For a comparison the row carries the
+computed value, the reference value, their difference and the relative error
+$|x - x_{ref}| / |x_{ref}|$.
+
+```julia; echo = false, results = "tex"
+print(acceptance_journal_block())
+```
+
+```julia; echo = false, results = "tex"
+# The Conclusion marks itself once its tables are rendered. A chunk that
+# errored out records nothing, so a report that lost its verdict is caught by
+# the required-scenario check outside the document generator. The mark is made
+# before the journal is written, so that the file written here already carries
+# it. `validation.jl` writes the journal again in any case.
+acceptance_mark("CONCLUSION", true, "conclusion rendered")
+acceptance_write_journal()
+print("Full comparison log: docs/src/validation_acceptance.tsv\n\n" *
+      "Divergence journal: docs/src/validation_divergences.tsv")
+```
 
 \pagebreak
 

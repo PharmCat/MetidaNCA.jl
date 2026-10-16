@@ -192,14 +192,12 @@ end #end slope
 function aucpart(t₁, t₂, c₁, c₂, calcm, aftertmax)
     if calcm == :lint || c₁ <= zero(c₁) && c₂ <= zero(c₂)
         auc   =  linauc(t₁, t₂, c₁, c₂)
-    elseif calcm == :logt && aftertmax && c₁ > zero(c₁) && c₂ > zero(c₂)
+    elseif calcm == :logt && aftertmax && c₁ > zero(c₁) && c₂ > zero(c₂) && !isapprox(c₁, c₂; atol=sqrt(eps())) # or check c₁ > c₂ > 0
         auc   =  logauc(t₁, t₂, c₁, c₂)
     elseif calcm == :luld &&  c₁ > c₂ > zero(c₂)
         auc   =  logauc(t₁, t₂, c₁, c₂)
     elseif calcm == :luldt && aftertmax && c₁ > c₂ > zero(c₂)
         auc   =  logauc(t₁, t₂, c₁, c₂)
-    #elseif calcm == :log && c₁ > zero(T) && c₂ > zero(T)
-        #auc   =  logauc(t₁, t₂, c₁, c₂)
     else
         auc   =  linauc(t₁, t₂, c₁, c₂)
     end
@@ -957,16 +955,30 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
     return ncares
 end
 
-function maxconc(subj::T; obsname::Union{Symbol, Nothing} = nothing) where T <: AbstractSubject
-    maximum(Iterators.filter(x-> !(ismissing(x) || isnan(x)), getobs(subj, obsname)))
-end
-function minconc(subj::T, pos = false; obsname::Union{Symbol, Nothing} = nothing) where T <: AbstractSubject
-    if pos
-        return minimum(Iterators.filter(x-> x > zero(x), getobs(subj, obsname)))
-    else
-        return minimum(Iterators.filter(x-> !(ismissing(x) || isnan(x)), getobs(subj, obsname)))
-    end
-end
+
+################################################################################
+# Urine data
+################################################################################
+
+#=
+    midtime(subj::UPKSubject)
+
+Midpoint of every collection interval, `(t_start + t_end) / 2`.
+
+This is the time coordinate of the excretion rate. Taking the start or the end
+of the interval instead shifts the whole excretion-rate curve, and with it
+`TmaxRate`, by up to half a collection interval.
+=#
+midtime(subj::UPKSubject) = map(x -> (x[1] + x[2]) / 2, gettime(subj))
+
+#=
+    excretionrate(subj::UPKSubject; obsname = nothing)
+
+Excretion rate of every collection interval, `C · Vol / (t_end - t_start)`,
+computed from the actual interval boundaries.
+=#
+excretionrate(subj::UPKSubject; obsname::Union{Symbol, Nothing} = nothing) =
+    exrate(gettime(subj), getobs(subj, obsname), subj.vol)
 
 function exrate(time::AbstractVector{Tuple{S, E}}, conc::AbstractVector{C}, vol::AbstractVector{V})  where S where E where C where V
     T = promote_type(S, E)
