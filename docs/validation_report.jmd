@@ -176,12 +176,78 @@ performed before merging into JuliaRegistries/General repository
 using MetidaNCA, Pkg
 pkgversion(m::Module) = Pkg.TOML.parsefile(joinpath(dirname(string(first(methods(m.eval)).file)), "..", "Project.toml"))["version"]
 ver = pkgversion(MetidaNCA)
+
+# Project file of the package under test. The path is the one the loaded module
+# came from, which `validation_subject_check()` in validation.jl has already
+# matched against the repository this report describes.
+METIDANCA_PROJECT = Pkg.TOML.parsefile(joinpath(pkgdir(MetidaNCA), "Project.toml"))
+METIDANCA_COMPAT  = get(METIDANCA_PROJECT, "compat", Dict{String, Any}())
+JULIA_BOUND       = Text(string(get(METIDANCA_COMPAT, "julia", "-")))
+
+# Dependencies of the package, each with the version loaded during this build.
+# `Pkg.dependencies()` reports the whole active environment, which also holds
+# the packages this report and the test suite need, so the listing is restricted
+# to what is reachable from MetidaNCA itself.
+function dependency_table()
+    info = Pkg.dependencies()
+    root = nothing
+    for (u, p) in info
+        p.name == "MetidaNCA" && (root = u)
+    end
+    isnothing(root) && error("MetidaNCA is not resolved in the active environment, " *
+                             "so its dependencies cannot be listed.")
+    direct = Set(values(info[root].dependencies))
+    seen = Set{Base.UUID}()
+    queue = collect(direct)
+    while !isempty(queue)
+        u = pop!(queue)
+        u in seen && continue
+        push!(seen, u)
+        for v in values(info[u].dependencies)
+            v in seen || push!(queue, v)
+        end
+    end
+    rows = [(name = info[u].name,
+             version = isnothing(info[u].version) ? "standard library" :
+                       string(info[u].version),
+             bound = string(get(METIDANCA_COMPAT, info[u].name, "-")),
+             level = u in direct ? "direct" : "indirect") for u in seen]
+    sort!(rows, by = r -> (r.level == "direct" ? 0 : 1, lowercase(r.name)))
+    return DataFrame("Dependency"   => [r.name for r in rows],
+                     "Version"      => [r.version for r in rows],
+                     "Compat bound" => [r.bound for r in rows],
+                     "Level"        => [r.level for r in rows])
+end
+dfdep = dependency_table()
 ```
 
 Current package version:
 ```julia; echo = false; results = "tex"
 ver
 ```
+
+### Dependencies
+
+The table lists every dependency of MetidaNCA with the version loaded during this build.
+A direct dependency is declared in the `[deps]` section of the package `Project.toml`, and
+the bound declared for it in the `[compat]` section is given in the same row. An indirect
+dependency is loaded through a direct one and carries no bound of its own. The resolver
+installs a version that satisfies every bound, and a version outside the bounds leaves the
+environment unresolvable, so the build does not start.
+
+Packages used by this report and by the test suite are not dependencies of the package and
+are not listed. The bound on the Julia version is `j JULIA_BOUND`, and the version in use
+is stated under System information.
+
+Dependencies loaded during this build: `j nrow(dfdep)`, of which direct:
+`j count(==("direct"), dfdep.Level)`. The list includes the standard libraries of Julia
+that the dependencies load, and their versions are the versions of the Julia release in
+use.
+
+```julia; echo = false, results = "tex"
+print(mdtable(dfdep))
+```
+Table: Dependencies of MetidaNCA and the versions loaded during this build
 
 # Operation qualification
 
