@@ -15,8 +15,11 @@ bin-release/
 *.ipa
 *.apk
 
-.test/metidanca_bugtests.jl
-.test/regression.jl
+./test/metidanca_bugtests.jl
+./test/regression.jl
 # Project files, i.e. `.project`, `.actionScriptProperties` and `.flexProperties`
 # should NOT be excluded as they contain compiler settings and other important
 # information for Eclipse / Flash Builder.
+
+docs/src/validation_acceptance.tsv
+docs/src/validation_divergences.tsv

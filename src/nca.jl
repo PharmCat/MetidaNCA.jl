@@ -192,14 +192,12 @@ end #end slope
 function aucpart(t₁, t₂, c₁, c₂, calcm, aftertmax)
     if calcm == :lint || c₁ <= zero(c₁) && c₂ <= zero(c₂)
         auc   =  linauc(t₁, t₂, c₁, c₂)
-    elseif calcm == :logt && aftertmax && c₁ > zero(c₁) && c₂ > zero(c₂)
+    elseif calcm == :logt && aftertmax && c₁ > zero(c₁) && c₂ > zero(c₂) && !isapprox(c₁, c₂; atol=sqrt(eps())) # or check c₁ > c₂ > 0
         auc   =  logauc(t₁, t₂, c₁, c₂)
     elseif calcm == :luld &&  c₁ > c₂ > zero(c₂)
         auc   =  logauc(t₁, t₂, c₁, c₂)
     elseif calcm == :luldt && aftertmax && c₁ > c₂ > zero(c₂)
         auc   =  logauc(t₁, t₂, c₁, c₂)
-    #elseif calcm == :log && c₁ > zero(T) && c₂ > zero(T)
-        #auc   =  logauc(t₁, t₂, c₁, c₂)
     else
         auc   =  linauc(t₁, t₂, c₁, c₂)
     end

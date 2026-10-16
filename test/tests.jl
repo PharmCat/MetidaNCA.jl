@@ -1866,3 +1866,6 @@ end
 @testset "  Development                                              " begin
       @test_nowarn options = MetidaNCA.NCAOptions() 
 end
+
+
+include("reference_testset.jl")

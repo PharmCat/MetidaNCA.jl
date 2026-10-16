@@ -8,6 +8,7 @@ date: `j import Dates; Dates.Date(Dates.now())`
 
 ```julia; echo = false
 using Dates, DataFrames, CSV, PrettyTables, Latexify
+include("acceptance.jl")
 ```
 
 # Introduction and package description
@@ -24,6 +25,47 @@ See documentation:
 The main validation purpose is confirmation by examination and provision of objective evidence that software
 specifications conform to user needs and intended uses, and that the particular requirements
 implemented through software can be consistently fulfilled.
+
+## Acceptance criteria
+
+Every parameter computed by MetidaNCA is compared with the corresponding reference value
+(Phoenix WinNonlin 8.0, see Appendix 2). A single comparison is accepted when
+
+$|x_{MetidaNCA} - x_{ref}| \le r_{tol} \times |x_{ref}| + a_{tol}$
+
+with $r_{tol}$ = `j ACCEPT_RTOL` and $a_{tol}$ = `j ACCEPT_ATOL`, that is, agreement to four
+significant digits. Reference values are transcribed with six significant digits, so the
+attainable agreement is bounded by the transcription of the reference rather than by the
+computation; the largest deviation observed over all scenarios of this report is of the
+order of $10^{-7}$, so the criterion leaves about three orders of magnitude of margin.
+
+The report is accepted only when **all** of the following hold:
+
+  * every comparison is within the criteria above;
+  * the package test suite passes (see Testing results);
+  * every required scenario reported its results.
+
+The third condition is not redundant: the document generator renders a failing code chunk
+into the document and carries on, which would otherwise drop a results table without any
+other sign. The same applies to the Conclusion, which marks itself once it has rendered.
+
+### Where the verdict is
+
+This report is produced whatever the outcome of the comparisons, and it carries its own
+verdict. Each comparison is recorded, as it is made, in
+`docs/src/validation_acceptance.tsv`. The Conclusion section states the verdict, summarises
+every scenario and lists **every divergence** — parameter, subject, computed value,
+reference value, difference, relative error and the criterion it was judged against. The
+same journal is written next to this report as `docs/src/validation_divergences.tsv`, so it
+can be read without opening the PDF. An empty journal is itself a statement: the file is
+written even when nothing diverged.
+
+Independently of the report, `acceptance_verdict()` in `docs/acceptance.jl` is called
+outside the document generator, after the report is built, and aborts the documentation
+build on a negative verdict — the document generator swallows errors raised inside a code
+chunk, so a verdict computed only inside the report could never fail. Running the build
+with `VALIDATION_STRICT=false` suppresses the abort and leaves the report for inspection;
+the verdict and the journal are unaffected by that setting.
 
 ## Requirements
 
@@ -114,8 +156,19 @@ Validation data available in the repository and included in the package. See App
 
 ## Testing results
 
-```julia
-Pkg.test("MetidaNCA")
+The outcome is recorded and enforced: a failing test suite makes `acceptance_verdict()` abort
+the build (see Acceptance criteria). The `try`/`catch` below exists only because the document
+generator does not propagate errors raised inside a chunk.
+
+```julia; echo = true; wrap = false
+test_passed = try
+    Pkg.test("MetidaNCA")
+    true
+catch err
+    @error "MetidaNCA test suite failed" exception = (err, catch_backtrace())
+    false
+end
+acceptance_mark("PKG-TEST", test_passed, "Pkg.test(MetidaNCA)")
 ```
 
 \pagebreak
@@ -228,7 +281,6 @@ nca!(ds, adm = :ev, calcm = :lint)
 
 include("refdict.jl")
 
-header = ["Parameter", "Subject", "Value", "Reference", "Difference"]
 # NO TAU
 list = [:Cmax
 :Tmax
@@ -261,18 +313,14 @@ list = [:Cmax
 dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
 
 subjects = MetidaNCA.getid(dsnca, :, :Subject)
-dft = DataFrame("Parameter"=>[], "Subject"=>[], "Value"=>[], "Reference"=>[], "Difference"=>[])
-for l in list
-    vals = round.(dsnca[:, l], sigdigits = 6)
-    refs = round.(refdict[l], sigdigits = 6)
-    mx = hcat(fill(l, length(vals)), subjects, vals, refs, vals .- refs)
-    df = DataFrame(mx, header)
-    df.Subject = string.(Int.(df.Subject))
-    append!(dft, df)
-end
+dft = acceptance_table("PK-LINT-EV-DT0", dsnca, refdict, list, subjects)
 show(latexify(dft, latex=false))
 ```
 Table: Plasma data results, Linear-trapezoidal rule, Extravascular
+
+```julia; echo = false, results = "tex"
+print(acceptance_note("PK-LINT-EV-DT0"))
+```
 
 \pagebreak
 
@@ -317,18 +365,14 @@ MetidaNCA.setdosetime!(ds, dt)
 dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luld)
 
 subjects = MetidaNCA.getid(dsnca, :, :Subject)
-dft = DataFrame("Parameter"=>[], "Subject"=>[], "Value"=>[], "Reference"=>[], "Difference"=>[])
-for l in list
-    vals = round.(dsnca[:, l], sigdigits = 6)
-    refs = round.(refdict2[l], sigdigits = 6)
-    mx = hcat(fill(l, length(vals)), subjects, vals, refs, vals .- refs)
-    df = DataFrame(mx, header)
-    df.Subject = string.(Int.(df.Subject))
-    append!(dft, df)
-end
+dft = acceptance_table("PK-LULD-EV-DT025-TAU9", dsnca, refdict2, list, subjects)
 show(latexify(dft; latex=false))
 ```
 Table: Plasma data results, Linear-Up Log-Down, Extravascular
+
+```julia; echo = false, results = "tex"
+print(acceptance_note("PK-LULD-EV-DT025-TAU9"))
+```
 
 \pagebreak
 
@@ -367,20 +411,14 @@ MetidaNCA.setdosetime!(ds, dt)
 dsnca = MetidaNCA.nca!(ds, adm = :iv, calcm = :lint)
 
 subjects = MetidaNCA.getid(dsnca, :, :Subject)
-dft = DataFrame("Parameter"=>[], "Subject"=>[], "Value"=>[], "Reference"=>[], "Difference"=>[])
-for l in list
-    vals = round.(dsnca[:, l], sigdigits = 6)
-    refs = round.(refdict3[l], sigdigits = 6)
-    mx = hcat(fill(l, length(vals)), subjects, vals, refs, vals .- refs)
-    df = DataFrame(mx, header)
-    df.Subject = string.(Int.(df.Subject))
-    append!(dft, df)
-end
-#dft.Parameter = map(dft.Parameter) do s return replace(string(s), "_" => "_") end
-
+dft = acceptance_table("PK-LINT-IV-TAU12", dsnca, refdict3, list, subjects)
 show(latexify(dft; latex=false))
 ```
 Table: Plasma data results, Linear-trapezoidal rule, Intravascular
+
+```julia; echo = false, results = "tex"
+print(acceptance_note("PK-LINT-IV-TAU12"))
+```
 
 \pagebreak
 
@@ -420,18 +458,14 @@ MetidaNCA.setdosetime!(ds, dt)
 dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :logt)
 
 subjects = MetidaNCA.getid(dsnca, :, :Subject)
-dft = DataFrame("Parameter"=>[], "Subject"=>[], "Value"=>[], "Reference"=>[], "Difference"=>[])
-for l in list
-    vals = round.(dsnca[:, l], sigdigits = 6)
-    refs = round.(refdict4[l], sigdigits = 6)
-    mx = hcat(fill(l, length(vals)), subjects, vals, refs, vals .- refs)
-    df = DataFrame(mx, header)
-    df.Subject = string.(Int.(df.Subject))
-    append!(dft, df)
-end
+dft = acceptance_table("PK-LOGT-EV-TAU12", dsnca, refdict4, list, subjects)
 show(latexify(dft; latex=false))
 ```
 Table: Plasma data results, Linear/Log Trapezoidal rule, Extravascular
+
+```julia; echo = false, results = "tex"
+print(acceptance_note("PK-LOGT-EV-TAU12"))
+```
 
 \pagebreak
 
@@ -452,19 +486,14 @@ list = collect(keys(urefdict))
 upkds = MetidaNCA.upkimport(upkdata, :st, :et, :conc, :vol, :subj;
 dosetime =  MetidaNCA.DoseTime(dose = 100))
 dsnca  = MetidaNCA.nca!(upkds)
-pname = string.(list)
-vals = zeros(Float64, length(list))
-refs = zeros(Float64, length(list))
-for i = 1: length(list)
-    vals[i] = round(dsnca[1, list[i]], sigdigits = 6)
-    refs[i] = round(urefdict[list[i]], sigdigits = 6)
-end
-
-  mx = hcat(pname, vals, refs, vals .- refs)
-  df = DataFrame(mx, ["Parameter", "Value", "Reference", "Difference"])
-  show(latexify(df; latex=false))
+df = acceptance_table_single("URINE-LINT", dsnca, urefdict, list; index = 1)
+show(latexify(df; latex=false))
 ```
 Table: Urine data results
+
+```julia; echo = false, results = "tex"
+print(acceptance_note("URINE-LINT"))
+```
 
 \pagebreak
 
@@ -487,19 +516,68 @@ list = collect(keys(pdrefdict))
 pd =  MetidaNCA.pdimport(pddata, :time, :obs; 
 bl = 3.0, th = 1.5, id = Dict(:subj => 1))
 pdres = MetidaNCA.nca!(pd)
-pname = string.(list)
-vals = zeros(Float64, length(list))
-refs = zeros(Float64, length(list))
-for i = 1: length(list)
-    vals[i] = round(pdres[list[i]], sigdigits = 6)
-    refs[i] = round(pdrefdict[list[i]], sigdigits = 6)
-end
-
-  mx = hcat(pname, vals, refs, vals .- refs)
-  df = DataFrame(mx, ["Parameter", "Value", "Reference", "Difference"])
-  show(latexify(df; latex=false))
+df = acceptance_table_single("PD-LINT", pdres, pdrefdict, list)
+show(latexify(df; latex=false))
 ```
 Table: Pharmacodynamics data results
+
+```julia; echo = false, results = "tex"
+print(acceptance_note("PD-LINT"))
+```
+
+\pagebreak
+
+# Conclusion
+
+## Verdict
+
+```julia; echo = false, results = "tex"
+print(acceptance_conclusion_text())
+```
+
+## Summary by scenario
+
+Every scenario of this report, the number of comparisons it made against reference values
+(*Checks*) and the number of recorded outcomes that failed (*Failures*).
+
+  * For the plasma, urine and pharmacodynamics scenarios a failure is a comparison outside
+    the acceptance criteria.
+  * `PKG-TEST` makes no numeric comparison: its single recorded outcome is the result of the
+    package test suite, so its *Checks* is zero and a failure there means the suite failed.
+  * A required scenario whose code chunk errored out produces no rows at all and is listed as
+    NOT REPORTED; its results table is then missing from the Results section as well.
+
+The integration method is named in the table by its `calcm` value (`:lint`, `:luld`, `:logt`)
+and `dt` stands for the dose time; the Results section above spells each scenario out in full.
+
+```julia; echo = false, results = "tex"
+show(latexify(acceptance_summary_table(); latex=false))
+```
+Table: Comparisons and verdict by scenario
+
+## Divergence journal
+
+Everything that failed acceptance, one row per item: a comparison outside the criteria
+stated in section *Acceptance criteria* ($r_{tol}$ = `j ACCEPT_RTOL`, $a_{tol}$ =
+`j ACCEPT_ATOL`), a failed test suite run, or a required scenario that did not report. For a
+comparison the row carries the computed value, the reference value, their difference and the
+relative error $|x - x_{ref}| / |x_{ref}|$.
+
+```julia; echo = false, results = "tex"
+print(acceptance_journal_block())
+```
+
+```julia; echo = false, results = "tex"
+# The Conclusion marks itself once its tables are rendered. A chunk that
+# errored out records nothing, so a report that lost its verdict is caught by
+# the required-scenario check outside the document generator. The mark is made
+# before the journal is written, so that the file written here already carries
+# it; `validation.jl` writes the journal again in any case.
+acceptance_mark("CONCLUSION", true, "conclusion rendered")
+acceptance_write_journal()
+print("Full comparison log: docs/src/validation_acceptance.tsv. " *
+      "Divergence journal: docs/src/validation_divergences.tsv.")
+```
 
 \pagebreak
 

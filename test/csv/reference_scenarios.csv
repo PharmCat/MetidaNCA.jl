@@ -1,0 +1,15 @@
+scenario,origin,dataset,dose,dosetime,tau,calcm,adm,bl,th,sources
+pd_bl3_th1.5,external,pddata.csv,,,,lint,,3.0,1.5,242ff552-pd_ref.xlsx
+pk_d100_dt0.25_tau9_luld,external,pkdata2.csv,100.0,0.25,9.0,luld,ev,,,01205048-Final_Parameters_Pivoted_-__________.xlsx [100 9] | 06e8be61-2ds4-luld-d100-dt0.25-tau9.xlsx | 4d6385c7-Final_Parameters_Pivoted.xlsx [100 9] | ac49c0e1-Final_Parameters_Pivoted_100_36_9.xls [9]
+pk_d100_dt0.25_tau9_luld_iv,internal,pkdata2.csv,100.0,0.25,9.0,luld,iv,,,test/refdicts.jl (refdict9)
+pk_d100_dt0_notau_lint,external,pkdata2.csv,100.0,0.0,,lint,ev,,,667b4a52-1ds1-ltli-d100-dt0-notau.xlsx
+pk_d100_dt0_tau100_luld,external,pkdata2.csv,100.0,0.0,100.0,luld,ev,,,ac49c0e1-Final_Parameters_Pivoted_100_36_9.xls [100] | f86afced-ds6-luld-d100-dt0-tau100.xlsx
+pk_d100_dt0_tau36_luld,external,pkdata2.csv,100.0,0.0,36.0,luld,ev,,,01205048-Final_Parameters_Pivoted_-__________.xlsx [100 36] | 4d6385c7-Final_Parameters_Pivoted.xlsx [100 36] | ac49c0e1-Final_Parameters_Pivoted_100_36_9.xls [36]
+pk_d100_dt0_tau60_luld,external,pkdata2.csv,100.0,0.0,60.0,luld,ev,,,01205048-Final_Parameters_Pivoted_-__________.xlsx [100 60] | 4d6385c7-Final_Parameters_Pivoted.xlsx [100 60]
+pk_d100_dt2_tau10_lint,external,pkdata2.csv,100.0,2.0,10.0,lint,ev,,,60a41a2f-7ds5-ltli-d100-dt2-tau10.xlsx | 60a41a2f-7ds5-ltli-d100-dt2-tau10.xlsx [Лист2]
+pk_d120_dt0_tau12_lint_ev,external,pkdata2.csv,120.0,0.0,12.0,lint,ev,,,01205048-Final_Parameters_Pivoted_-__________.xlsx [Лист3]
+pk_d120_dt0_tau12_lint_iv,external,pkdata2.csv,120.0,0.0,12.0,lint,iv,,,5b6bdc4a-ds8-ltli-d120-dt0-tau12-iv.xlsx | bbbbf085-iv.xlsx | cf12d843-3ds-ltli-d120-dt0-tau12.xlsx
+pk_d120_dt0_tau12_logt,external,pkdata2.csv,120.0,0.0,12.0,logt,ev,,,98cb7065-4ds3-luldt-d120-dt0-tau12.xlsx
+pk_d120_dt0_tau12_luld,external,pkdata2.csv,120.0,0.0,12.0,luld,ev,,,9751ff8f-6ds2-luld-d120-dt0-tau12.xlsx | 9751ff8f-6ds2-luld-d120-dt0-tau12.xlsx [Лист2]
+pk_d120_dt0_tau12_luldt,internal,pkdata2.csv,120.0,0.0,12.0,luldt,ev,,,test/refdicts.jl (refdict5)
+urine_d100_lint,external,upkdata.csv,100.0,0.0,,lint,ev,,,596e7168-urine.xlsx
