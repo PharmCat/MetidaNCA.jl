@@ -960,7 +960,7 @@ end
 # Urine data
 ################################################################################
 
-"""
+#=
     midtime(subj::UPKSubject)
 
 Midpoint of every collection interval, `(t_start + t_end) / 2`.
@@ -968,15 +968,15 @@ Midpoint of every collection interval, `(t_start + t_end) / 2`.
 This is the time coordinate of the excretion rate. Taking the start or the end
 of the interval instead shifts the whole excretion-rate curve, and with it
 `TmaxRate`, by up to half a collection interval.
-"""
+=#
 midtime(subj::UPKSubject) = map(x -> (x[1] + x[2]) / 2, gettime(subj))
 
-"""
+#=
     excretionrate(subj::UPKSubject; obsname = nothing)
 
 Excretion rate of every collection interval, `C · Vol / (t_end - t_start)`,
 computed from the actual interval boundaries.
-"""
+=#
 excretionrate(subj::UPKSubject; obsname::Union{Symbol, Nothing} = nothing) =
     exrate(gettime(subj), getobs(subj, obsname), subj.vol)
 
