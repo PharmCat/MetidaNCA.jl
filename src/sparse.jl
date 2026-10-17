@@ -27,7 +27,7 @@ function auc_sparse(time::AbstractVector{T}, obs::AbstractVector) where T
     for i = 1:length(time) - 1
         if time[i+1] <= time[i] error("Unsorted observations!") end
     end
-    wts = Vector{T}(undef, length(time))
+    wts = Vector{typeof(oneunit(T) / 2)}(undef, length(time))
     wts[1]   = (time[2] - time[1]) / 2
     wts[end] = (time[end] - time[end-1]) / 2
     if length(time) > 2

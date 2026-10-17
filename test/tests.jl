@@ -442,15 +442,13 @@ dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
     # Cllast
     
 
-    # Clinf
-    @test round.(dsnca[:, :Clinf], sigdigits = 6) == round.(refdict[:Clinf], sigdigits = 6)
+    # Cl_F
+    @test round.(dsnca[:, :Cl_F], sigdigits = 6) == round.(refdict[:Cl_F], sigdigits = 6)
 
     # Vzlast
 
-    # Vzinf
-    @test round.(dsnca[:, :Vzinf], sigdigits = 6) == round.(refdict[:Vzinf], sigdigits = 6)
-
-    # Vssinf
+    # Vz_F
+    @test round.(dsnca[:, :Vz_F], sigdigits = 6) == round.(refdict[:Vz_F], sigdigits = 6)
 
 end
 
@@ -519,11 +517,11 @@ end
     @test round.(dsnca[:, :MRTtauinf], digits = 6) == round.(refdict2[:MRTtauinf], digits = 6)
 # MRTinf_pred
 # Cllast
-# Clinf / Cltau
-    @test round.(dsnca[:, :Cltau], digits = 6) == round.(refdict2[:Cltau], digits = 6)
+# Cltau_F
+    @test round.(dsnca[:, :Cltau_F], digits = 6) == round.(refdict2[:Cltau_F], digits = 6)
 # Vzlast
 # Vzinf / Vztau
-    @test round.(dsnca[:, :Vztau], digits = 6) == round.(refdict2[:Vztau], digits = 6)
+    @test round.(dsnca[:, :Vz_F], digits = 6) == round.(refdict2[:Vz_F], digits = 6)
 # Vssinf
 
     # AUCtau
@@ -588,9 +586,9 @@ end
 # Clinf / Cltau
     @test round.(dsnca[:, :Cltau], sigdigits = 6) == round.(refdict3[:Cltau], sigdigits = 6)
 # Vzlast
-# Vzinf / Vztau
-    @test round.(dsnca[:, :Vztau], sigdigits = 6) == round.(refdict3[:Vztau], sigdigits = 6)
-# Vssinf
+# Vz_F 
+    @test round.(dsnca[:, :Vz], sigdigits = 6) == round.(refdict3[:Vz], sigdigits = 6)
+
 
     # AUCtau
     @test round.(dsnca[:, :AUCtau], sigdigits = 6) == round.(refdict3[:AUCtau], sigdigits = 6)
@@ -619,7 +617,7 @@ end
     # Clinf / Cltau
     # Vzlast
     # Vzinf / Vztau
-    @test round.(dsnca[:, :Vztau], sigdigits = 6) == round.(refdict3[:Vztau], sigdigits = 6)
+    @test round.(dsnca[:, :Vz], sigdigits = 6) == round.(refdict3[:Vz], sigdigits = 6)
     # Vssinf
 
     # AUCtau
@@ -688,10 +686,10 @@ end
 # MRTinf_pred
 # Cllast
 # Clinf / Cltau
-    @test round.(dsnca[:, :Cltau], digits = 6) == round.(refdict4[:Cltau], digits = 6)
+    @test round.(dsnca[:, :Cltau_F], digits = 6) == round.(refdict4[:Cltau_F], digits = 6)
 # Vzlast
 # Vzinf / Vztau
-    @test round.(dsnca[:, :Vztau], digits = 6) == round.(refdict4[:Vztau], digits = 6)
+    @test round.(dsnca[:, :Vz_F], digits = 6) == round.(refdict4[:Vz_F], digits = 6)
 # Vssinf
 
     # AUCtau
@@ -949,7 +947,7 @@ end
     # Cllast
 
     # Cltau
-    @test round.(dsnca[:, :Cltau], sigdigits = 6) == round.([0.071896833
+    @test round.(dsnca[:, :Cltau_F], sigdigits = 6) == round.([0.071896833
 0.050424060
 0.122488280
 0.070172356
@@ -963,7 +961,7 @@ end
     # Vzlast
 
     # Vztau
-    @test round.(dsnca[:, :Vztau], sigdigits = 6) == round.([21.241439
+    @test round.(dsnca[:, :Vz_F], sigdigits = 6) == round.([21.241439
 3.574574
 37.214301
 9.118807
@@ -1926,6 +1924,175 @@ end
         MetidaNCA.pkimport(trev, crev)
         @test trev == trevr
         @test crev == crevr
+    end
+end
+ 
+@testset "  Regress fix                                          " begin
+ 
+
+    @testset "  Subject constructors and the vector import          " begin
+        dt = [MetidaNCA.DoseTime(dose = 1.0, time = 0.0)]
+        @test MetidaNCA.PKSubject([0.0, 1.0], [1.0, 2.0],
+                  MetidaNCA.ElimRange(), dt, Dict{Symbol, Any}()) isa MetidaNCA.PKSubject
+ 
+        t = [0.0, 1.0, 2.0, 3.0]
+        c = [0.0, 10.0, 8.0, 5.0]
+        subj = MetidaNCA.pkimport(t, c; obsname = :Conc)
+        @test keys(subj.obs) == (:Conc,)
+        @test MetidaNCA.getobs(subj, :Conc) == c
+        @test MetidaNCA.nca!(subj, :Conc)[:AUClast] > 0
+        @test isnothing(subj.covars)
+ 
+        @test_throws MethodError MetidaNCA.pkimport(pkdata2, :Time, :Concentration,
+                                     [:Subject]; kelauto = false)
+        @test_throws MethodError MetidaNCA.pkimport(t, c; kelauto = false)
+    end
+ 
+
+    @testset "  ElimRange forms and the manual mode                 " begin
+        @test MetidaNCA.ElimRange(2, 5, Int[]) isa MetidaNCA.ElimRange
+        @test MetidaNCA.ElimRange(10.0, 72.0, Float64[]; time = true) isa MetidaNCA.ElimRange
+        @test MetidaNCA.ElimRange(kelstart = 10.0, kelend = 72.0,
+                                  kelexcl = Float64[], time = true) isa MetidaNCA.ElimRange
+ 
+        @test_throws Exception MetidaNCA.ElimRange(kelauto = false)
+ 
+        subj = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject])[1]
+        @test (MetidaNCA.setkelauto!(subj, true); MetidaNCA.getkelauto(subj))
+        @test_throws Exception MetidaNCA.setkelauto!(subj, false)
+        MetidaNCA.setkelrange!(subj, MetidaNCA.ElimRange(kelstart = 5, kelend = 8))
+        MetidaNCA.setkelauto!(subj, false)
+        @test MetidaNCA.getkelauto(subj) == false
+    end
+ 
+    @testset "  Terminal phase interval selection                   " begin
+        k, C0 = 0.35, 100.0
+        t = [0.0, 0.5, 1.0, 2.0, 3.5, 5.0, 8.0, 12.0]
+        c = C0 .* exp.(-k .* t)
+ 
+        r = MetidaNCA.nca!(MetidaNCA.pkimport(t, c;
+                dosetime = MetidaNCA.DoseTime(dose = 1.0, time = 0.0)); adm = :iv)
+        @test r[:NpLZ] == length(t)
+        @test r[:ARsq] ≈ 1.0        rtol = 1e-12
+        @test r[:Kel]  ≈ k          rtol = 1e-12
+        @test r[:HL]   ≈ log(2) / k rtol = 1e-12
+ 
+        t2 = [0.0, 1.0, 2.0, 3.0, 5.0, 7.0, 9.0]
+        c2 = [0.0, 100.0, 60.0, 55.0, 30.0, 15.0, 7.5]
+        r2 = MetidaNCA.nca!(MetidaNCA.pkimport(t2, c2;
+                 dosetime = MetidaNCA.DoseTime(dose = 100.0, time = 0.0)); adm = :ev)
+        @test r2[:NpLZ] == 3
+        @test r2[:Kel]  ≈ log(2) / 2 rtol = 1e-12
+ 
+        subj = MetidaNCA.pkimport(t, c;
+                   dosetime = MetidaNCA.DoseTime(dose = 1.0, time = 0.0))
+        MetidaNCA.setkelrange!(subj, MetidaNCA.ElimRange(kelstart = 5, kelend = 8,
+                                                         kelauto = false))
+        r3 = MetidaNCA.nca!(subj; adm = :iv)
+        @test r3[:NpLZ] == 4
+        @test r3[:Kel]  ≈ k rtol = 1e-12
+    end
+ 
+    @testset "  Analysis does not change its input                  " begin
+        subj = MetidaNCA.pkimport(missingpk, :Time, :Concentration)
+        @test isempty(MetidaNCA.getkelrange(subj).kelexcl)
+        r = MetidaNCA.nca!(subj)
+        @test isempty(MetidaNCA.getkelrange(subj).kelexcl)
+        @test MetidaNCA.getkelauto(subj) == true
+        @test r.kelrange.kelexcl == [13, 15]
+ 
+        r2 = MetidaNCA.nca!(subj)
+        for p in (:AUClast, :AUMClast, :Kel, :HL, :NpLZ, :ARsq, :AUCinf, :MRTlast)
+            v1, v2 = r[p], r2[p]
+            @test (isnan(v1) && isnan(v2)) || v1 == v2
+        end
+ 
+        c  = [0.0, 10.0, 8.0, 5.0]
+        cr = copy(c)
+        sj = MetidaNCA.pkimport([0.0, 1.0, 2.0, 3.0], c)
+        MetidaNCA.applylimitrule!(sj, MetidaNCA.LimitRule(lloq = 6.0, btmax = 0.0,
+                                                           atmax = 0.0))
+        @test c == cr
+ 
+        crev  = [5.0, 8.0, 10.0, 0.0]
+        crevr = copy(crev)
+        MetidaNCA.pkimport([3.0, 2.0, 1.0, 0.0], crev)
+        @test crev == crevr
+    end
+ 
+
+    @testset "  Equal neighbouring concentrations                   " begin
+        t = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0]
+        c = [0.0, 10.0, 8.0, 8.0, 4.0, 2.0]
+        res = map((:lint, :logt, :luld, :luldt)) do m
+            MetidaNCA.nca!(MetidaNCA.pkimport(t, c;
+                dosetime = MetidaNCA.DoseTime(dose = 100.0, time = 0.0));
+                adm = :ev, calcm = m)
+        end
+        for r in res
+            @test isfinite(r[:AUClast])
+            @test isfinite(r[:AUMClast])
+            @test isfinite(r[:MRTlast])
+        end
+        for p in (:AUClast, :AUMClast, :MRTlast)
+            @test res[2][p] ≈ res[3][p] rtol = 1e-12
+            @test res[2][p] ≈ res[4][p] rtol = 1e-12
+        end
+    end
+ 
+    @testset "  Plots                                               " begin
+        ds   = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
+        subj = ds[1]
+        @test !isnothing(MetidaNCA.pkplot(subj; drawdt = true))
+        @test !isnothing(MetidaNCA.pkplot(ds; uylims = true))
+        @test !isnothing(MetidaNCA.pkplot(subj; yscale = :identity))
+        @test !isnothing(MetidaNCA.pkplot(MetidaNCA.nca!(ds); onlyplots = true, elim = true))
+    end
+ 
+
+    @testset "  Unitful                                             " begin
+        upk = deepcopy(pkdata2[pkdata2.Subject .== 1, :])
+        upk.Time          = upk.Time .* u"hr"
+        upk.Concentration = upk.Concentration .* u"ng/ml"
+ 
+        @test !isnothing(MetidaNCA.nca!(MetidaNCA.pkimport(upk, :Time, :Concentration);
+                                        verbose = 1, io = IOBuffer()))
+        @test !isnothing(MetidaNCA.applylimitrule!(
+                             MetidaNCA.pkimport(upk, :Time, :Concentration),
+                             MetidaNCA.LimitRule(lloq = 1.0u"ng/ml", btmax = 0.0u"ng/ml",
+                                                 atmax = 0.0u"ng/ml")))
+ 
+        @test MetidaNCA.auc_sparse([0.0, 1.0, 2.0]u"hr", [1.0, 2.0, 1.0]u"ng/ml") ≈
+              3.0u"hr*ng/ml"
+        @test MetidaNCA.auc_sparse([0, 1, 2], [1.0, 2.0, 1.0]) ≈ 3.0
+        @test MetidaNCA.auc_sparse([0.0, 1.0, 2.0], [1.0, 2.0, 1.0]) ≈ 3.0
+    end
+ 
+
+    @testset "  nca(...) forwards keyword arguments                 " begin
+        @test !isnothing(MetidaNCA.nca(upkdata, :st, :et, :conc, :vol, :subj;
+                                       type = :ur, calcm = :luld))
+        @test !isnothing(MetidaNCA.nca(pddata, :time, :obs; type = :pd,
+                                       bl = 3.0, th = 1.5, verbose = 1, io = IOBuffer()))
+    end
+ 
+    @testset "  vpcdata bounds, tmax, limit rule                    " begin
+        ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
+        vpc = MetidaNCA.vpcdata(ds)
+        @test all(vpc[3] .<= vpc[2])   # lb <= means
+        @test all(vpc[2] .<= vpc[4])   # means <= ub
+ 
+        # tmax при ведущих NaN возвращает время максимума
+        @test MetidaNCA.tmax([0.0, 1.0, 2.0], [NaN, NaN, 7.0]) == 2.0
+ 
+        # LimitRule импорта: значение, равное пределу, ниже предела
+        sj = MetidaNCA.pkimport([0.0, 1.0, 2.0, 3.0], [0.0, 10.0, 5.0, 1.0])
+        MetidaNCA.applylimitrule!(sj, MetidaNCA.LimitRule(lloq = 5.0, btmax = 0.0,
+                                                           atmax = 0.0))
+        o = MetidaNCA.getobs(sj)
+        @test o[2] == 10.0
+        @test o[3] == 0.0
+        @test o[4] == 0.0
     end
 end
 

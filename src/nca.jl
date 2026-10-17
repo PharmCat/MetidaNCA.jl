@@ -729,14 +729,16 @@ function nca!(data::PKSubject{T, OBS}, obs::Symbol = NCARESOBS;
     end
     #-----------------------------------------------------------------------
     #-----------------------------------------------------------------------
-    tlagn = findfirst(!iszero, obs_cp)
-
-    if isnothing(tlagn)
-        result[:Tlag] = NaN*zero(T)
-    elseif tlagn > 1
-        result[:Tlag] = time_cp[tlagn-1]
-    else
-        result[:Tlag] = zero(T)
+    # Tlag only for extravascular
+    if adm == :ev
+        tlagn = findfirst(!iszero, obs_cp)
+        if isnothing(tlagn)
+            result[:Tlag] = NaN*zero(T)
+        elseif tlagn > 1
+            result[:Tlag] = time_cp[tlagn-1]
+        else
+            result[:Tlag] = zero(T)
+        end
     end
 
     if  length(keldata) > 0
@@ -760,10 +762,19 @@ function nca!(data::PKSubject{T, OBS}, obs::Symbol = NCARESOBS;
         result[:MRTinf]          = result[:AUMCinf] / result[:AUCinf]
         result[:MRTinf_pred]     = result[:AUMCinf_pred] / result[:AUCinf_pred]
         if used_dosetime_dose > zero(used_dosetime_dose)
-            result[:Vzlast]          = used_dosetime_dose / result[:AUClast] / result[:Kel]
-            result[:Vzinf]           = used_dosetime_dose / result[:AUCinf] / result[:Kel]
-            result[:Clinf]           = used_dosetime_dose / result[:AUCinf]
-            result[:Vssinf]          = result[:Clinf] * result[:MRTinf]
+            if adm == :iv
+                result[:Vz]              = used_dosetime_dose / result[:AUCinf] / result[:Kel]
+                result[:Vz_pred]         = used_dosetime_dose / result[:AUCinf_pred] / result[:Kel]
+                result[:Cl]              = used_dosetime_dose / result[:AUCinf]
+                result[:Cl_pred]         = used_dosetime_dose / result[:AUCinf_pred]
+                result[:Vss]             = result[:Cl] * result[:MRTinf]
+                result[:Vss_pred]        = result[:Cl_pred] * result[:MRTinf_pred]
+            elseif adm == :ev
+                result[:Vz_F]              = used_dosetime_dose / result[:AUCinf] / result[:Kel]
+                result[:Vz_F_pred]         = used_dosetime_dose / result[:AUCinf_pred] / result[:Kel]
+                result[:Cl_F]              = used_dosetime_dose / result[:AUCinf]
+                result[:Cl_F_pred]         = used_dosetime_dose / result[:AUCinf_pred]
+            end
         end
     else
         result[:Kel] = NaN / oneunit(T)
@@ -807,13 +818,22 @@ function nca!(data::PKSubject{T, OBS}, obs::Symbol = NCARESOBS;
         result[:Fluc]     = (result[:Cmax] - result[:Ctaumin])/result[:Cavg] * 100
         result[:Fluctau]  = (result[:Cmax] - result[:Ctau])/result[:Cavg] * 100
         #If Kel calculated
-        result[:Cltau]           = used_dosetime_dose / result[:AUCtau]
+        if adm == :iv
+            result[:Cltau]           = used_dosetime_dose / result[:AUCtau]
+        elseif adm == :ev
+            result[:Cltau_F]         = used_dosetime_dose / result[:AUCtau]
+        end
         if !isnan(result[:Kel])
-            result[:Accind]   = 1 / (1 - (exp(-result[:Kel] * used_dosetime_tau)))
+            result[:Accind]          = 1 / (1 - (exp(-result[:Kel] * used_dosetime_tau)))
             result[:MRTtauinf]       = (result[:AUMCtau] + used_dosetime_tau * (result[:AUCinf] - result[:AUCtau])) / result[:AUCtau]
             result[:MRTtauinf_pred]  = (result[:AUMCtau] + used_dosetime_tau * (result[:AUCinf_pred] - result[:AUCtau])) / result[:AUCtau]
-            result[:Vztau]           = used_dosetime_dose / result[:AUCtau] / result[:Kel]
-            result[:Vsstau]          = result[:Cltau] * result[:MRTtauinf]
+            if adm == :iv
+                result[:Vz]           = used_dosetime_dose / result[:AUCtau] / result[:Kel]
+                result[:Vsstau]       = result[:Cltau] * result[:MRTtauinf]
+                result[:Vsstau_pred]  = result[:Cltau] * result[:MRTtauinf_pred]
+            elseif adm == :ev
+                result[:Vz_F]         = used_dosetime_dose / result[:AUCtau] / result[:Kel]
+            end
         end
 
 
