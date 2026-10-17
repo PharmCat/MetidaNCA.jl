@@ -587,10 +587,10 @@ Steady-state parameters (tau used):
 * MRTtauinf_pred
 * Cltau (`adm = :iv`)
 * Cltau_F (`adm = :ev`)
+* Vztau (`adm = :iv`)
+* Vztau_F (`adm = :ev`)
 * Vsstau (`adm = :iv`)
 * Vsstau_pred (`adm = :iv`)
-
-With tau `Vz` and `Vz_F` are computed from `AUCtau`.
 
 `partials` is a vector of vectors, tuples or pairs. Example: `partials = [(1,2), (3,4)]`, `partials = [[1,2], (3,4)]`
 
@@ -848,11 +848,11 @@ function nca!(data::PKSubject{T, OBS}, obs::Symbol = NCARESOBS;
             result[:MRTtauinf]       = (result[:AUMCtau] + used_dosetime_tau * (result[:AUCinf] - result[:AUCtau])) / result[:AUCtau]
             result[:MRTtauinf_pred]  = (result[:AUMCtau] + used_dosetime_tau * (result[:AUCinf_pred] - result[:AUCtau])) / result[:AUCtau]
             if adm == :iv
-                result[:Vztau]           = used_dosetime_dose / result[:AUCtau] / result[:Kel]
+                result[:Vztau]        = used_dosetime_dose / result[:AUCtau] / result[:Kel]
                 result[:Vsstau]       = result[:Cltau] * result[:MRTtauinf]
                 result[:Vsstau_pred]  = result[:Cltau] * result[:MRTtauinf_pred]
             elseif adm == :ev
-                result[:Vztau_F]         = used_dosetime_dose / result[:AUCtau] / result[:Kel]
+                result[:Vztau_F]      = used_dosetime_dose / result[:AUCtau] / result[:Kel]
             end
         end
 
