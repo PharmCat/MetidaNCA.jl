@@ -10,8 +10,11 @@ function Base.show(io::IO, obj::DoseTime)
         print(io, "; Rate: $(obj.rate) (Duration: $(obj.dose/obj.rate))")
     end
 end
+
+function strelimrangetype(::ElimRange{:time}) return "Time values" end
+function strelimrangetype(::ElimRange{:point}) return "Points" end
 function Base.show(io::IO, obj::ElimRange)
-    print(io, "Elimination range: $(obj.kelstart) - $(obj.kelend) ")
+    print(io, "Automatic $(obj.kelauto); Elimination range ($(strelimrangetype(obj))): $(obj.kelstart) - $(obj.kelend) ")
     if length(obj.kelexcl) > 0
         print(io, "Exclusions: $(obj.kelexcl[1])")
         if length(obj.kelexcl) > 1 
@@ -62,15 +65,18 @@ function Base.show(io::IO, obj::PKSubject)
         println(io, obj.dosetime)
     end
     println(io,  obj.kelrange)
-    if ismultobs(obj)
-        if obsnumber(obj) == 1
-            PrettyTables.pretty_table(io, metida_table(obj.time, getobs(obj); names = (:Time, getfirstkey(obj))); tf = PrettyTables.tf_compact)
+  
+    if obsnumber(obj) == 1
+        if getfirstkey(obj) == NCARESOBS 
+            ylabel = :Observations
         else
-            PrettyTables.pretty_table(io, metida_table(obj.time, obj.obs...; names = append!([:Time], keys(obj.obs))); tf = PrettyTables.tf_compact)
+            ylabel = getfirstkey(obj)
         end
+        PrettyTables.pretty_table(io, metida_table(obj.time, getobs(obj); names = (:Time, ylabel)); tf = PrettyTables.tf_compact)
     else
-        PrettyTables.pretty_table(io, metida_table(obj.time, getobs(obj); names = (:Time, :Observations)); tf = PrettyTables.tf_compact)
+        PrettyTables.pretty_table(io, metida_table(obj.time, obj.obs...; names = append!([:Time], keys(obj.obs))); tf = PrettyTables.tf_compact)
     end
+
 end
 function Base.show(io::IO, obj::UPKSubject)
     println(io, "  Pharmacokinetic subject (urine)")
@@ -122,7 +128,7 @@ function Base.show(io::IO, obj::DataSet{ST}) where ST <: AbstractSubject
     end
 end
 
-function Base.show(io::IO, obj::T) where T <: NCAResult
+function Base.show(io::IO, obj::T) where T <: NCAPKResult
     print(io, "  PK/PD subject NCA result")
     if (obj.obsname != NCARESOBS) && !isnothing(obj.obsname)
         printstyled(io, " (NCA obs: $(obj.obsname))\n"; color = :blue)
@@ -132,7 +138,7 @@ function Base.show(io::IO, obj::T) where T <: NCAResult
     PrettyTables.pretty_table(io, obj.result; header = ["Parameter", "Value"], tf = PrettyTables.tf_compact)
 end
 
-function Base.show(io::IO, obj::DataSet{Res}) where Res <: NCAResult
+function Base.show(io::IO, obj::DataSet{Res}) where Res <: NCAPKResult
     println(io, "DataSet: PK/PD NCA result")
     println(io, "Length: $(length(obj))")
     lo = min(length(obj), 20)

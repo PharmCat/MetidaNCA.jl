@@ -163,10 +163,10 @@ end
 
 # ---- the range of the y axis ------------------------------------------------
 # Used by this file only
-function maxconc(subj::T; obsname::Union{Symbol, Nothing} = nothing) where T <: AbstractSubject
+function maxconc(subj::T; obsname::Symbol = NCARESOBS) where T <: AbstractSubject
     maximum(Iterators.filter(x-> !(ismissing(x) || isnan(x)), getobs(subj, obsname)))
 end
-function minconc(subj::T, pos = false; obsname::Union{Symbol, Nothing} = nothing) where T <: AbstractSubject
+function minconc(subj::T, pos = false; obsname::Symbol = NCARESOBS) where T <: AbstractSubject
     if pos
         return minimum(Iterators.filter(x-> x > zero(x), getobs(subj, obsname)))
     else
@@ -174,9 +174,9 @@ function minconc(subj::T, pos = false; obsname::Union{Symbol, Nothing} = nothing
     end
 end
 
-maxconc(subj::UPKSubject; obsname::Union{Symbol, Nothing} = nothing) =
-    maximum(Iterators.filter(x-> !(ismissing(x) || isnan(x)), excretionrate(subj; obsname = obsname)))
-function minconc(subj::UPKSubject, pos = false; obsname::Union{Symbol, Nothing} = nothing)
+maxconc(subj::UPKSubject; obsname::Symbol = NCARESOBS) = maximum(Iterators.filter(x-> !(ismissing(x) || isnan(x)), excretionrate(subj; obsname = obsname)))
+
+function minconc(subj::UPKSubject, pos = false; obsname::Symbol = NCARESOBS)
     r = excretionrate(subj; obsname = obsname)
     if pos
         return minimum(Iterators.filter(x-> x > zero(x), r))
@@ -189,13 +189,13 @@ end
 plottime(subj::AbstractSubject) = gettime(subj)
 plottime(subj::UPKSubject)      = midtime(subj)
 
-plotobs(subj::AbstractSubject, obsname = nothing) = getobs(subj, obsname)
-plotobs(subj::UPKSubject, obsname = nothing)      = excretionrate(subj; obsname = obsname)
+plotobs(subj::AbstractSubject, obsname::Symbol = NCARESOBS) = getobs(subj, obsname)
+plotobs(subj::UPKSubject, obsname::Symbol = NCARESOBS)      = excretionrate(subj; obsname = obsname)
 
 plotylabel(::AbstractSubject) = "Concentration"
 plotylabel(::UPKSubject)      = "Excretion rate"
 
-function _subjplot(subj, kwargs, ls; obsname = nothing)
+function _subjplot(subj, kwargs, ls; obsname::Symbol = NCARESOBS)
 
     # Что рисуется, определяют plotobs и plottime.
     subjobs  = plotobs(subj, obsname)
@@ -324,7 +324,7 @@ Plot for subject
 * `drawdt` (`false`) - draw drawdose time;
 
 """
-function pkplot(subj::AbstractSubject; ls = false, xticksn = :auto, yticksn = :auto, obsname = nothing, kwargs...)
+function pkplot(subj::AbstractSubject; ls = false, xticksn = :auto, yticksn = :auto, obsname::Symbol = NCARESOBS, kwargs...)
 
     kwargs = Dict{Symbol, Any}(kwargs)
     k = keys(kwargs)
@@ -365,7 +365,7 @@ function pkplot(subj::AbstractSubject; ls = false, xticksn = :auto, yticksn = :a
     return p
 end
 
-function pkplot!(subj; ls = false, xticksn = :auto, yticksn = :auto, obsname = nothing, kwargs...)
+function pkplot!(subj; ls = false, xticksn = :auto, yticksn = :auto, obsname::Symbol = NCARESOBS, kwargs...)
     time = gettime(subj)
     obs  = getobs(subj, obsname)
     kwargs = Dict{Symbol, Any}(kwargs)
@@ -492,7 +492,7 @@ function pkplot(data::DataSet{T};
         kwargs[:ls] = false
     end
     if !(:obsname in k)
-        kwargs[:obsname] = nothing
+        kwargs[:obsname] = NCARESOBS
     end
     if !(:elim in k)
         kwargs[:elim] = false
@@ -593,9 +593,9 @@ end
 
 
 """
-    pkplot(data::DataSet{T}; elim = false, kelexcl = true, kelpoints = true, kwargs...) where T <: NCAResult
+    pkplot(data::DataSet{T}; elim = false, kelexcl = true, kelpoints = true, kwargs...) where T <: NCAPKResult
 """
-function pkplot(data::DataSet{T}; elim = false, kelexcl = true, kelpoints = true, kwargs...) where T <: NCAResult
+function pkplot(data::DataSet{T}; elim = false, kelexcl = true, kelpoints = true, kwargs...) where T <: NCAPKResult
     k = keys(kwargs)
     ds = map(x-> x.data, data)
     plts = pkplot(ds; kwargs...)
@@ -616,7 +616,7 @@ function pkplot(data::DataSet{T}; elim = false, kelexcl = true, kelpoints = true
 end
 
 """
-    pkplot(data::NCAResult; elim = false, kelexcl = true, kelpoints = true, kwargs...)
+    pkplot(data::NCAPKResult; elim = false, kelexcl = true, kelpoints = true, kwargs...)
 
 Plot PK profile with elmination results.
 
@@ -624,7 +624,7 @@ Plot PK profile with elmination results.
 * `kelexcl` - draw exclusions;
 * `kelpoints` - draw points for elimination calculation;
 """
-function pkplot(data::NCAResult; elim = false, kelexcl = true, kelpoints = true, kwargs...)
+function pkplot(data::NCAPKResult; elim = false, kelexcl = true, kelpoints = true, kwargs...)
     k = keys(kwargs)
     if !(:ls in k)
         ls = false

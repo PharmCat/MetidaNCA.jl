@@ -169,7 +169,6 @@ See also: [`ElimRange`](@ref), [`DoseTime`](@ref), [`LimitRule`](@ref).
 """
 function pkimport(data, time, obs, sort;
     covars = [],
-    kelauto = true,  
     elimrange = ElimRange(), 
     dosetime = nothing, 
     limitrule::Union{Nothing, LimitRule} = nothing, 
@@ -255,7 +254,7 @@ function pkimport(data, time, obs, sort;
             covars_v = nothing
         end
  
-        sdata[i] = PKSubject(timevals_sp, (; zip(obs, obsvals)...), covars_v, kelauto, elimrange,  dosetime_, Dict(sort .=> k))
+        sdata[i] = PKSubject(timevals_sp, (; zip(obs, obsvals)...), covars_v, elimrange,  dosetime_, Dict(sort .=> k))
         i += one(Int)
     end
     ds = DataSet(identity.(sdata))
@@ -317,7 +316,7 @@ end
 Import PK data from time vector `time` and concentration vector `obs`.
 
 """
-function pkimport(time, obs; kelauto = true,  elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true, kwargs...)
+function pkimport(time, obs; obsname = NCARESOBS, kelauto = true,  elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true, kwargs...)
     
     timevals = checktimevec(time)
    
@@ -341,7 +340,7 @@ function pkimport(time, obs; kelauto = true,  elimrange = ElimRange(), dosetime 
         end
     end
 
-    pks = PKSubject(timevals, obsvals, kelauto, elimrange,  dosetime_, id)
+    pks = PKSubject(timevals, (obsname = obsvals,), kelauto, elimrange,  dosetime_, id)
     if !isnothing(limitrule)
         applylimitrule!(pks, limitrule)
     end
@@ -375,7 +374,7 @@ function upkimport(data, stime, etime, conc, vol, sort; kwargs...)
     d      = Dict{Tuple{eltype.(cdata)...}, Vector{Int}}()
     indsdict!(d, cdata)
 
-    tnames = Symbol.(names(data))
+    tnames = Symbol.(Tables.columns(data)) 
     isa(stime, Symbol) || stime in tnames || error("column Start Time ($stime) not found")
     isa(etime, Symbol) || etime in tnames || error("column End Time ($etime) not found")
     isa(conc, Symbol) || conc in tnames || error("column Concentration ($conc) not found")
@@ -405,7 +404,7 @@ function upkimport(data, stime, etime, conc, vol, sort; kwargs...)
     return DataSet(identity.(sdata))
 end
 """
-    upkimport(data, stime, etime, conc, vol; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
+    upkimport(data, stime, etime, conc, vol;  elimrange = ElimRange(), dosetime = DoseTime())
 
 Import single urine PK data from table `data`.
 
@@ -418,7 +417,7 @@ function upkimport(data, stime, etime, conc, vol; kwargs...)
     upkimport(Tables.getcolumn(data, stime), Tables.getcolumn(data, etime), Tables.getcolumn(data, conc), Tables.getcolumn(data, vol); kwargs...)
 end
 """
-    upkimport(stime, etime, conc, vol; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
+    upkimport(stime, etime, conc, vol; elimrange = ElimRange(), dosetime = DoseTime())
 
 Import urine PK data from time vectors:
 * `stime` - start times;
@@ -426,7 +425,7 @@ Import urine PK data from time vectors:
 * `conc` - concentrations;
 * `vol` - volumes.
 """
-function upkimport(stime, etime, conc, vol; kelauto = true,  elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), warn = true)
+function upkimport(stime, etime, conc, vol; elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), warn = true)
     any(isnanormissing, stime) && error("Some Start Time values is NaN or Missing!")
     any(isnanormissing, etime) && error("Some End Time values is NaN or Missing!")
     timeranges = collect(zip(stime, etime))
@@ -434,7 +433,6 @@ function upkimport(stime, etime, conc, vol; kelauto = true,  elimrange = ElimRan
     timevals_sp = timeranges[sp]
     concvals_sp = conc[sp]
     volvals_sp  = vol[sp]
-
 
     #if isnothing(dosetime) dosetime = DoseTime(NaN, zero(promote_type(eltype(stimec), eltype(etimec))), NaN) end
 
@@ -455,7 +453,7 @@ function upkimport(stime, etime, conc, vol; kelauto = true,  elimrange = ElimRan
             timevals_sp[c][1] == timevals_sp[c-1][2] || error("Start time ($(timevals_sp[c][1])) for observation $c not equal End time ($(timevals_sp[c-1][2])) for observation $(c-1)!")
         end
     end
-    UPKSubject(timevals_sp, concvals_sp, volvals_sp, kelauto, elimrange,  dosetime, id)
+    UPKSubject(timevals_sp, concvals_sp, volvals_sp, elimrange,  dosetime, id)
 end
 
 """

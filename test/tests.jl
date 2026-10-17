@@ -174,7 +174,7 @@ include("refdicts.jl")
     pl = @test_nowarn MetidaNCA.pkplot(dsnca[1]; kelpoints = false, elim = true)
     MetidaNCA.setkelauto!(ds, true)
 
-    kr =  MetidaNCA.ElimRange(1.5,  10.0, [2.0, 2.5]; time  = true)
+    kr =  MetidaNCA.ElimRange(1.5,  10.0, true, [2.0, 2.5]; time  = true)
     MetidaNCA.setkelrange!(ds, kr, [1,2,3])
     dsncat = MetidaNCA.nca!(ds)
     pl = @test_nowarn MetidaNCA.pkplot(dsncat[1]; elim = true)

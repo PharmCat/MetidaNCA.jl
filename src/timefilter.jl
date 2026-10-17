@@ -25,7 +25,7 @@ function timefilter(subj::PKSubject, time::AbstractRange)
     end
     if !(valinrange(subj_.kelrange.kelstart, time)) || !(valinrange(subj_.kelrange.kelend, time)) || any(x-> !(valinrange(x, time)), subj_.kelrange.kelexcl)
         subj_.kelrange = ElimRange()
-        subj_.kelauto = true
+        subj_.kelrange.kelauto = true
     end
     subj_
 end

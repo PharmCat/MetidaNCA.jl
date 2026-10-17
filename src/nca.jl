@@ -206,7 +206,7 @@ end
 function aumcpart(t₁, t₂, c₁, c₂, calcm, aftertmax)
     if calcm == :lint || c₁ <= zero(c₁) && c₂ <= zero(c₂)
         aumc  = linaumc(t₁, t₂, c₁, c₂)
-    elseif calcm == :logt && aftertmax && c₁ > zero(c₁) && c₂ > zero(c₂)
+    elseif calcm == :logt && aftertmax && c₁ > zero(c₁) && c₂ > zero(c₂) && !isapprox(c₁, c₂; atol=sqrt(eps())) 
         aumc  = logaumc(t₁, t₂, c₁, c₂)
     elseif calcm == :luld &&  c₁ > c₂ > zero(c₂)
         aumc  = logaumc(t₁, t₂, c₁, c₂)
@@ -333,13 +333,13 @@ function getetimep(time, time_cp, excl::ElimRange{:point})
 end
 # 3
 # Elimination, TlastN, Tlast
-function step_3_elim!(result, data, adm, tmaxn, time_cp::AbstractVector{T}, obs_cp::AbstractVector{O}, keldata, kelauto) where T where O
+function step_3_elim!(result, data, adm, tmaxn, time_cp::AbstractVector{T}, obs_cp::AbstractVector{O}, keldata, kelrange) where T where O
     resize!(keldata)
 
     time   = gettime(data)
     obsnum = length(time_cp)
     # data.kelrange.kelexcl - indexes; excltime - time values
-    excltime, _ = getexcltimes(time, data.kelrange)
+    excltime, _ = getexcltimes(time, kelrange)
     # Unitful values
     r_time_cp = reinterpret(typeof(one(T)), time_cp)
     r_obs_cp  = reinterpret(typeof(one(O)), obs_cp)
@@ -347,7 +347,7 @@ function step_3_elim!(result, data, adm, tmaxn, time_cp::AbstractVector{T}, obs_
     tlastn   = findlast(x-> x > zero(x), r_obs_cp)
     tlast    = r_time_cp[tlastn]
 
-    if kelauto
+    if kelrange.kelauto
         if (adm != :iv && obsnum - tmaxn > 2) || (adm == :iv && obsnum - tmaxn > 1)
             if adm == :iv
                 stimep = tmaxn
@@ -355,8 +355,8 @@ function step_3_elim!(result, data, adm, tmaxn, time_cp::AbstractVector{T}, obs_
                 stimep = tmaxn + 1
             end
             timep = collect(stimep:obsnum) # time points (and conc) - indexes for time vector from start to end
-            # Esclude all indexes in data.kelrange.kelexcl
-            if length(data.kelrange.kelexcl) > 0
+            # Esclude all indexes in kelrange.kelexcl
+            if length(kelrange.kelexcl) > 0
                 exclinds = findall(x -> x in excltime, time_cp)
                 filter!(x-> x ∉ exclinds, timep)
             end
@@ -376,23 +376,25 @@ function step_3_elim!(result, data, adm, tmaxn, time_cp::AbstractVector{T}, obs_
             end
         end
     else
-        stimep = getstimep(time, time_cp, data.kelrange) 
+        stimep = getstimep(time, time_cp, kelrange) 
         if isnothing(stimep)
             @warn "Start-time not found - automatic kel calclation used."
-            return step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, keldata, true)
+            kelrange.kelauto = true
+            return step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, keldata, kelrange)
         end
-        etimep = getetimep(time, time_cp, data.kelrange) 
+        etimep = getetimep(time, time_cp, kelrange) 
         if isnothing(stimep)
             @warn "End-time not found - automatic kel calclation used."
-            return step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, keldata, true) 
+            kelrange.kelauto = true
+            return step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, keldata, kelrange) 
         end
         timep = collect(stimep:etimep)
-        if length(data.kelrange.kelexcl) > 0
-            @inbounds for i in data.kelrange.kelexcl
+        if length(kelrange.kelexcl) > 0
+            @inbounds for i in kelrange.kelexcl
                 filter!(x-> x ∉ findall(x -> x in excltime, time_cp), timep)
             end
         end
-        zcinds = findall(x -> x <= 0, obs_cp)
+        zcinds = findall(x -> x <= zero(O), obs_cp)
         filter!(x-> x ∉ zcinds, timep)
         if length(timep) > 1
             sl = slope(view(r_time_cp, timep), view(r_obs_cp, timep), funk = log)
@@ -405,8 +407,8 @@ end
 # 6
 function step_6_areas(time_cp::AbstractVector{T}, obs_cp::AbstractVector{O}, calcm, tmaxn, tlastn) where T where O
     obsnum     = length(time_cp)
-    auctype    = typeof(zero(eltype(time_cp))*zero(eltype(obs_cp)))
-    aumctype   = typeof(zero(eltype(time_cp))^2*zero(eltype(obs_cp)))
+    auctype    = typeof(zero(T)*zero(O))
+    aumctype   = typeof(zero(T)^2*zero(O))
     aucpartl   = Array{auctype, 1}(undef, obsnum - 1)
     aumcpartl  = Array{aumctype, 1}(undef, obsnum - 1)
     #Calculate all AUC/AUMC part based on data
@@ -453,9 +455,9 @@ See also: [`ElimRange`](@ref), [`DoseTime`](@ref), [`LimitRule`](@ref).
 function nca(args...; type::Symbol = :bps, bl = 0, th = 0, kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), limitrule::Union{Nothing, LimitRule} = nothing, io = stdout, wm = false, kwargs...)
     if !(type in (:bps, :ur, :pd)) error("Unknown type") end
     if type == :bps
-        pki    = pkimport(args...; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime, limitrule = limitrule, kwargs...)
+        pki    = pkimport(args...;  elimrange = elimrange, dosetime = dosetime, limitrule = limitrule, kwargs...)
     elseif type == :ur
-        pki    = upkimport(args...; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime, kwargs...)
+        pki    = upkimport(args...; elimrange = elimrange, dosetime = dosetime, kwargs...)
     elseif type == :pd
         pki    = pdimport(args...; th = th, bl = bl, limitrule = limitrule, kwargs...)
     end
@@ -478,7 +480,7 @@ Non-compartmental (NCA) analysis of PK/PD data.
 
 Other keywords is the same as in `nca!` method for `PKSubject`.
 """
-function nca!(data::DataSet{Subj}, obs::Union{Symbol, Nothing} = nothing;  wm::Bool = false, io = stdout, kwargs...) where Subj <: AbstractSubject
+function nca!(data::DataSet{Subj}, obs::Symbol = Symbol();  wm::Bool = false, io = stdout, kwargs...) where Subj <: AbstractSubject
 
     writetostdout = false
     if wm
@@ -584,7 +586,7 @@ Steady-state parameters (tau used):
 `partials` is a vector of vectors, tuples or pairs. Example: `partials = [(1,2), (3,4)]`, `partials = [[1,2], (3,4)]`
 
 """
-function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS; 
+function nca!(data::PKSubject{T, OBS}, obs::Symbol = NCARESOBS; 
     adm = :ev, calcm = :lint, usedose::Int = 0,
     intpm = :calcm,  
     partials = nothing, 
@@ -596,6 +598,11 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
     kwargs...) where T where OBS
 
     O = eltype(getobs(data, obs))
+
+    zeroauc  = zero(T)*zero(O)
+    zeroaumc = zero(T)^2*zero(O)
+
+    kelrange = deepcopy(data.kelrange)
 
     ptype  = promote_type(Float64, T, O)
 
@@ -663,16 +670,17 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
     # Get last concentration
     if length(einds) > 0
         for ei in einds
-            if ei ∉ data.kelrange.kelexcl push!(data.kelrange.kelexcl, ei) end
+            if ei ∉ kelrange.kelexcl push!(kelrange.kelexcl, ei) end
         end
-        sort!(data.kelrange.kelexcl)
-        if data.kelrange.kelstart in data.kelrange.kelexcl || data.kelrange.kelend in data.kelrange.kelexcl
-            data.kelauto = true
+        sort!(kelrange.kelexcl)
+        if kelrange.kelstart in kelrange.kelexcl || kelrange.kelend in kelrange.kelexcl
+            println(io, "    Elimination range bounds in exclusions, set kelauto = true;")
+            kelrange.kelauto = true
         end
     end
 
 
-    keldata, excltime, tlastn, tlast = step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, KelData(T[], T[], Float64[], Float64[], Float64[], Float64[], Int[]), data.kelauto)
+    keldata, excltime, tlastn, tlast = step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, KelData(T[], T[], Float64[], Float64[], Float64[], Float64[], Int[]), kelrange)
     # C last and T last
     result[:Tlast]   = time_cp[tlastn]
     result[:Clast]   = obs_cp[tlastn]
@@ -694,7 +702,7 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
     else
         if adm == :iv
             if  first(obs_cp) > obs_cp[2] > zero(O)
-                result[:Cdose] = logcpredict(first(time_cp), time_cp[2], 0, first(obs_cp), obs_cp[2])
+                result[:Cdose] = logcpredict(first(time_cp), time_cp[2], zero(T), first(obs_cp), obs_cp[2])
             else
                 result[:Cdose] = first(obs_cp)
             end
@@ -774,8 +782,8 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
     # STEP 8
     # Steady-state parameters
     if used_dosetime_tau > zero(used_dosetime_tau)
-        eaucpartl  = zero(T)*zero(O)
-        eaumcpartl = zero(T)^2*zero(O)
+        eaucpartl  = zeroauc
+        eaumcpartl = zeroaumc
         if time_cp[taulastp] < used_dosetime_tau < time_cp[end]
             result[:Ctau] = interpolate(time_cp[taulastp], time_cp[taulastp + 1], used_dosetime_tau, obs_cp[taulastp], obs_cp[taulastp + 1], intpm, true)
             eaucpartl = aucpart(time_cp[taulastp], used_dosetime_tau, obs_cp[taulastp], result[:Ctau], calcm, true)
@@ -836,8 +844,8 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
             firstp = findfirst(x -> x >= stime, time_cp)
             #last point
             lastp  = findlast(x -> x <= etime, time_cp)
-            firstpart = zero(T)*zero(O)
-            lastpart  = zero(T)*zero(O)
+            firstpart = zeroauc
+            lastpart  = zeroauc
             if stime < time_cp[firstp]
                 firstpartc = interpolate(time_cp[firstp - 1], time_cp[firstp], stime, obs_cp[firstp - 1], obs_cp[firstp], intpm,  stime > result[:Tmax])
                 firstpart += aucpart(stime, time_cp[firstp], firstpartc, obs_cp[firstp], calcm, stime > result[:Tmax])
@@ -893,8 +901,9 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
         if  used_dosetime_time > 0
             time_cp .+= used_dosetime_time
         end
+
         hnames = [:Time, :Concentrtion, :AUC, :AUC_cum, :AUMC, :AUMC_cum, :Info]
-        mx = metida_table(time_cp, obs_cp, pushfirst!(aucpartl, 0.0),  pushfirst!(aucpartlsum, 0.0), pushfirst!(aumcpartl, 0.0),  pushfirst!(aumcpartlsum, 0.0), fill("", length(obs_cp));
+        mx = metida_table(time_cp, obs_cp, pushfirst!(aucpartl, zeroauc),  pushfirst!(aucpartlsum, zeroauc), pushfirst!(aumcpartl, zeroaumc),  pushfirst!(aumcpartlsum, zeroaumc), fill("", length(obs_cp));
         names = hnames)
         if cdoseins > 0
             mx[1, 7] = "D*"
@@ -904,7 +913,7 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
         if !isnan(result[:Kel])
             @inbounds for i = 1:length(time_cp)
                 if time_cp[i] >= keldata.s[rsqn] && time_cp[i] <= keldata.e[rsqn]
-                    if length(data.kelrange.kelexcl) > 0
+                    if length(kelrange.kelexcl) > 0
                         if time_cp[i] in excltime
                             mx[i, 7] = "Excl"
                         else
@@ -948,7 +957,7 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
     end
 ################################################################################
 
-    ncares = NCAResult(data, options, obs, keldata, result)
+    ncares = NCAPKResult(data, options, obs, keldata, kelrange, result)
     modify!(ncares)
 
     #-----------------------------------------------------------------------
@@ -1036,12 +1045,13 @@ Results:
 * HL
 * AUCinf
 """
-function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}, obs::Union{Symbol, Nothing} = nothing; adm = :ev, calcm = :lint, intpm = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = identity, kwargs...) where S where E where O where VOL where V
+function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}, obs::Symbol = NCARESOBS; adm = :ev, calcm = :lint, intpm = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = identity, kwargs...) where S where E where O where VOL where V
 
     ptype  = promote_type(Float64, S, E, O, VOL)
     ttype  = promote_type(S, E)
     result   = Dict{Symbol, ptype}()
-    
+    kelrange = deepcopy(data.kelrange)
+
     options =  Dict(:type => :urine, :adm => adm, :calcm => calcm, :intpm => intpm, :verbose => verbose, :warn => warn, :modify! => modify!)
 
     if verbose > 0
@@ -1096,7 +1106,7 @@ function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}, obs::Union{Symbol, Nothi
 
     # STEP 3
     # Elimination
-    keldata, excltime = step_3_elim!(result, data, adm, tmaxn, mtime, exr, KelData(ttype[], ttype[], Float64[], Float64[], Float64[], Float64[], Int[]), data.kelauto)
+    keldata, excltime = step_3_elim!(result, data, adm, tmaxn, mtime, exr, KelData(ttype[], ttype[], Float64[], Float64[], Float64[], Float64[], Int[]), kelrange)
 
     #result[:Kel]
     #result[:HL]
@@ -1124,7 +1134,7 @@ function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}, obs::Union{Symbol, Nothi
         result[:AUCpct]          = (result[:AUCinf] - result[:AUClast]) / result[:AUCinf] * 100
     end
 
-    ncares = NCAResult(data, options, obs, keldata, result)
+    ncares = NCAPKResult(data, options, obs, keldata, kelrange, result)
     modify!(ncares)
     #-----------------------------------------------------------------------
     return ncares
@@ -1374,7 +1384,7 @@ function nca!(data::PDSubject{T,O}, obs::Union{Symbol, Nothing} = nothing; calcm
         end
     end
 
-    ncares = NCAResult(data, options, result)
+    ncares = NCAPDResult(data, options, result)
     modify!(ncares)
     #-----------------------------------------------------------------------
     return ncares

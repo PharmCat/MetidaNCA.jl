@@ -75,7 +75,7 @@ function png end
 
 const LOG2 = log(2)
 
-const NCARESOBS = Symbol("")
+const NCARESOBS = Symbol()
 
     include("types.jl")
     include("setkelauto.jl")
