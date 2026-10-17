@@ -548,20 +548,36 @@ Results:
 * MRTlast
 * MRTinf
 * MRTinf_pred
+* Tlast
+* Dose
+* Obsnum
+* Rsqn
+* LZ
 * Cllast
-* Clinf
-* Vzlast
-* Vzinf
-* Vssinf
+
+Intravascular administration (`adm = :iv`):
+
+* Cl
+* Cl_pred
+* Vz
+* Vz_pred
+* Vss
+* Vss_pred
+
+Extravascular administration (`adm = :ev`):
+
+* Cl_F
+* Cl_F_pred
+* Vz_F
+* Vz_F_pred
 
 Steady-state parameters (tau used):
 
 * AUCtau
 * AUMCtau
 * Ctau
-* Cavg
-* Ctaumax
 * Ctaumin
+* Cavg
 * Accind
 * Fluc
 * Fluctau
@@ -569,8 +585,12 @@ Steady-state parameters (tau used):
 * Swingtau
 * MRTtauinf
 * MRTtauinf_pred
-* Cltau
-* Vztau
+* Cltau (`adm = :iv`)
+* Cltau_F (`adm = :ev`)
+* Vsstau (`adm = :iv`)
+* Vsstau_pred (`adm = :iv`)
+
+With tau `Vz` and `Vz_F` are computed from `AUCtau`.
 
 `partials` is a vector of vectors, tuples or pairs. Example: `partials = [(1,2), (3,4)]`, `partials = [[1,2], (3,4)]`
 
@@ -828,11 +848,11 @@ function nca!(data::PKSubject{T, OBS}, obs::Symbol = NCARESOBS;
             result[:MRTtauinf]       = (result[:AUMCtau] + used_dosetime_tau * (result[:AUCinf] - result[:AUCtau])) / result[:AUCtau]
             result[:MRTtauinf_pred]  = (result[:AUMCtau] + used_dosetime_tau * (result[:AUCinf_pred] - result[:AUCtau])) / result[:AUCtau]
             if adm == :iv
-                result[:Vz]           = used_dosetime_dose / result[:AUCtau] / result[:Kel]
+                result[:Vztau]           = used_dosetime_dose / result[:AUCtau] / result[:Kel]
                 result[:Vsstau]       = result[:Cltau] * result[:MRTtauinf]
                 result[:Vsstau_pred]  = result[:Cltau] * result[:MRTtauinf_pred]
             elseif adm == :ev
-                result[:Vz_F]         = used_dosetime_dose / result[:AUCtau] / result[:Kel]
+                result[:Vztau_F]         = used_dosetime_dose / result[:AUCtau] / result[:Kel]
             end
         end
 
@@ -991,12 +1011,12 @@ of the interval instead shifts the whole excretion-rate curve, and with it
 midtime(subj::UPKSubject) = map(x -> (x[1] + x[2]) / 2, gettime(subj))
 
 #=
-    excretionrate(subj::UPKSubject; obsname = nothing)
+    excretionrate(subj::UPKSubject; obsname = NCARESOBS)
 
 Excretion rate of every collection interval, `C · Vol / (t_end - t_start)`,
 computed from the actual interval boundaries.
 =#
-excretionrate(subj::UPKSubject; obsname::Union{Symbol, Nothing} = nothing) =
+excretionrate(subj::UPKSubject; obsname::Symbol = NCARESOBS) =
     exrate(gettime(subj), getobs(subj, obsname), subj.vol)
 
 function exrate(time::AbstractVector{Tuple{S, E}}, conc::AbstractVector{C}, vol::AbstractVector{V})  where S where E where C where V
@@ -1098,7 +1118,7 @@ function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}, obs::Symbol = NCARESOBS;
     pushfirst!(vol, zero(VOL))
     pushfirst!(exr, zero(eltype(exr)))
 
-    result[:Maxrate], result[:Tmax], tmaxn, result[:Minrate] = ctmax(mtime, exr)
+    result[:Maxrate], result[:Tmax], tmaxn, rmin = ctmax(mtime, exr)
 
     if data.dosetime.dose > zero(data.dosetime.dose)
         result[:Prec]  = result[:AR]/data.dosetime.dose * 100

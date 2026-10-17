@@ -521,7 +521,7 @@ end
     @test round.(dsnca[:, :Cltau_F], digits = 6) == round.(refdict2[:Cltau_F], digits = 6)
 # Vzlast
 # Vzinf / Vztau
-    @test round.(dsnca[:, :Vz_F], digits = 6) == round.(refdict2[:Vz_F], digits = 6)
+    @test round.(dsnca[:, :Vztau_F], digits = 6) == round.(refdict2[:Vztau_F], digits = 6)
 # Vssinf
 
     # AUCtau
@@ -587,7 +587,7 @@ end
     @test round.(dsnca[:, :Cltau], sigdigits = 6) == round.(refdict3[:Cltau], sigdigits = 6)
 # Vzlast
 # Vz_F 
-    @test round.(dsnca[:, :Vz], sigdigits = 6) == round.(refdict3[:Vz], sigdigits = 6)
+    @test round.(dsnca[:, :Vztau], sigdigits = 6) == round.(refdict3[:Vztau], sigdigits = 6)
 
 
     # AUCtau
@@ -617,7 +617,7 @@ end
     # Clinf / Cltau
     # Vzlast
     # Vzinf / Vztau
-    @test round.(dsnca[:, :Vz], sigdigits = 6) == round.(refdict3[:Vz], sigdigits = 6)
+   
     # Vssinf
 
     # AUCtau
@@ -689,7 +689,7 @@ end
     @test round.(dsnca[:, :Cltau_F], digits = 6) == round.(refdict4[:Cltau_F], digits = 6)
 # Vzlast
 # Vzinf / Vztau
-    @test round.(dsnca[:, :Vz_F], digits = 6) == round.(refdict4[:Vz_F], digits = 6)
+    @test round.(dsnca[:, :Vztau_F], digits = 6) == round.(refdict4[:Vztau_F], digits = 6)
 # Vssinf
 
     # AUCtau
@@ -961,7 +961,7 @@ end
     # Vzlast
 
     # Vztau
-    @test round.(dsnca[:, :Vz_F], sigdigits = 6) == round.([21.241439
+    @test round.(dsnca[:, :Vztau_F], sigdigits = 6) == round.([21.241439
 3.574574
 37.214301
 9.118807

@@ -817,7 +817,7 @@ const COVERAGE_ITEMS = [
     (item = "Minrate (urine)",
      scenarios = String[], elsewhere = "cannot be qualified",
      note = "Identically zero: nca! prepends a zero to the rate vector for the curve origin and takes the minimum after that (nca.jl, urine branch)"),
-    (item = "Derived parameters (Cllast, Vzlast, Vsstau, LZ, Rsqn, AUCBTW)",
+    (item = "Derived parameters (Cllast, Cl_pred, Cl_F_pred, Vz_pred, Vz_F_pred, Vss, Vss_pred, Vsstau, Vsstau_pred, LZ, Rsqn, AUCBTW)",
      scenarios = ["DERIVED-ID"], elsewhere = "",
      note = "No external counterpart exists. Each is checked against the identity that defines it"),
     (item = "Descriptive statistics (n, mean, SD, CV, geometric mean and CV, median, range)",
