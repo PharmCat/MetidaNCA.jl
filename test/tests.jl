@@ -1927,7 +1927,7 @@ end
     end
 end
  
-@testset "  Regress fix                                          " begin
+@testset "  Regress fix                                               " begin
  
 
     @testset "  Subject constructors and the vector import          " begin
@@ -2082,10 +2082,10 @@ end
         @test all(vpc[3] .<= vpc[2])   # lb <= means
         @test all(vpc[2] .<= vpc[4])   # means <= ub
  
-        # tmax при ведущих NaN возвращает время максимума
+        # tmax with leading NaN returns the time of the maximum
         @test MetidaNCA.tmax([0.0, 1.0, 2.0], [NaN, NaN, 7.0]) == 2.0
  
-        # LimitRule импорта: значение, равное пределу, ниже предела
+        # import LimitRule: a value equal to the limit is below the limit
         sj = MetidaNCA.pkimport([0.0, 1.0, 2.0, 3.0], [0.0, 10.0, 5.0, 1.0])
         MetidaNCA.applylimitrule!(sj, MetidaNCA.LimitRule(lloq = 5.0, btmax = 0.0,
                                                            atmax = 0.0))
@@ -2093,6 +2093,124 @@ end
         @test o[2] == 10.0
         @test o[3] == 0.0
         @test o[4] == 0.0
+    end
+
+    @testset "  ctmax, KelData bounds, DoseTime types                " begin
+        # ctmax(subj) uses the tau window and returns four values, as the
+        # vector method does
+        t  = [0.0, 1.0, 2.0, 3.0, 5.0, 8.0, 12.0]
+        c  = [0.0, 100.0, 70.0, 50.0, 25.0, 10.0, 4.0]
+        sj = MetidaNCA.pkimport(t, c;
+                 dosetime = MetidaNCA.DoseTime(dose = 100.0, time = 0.0, tau = 0.75))
+        r  = MetidaNCA.nca!(sj)
+        ct = MetidaNCA.ctmax(sj)
+        @test length(ct) == 4
+        @test ct[1] == r[:Cmax]
+        @test ct[2] == r[:Tmax]
+        @test ct[4] == r[:Ctaumin]
+        # with no tau the window is the whole profile
+        sj2 = MetidaNCA.pkimport(t, c; dosetime = MetidaNCA.DoseTime(dose = 100.0, time = 0.0))
+        @test MetidaNCA.ctmax(sj2)[1] == 100.0
+
+        # lambda-z interval bounds are the points actually used
+        t2 = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+        c2 = [0.0, 100.0, 70.0, 0.0, 25.0, 10.0, 4.0]
+        s2 = MetidaNCA.pkimport(t2, c2;
+                 dosetime = MetidaNCA.DoseTime(dose = 100.0, time = 0.0),
+                 elimrange = MetidaNCA.ElimRange(kelstart = 4, kelend = 7, kelauto = false))
+        kd = MetidaNCA.getkeldata(MetidaNCA.nca!(s2))
+        @test first(kd.s) == 4.0          # point t = 3 requested, it is zero
+        @test first(kd.e) == 6.0
+
+        # integer dose, time and tau are promoted to Float64
+        d = MetidaNCA.DoseTime(dose = 100, time = 0, tau = 12)
+        @test typeof(d.dose) == Float64
+        @test typeof(d.time) == Float64
+        @test typeof(d.tau)  == Float64
+        d2 = MetidaNCA.DoseTime(100, 0, 12)
+        @test typeof(d2.time) == Float64
+        u  = MetidaNCA.upkimport([0, 1, 2], [1.0, 2.0, 6.0], [1.0, 2.0, 2.0], [1.0, 2.0, 3.0])
+        @test typeof(MetidaNCA.getdosetime(u).time) == Float64
+    end
+
+    @testset "  Rlast and the profile with no measurable value      " begin
+        st = [0.0, 1.0, 2.0,  6.0, 12.0, 18.0]
+        et = [1.0, 2.0, 6.0, 12.0, 18.0, 24.0]
+        cc = [1.0, 2.0, 2.0,  1.0,  1.0,  0.0]
+        vl = [1.0, 2.0, 3.0,  3.0,  2.0,  2.0]
+        s  = MetidaNCA.upkimport(st, et, cc, vl;
+                 dosetime = MetidaNCA.DoseTime(dose = 100.0, time = 0.0))
+        r  = MetidaNCA.nca!(s)
+        # last measurable rate, not the trailing zero
+        @test r[:Rlast] ≈ 1/3
+        # AUClast stops at the mid-point of the last measurable interval
+        @test r[:AUClast] == 17.125
+        @test r[:AUCall]  == 18.125
+        @test r[:AUCinf]   > r[:AUClast]
+
+        # no measurable rate - no error
+        s0 = MetidaNCA.upkimport(st, et, zeros(6), vl;
+                 dosetime = MetidaNCA.DoseTime(dose = 100.0, time = 0.0))
+        r0 = MetidaNCA.nca!(s0)
+        @test r0[:Rlast]   == 0.0
+        @test r0[:AUClast] == 0.0
+        @test r0[:AUCall]  == 0.0
+
+        # no measurable concentration - the last point is reported, the zero
+        # area is reported as NaN (step_6_areas)
+        sp = MetidaNCA.pkimport([0.0, 1.0, 2.0], zeros(3);
+                 dosetime = MetidaNCA.DoseTime(dose = 100.0, time = 0.0))
+        rp = MetidaNCA.nca!(sp)
+        @test rp[:Clast] == 0.0
+        @test rp[:Tlast] == 2.0
+        @test isnan(rp[:AUClast])
+    end
+
+    @testset "  limitrule as an import keyword                       " begin
+        lr = MetidaNCA.LimitRule(lloq = 5.0, btmax = 0.0, atmax = 0.0)
+        s1 = MetidaNCA.pkimport([0.0, 1.0, 2.0, 3.0], [0.0, 10.0, 5.0, 1.0]; limitrule = lr)
+        @test MetidaNCA.getobs(s1) == [0.0, 10.0, 0.0, 0.0]
+        # the keyword gives the same as applying the rule after import
+        s2  = MetidaNCA.pkimport(lloqpk, :Time, :Concentration; limitrule = lr)
+        s2r = MetidaNCA.pkimport(lloqpk, :Time, :Concentration)
+        MetidaNCA.applylimitrule!(s2r, lr)
+        @test isequal(MetidaNCA.getobs(s2), MetidaNCA.getobs(s2r))
+
+        ds  = MetidaNCA.pkimport(lloqpk, :Time, :Concentration, [:Subject, :Formulation];
+                                 limitrule = lr)
+        dsr = MetidaNCA.pkimport(lloqpk, :Time, :Concentration, [:Subject, :Formulation])
+        MetidaNCA.applylimitrule!(dsr, lr)
+        @test all(i -> isequal(MetidaNCA.getobs(ds[i]), MetidaNCA.getobs(dsr[i])), 1:length(ds))
+    end
+
+    @testset "  show methods                                        " begin
+        io = IOBuffer()
+        # route and infusion rate
+        show(io, MetidaNCA.DoseTime(dose = 100.0, time = 0.0, rate = 10.0, route = :iv))
+        @test occursin("Rate", String(take!(io)))
+        # subject type lines and the skipped-subject message
+        ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
+        show(io, ds)
+        @test occursin("Pharmacokinetics subject", String(take!(io)))
+        up = MetidaNCA.upkimport(upkdata, :st, :et, :conc, :vol, :subj)
+        show(io, up)
+        @test occursin("urine", String(take!(io)))
+        pd = MetidaNCA.pdimport(pddata, :time, :obs, :subj; bl = 3.0, th = 1.5)
+        show(io, pd)
+        @test occursin("Pharmacodynamics", String(take!(io)))
+        show(io, MetidaNCA.nca!(ds)[1])
+        @test occursin("NCA result", String(take!(io)))
+    end
+
+    @testset "  plot scales and minconc                             " begin
+        ds   = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
+        subj = ds[1]
+        @test !isnothing(MetidaNCA.pkplot(subj; yscale = :log2))
+        @test !isnothing(MetidaNCA.pkplot(subj; yscale = :ln))
+        @test !isnothing(MetidaNCA.pkplot(subj; yscale = :log10))
+        @test MetidaNCA.minconc(subj, true) > 0
+        @test MetidaNCA.minconc(subj) >= 0
+        @test MetidaNCA.maxconc(subj) > 0
     end
 end
 

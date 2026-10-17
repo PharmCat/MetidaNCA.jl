@@ -66,25 +66,25 @@ function ctmax(time::AbstractVector, obs::AbstractVector, taulastp::Int = length
     return cmax, time[tmaxn], tmaxn, cmin
 end
 
+"""
+    ctmax(data::PKSubject, dt::Int = 0)
+
+Cmax, Tmax, index of Cmax and Cmin for a subject. Window from dose time `dt` to
+`tau` if `tau` set, else to the last observation. Returns the same four values
+as the vector method.
+"""
 function ctmax(data::PKSubject, dt::Int = 0)
     if dt == 0 dt = length(data.dosetime) end
     datadt = data.dosetime[dt]
-    fobs = firstobs(gettime(data), getobs(data), datadt.time)
-    if  datadt.tau > 0
-        taulastp = findlast(x -> x <= datadt.time + datadt.tau, gettime(data))
-    else
-        taulastp = length(data)
-    end
-    cmax  = getobs(data)[fobs]
-    tmaxn = fobs
-    if length(data) - fobs == 0 return cmax, gettime(data)[fobs], tmaxn end
-    @inbounds for i = fobs + 1:length(data)
-        if !isnanormissing(getobs(data)[i]) && getobs(data)[i] > cmax
-            cmax  = getobs(data)[i]
-            tmaxn = i
-        end
-    end
-    return cmax, data.time[tmaxn], tmaxn
+    time   = gettime(data)
+    obs    = getobs(data)
+    fobs   = firstobs(time, obs, datadt.time)
+    taulastp = datadt.tau > 0 ?
+        something(findlast(x -> x <= datadt.time + datadt.tau, time), length(data)) :
+        length(data)
+    taulastp < fobs && return NaN, NaN, 0, NaN
+    cmax, tmax, tmaxn, cmin = ctmax(view(time, fobs:taulastp), view(obs, fobs:taulastp))
+    return cmax, tmax, tmaxn + fobs - 1, cmin
 end
 
 function logtpredict(c₁, c₂, cx, t₁, t₂)
@@ -333,11 +333,13 @@ function step_3_elim!(result, data, adm, tmaxn, time_cp::AbstractVector{T}, obs_
     r_time_cp = reinterpret(typeof(one(T)), time_cp)
     r_obs_cp  = reinterpret(typeof(one(O)), obs_cp)
 
-    tlastn   = findlast(x-> x > zero(x), r_obs_cp)
+    # with no measurable observation the last point is reported, Clast is zero
+    tlastn   = something(findlast(x-> x > zero(x), r_obs_cp), obsnum)
     tlast    = r_time_cp[tlastn]
 
     if kelrange.kelauto
         if (adm != :iv && obsnum - tmaxn > 2) || (adm == :iv && obsnum - tmaxn > 1)
+            # Points prior to Cmax are not used. The Cmax point itself is used for a bolus model only.
             if adm == :iv
                 stimep = tmaxn
             else
@@ -387,7 +389,8 @@ function step_3_elim!(result, data, adm, tmaxn, time_cp::AbstractVector{T}, obs_
         filter!(x-> x ∉ zcinds, timep)
         if length(timep) > 1
             sl = slope(view(r_time_cp, timep), view(r_obs_cp, timep), funk = log)
-            push!(keldata, time_cp[stimep], time_cp[etimep], sl[1], sl[2], sl[3], sl[4], sl[5])
+
+            push!(keldata, time_cp[first(timep)], time_cp[last(timep)], sl[1], sl[2], sl[3], sl[4], sl[5])
         end
     end
     # keldata - New KelData, excltime excluded time values, t last N and tlast
@@ -587,10 +590,10 @@ Steady-state parameters (tau used):
 * MRTtauinf_pred
 * Cltau (`adm = :iv`)
 * Cltau_F (`adm = :ev`)
-* Vztau (`adm = :iv`)
-* Vztau_F (`adm = :ev`)
 * Vsstau (`adm = :iv`)
 * Vsstau_pred (`adm = :iv`)
+
+With tau `Vz` and `Vz_F` are computed from `AUCtau`.
 
 `partials` is a vector of vectors, tuples or pairs. Example: `partials = [(1,2), (3,4)]`, `partials = [[1,2], (3,4)]`
 
@@ -752,6 +755,8 @@ function nca!(data::PKSubject{T, OBS}, obs::Symbol = NCARESOBS;
     # Tlag only for extravascular
     if adm == :ev
         tlagn = findfirst(!iszero, obs_cp)
+        # Time of the last point below the limit of quantification before the
+        # first measurable observation. A measurable first point gives zero.
         if isnothing(tlagn)
             result[:Tlag] = NaN*zero(T)
         elseif tlagn > 1
@@ -1074,6 +1079,10 @@ Results:
 * Rsqn
 * HL
 * AUCinf
+* AUCpct
+
+`Rlast` is the last measurable (non-zero) excretion rate, `AUClast` is
+calculated to the mid-point of the interval with that rate.
 """
 function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}, obs::Symbol = NCARESOBS; adm = :ev, calcm = :lint, intpm = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = identity, kwargs...) where S where E where O where VOL where V
 
@@ -1125,14 +1134,7 @@ function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}, obs::Symbol = NCARESOBS;
     end
     obsnum = length(exr)
 
-    lastobs = length(exr)
-    for i = length(exr):-1:1
-        if exr[i] > zero(eltype(exr))
-            break
-        else
-            lastobs = i
-        end
-    end
+    lastobs = something(findlast(x -> x > zero(eltype(exr)), exr), 1)
 
     # STEP 3
     # Elimination
@@ -1148,7 +1150,7 @@ function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}, obs::Symbol = NCARESOBS;
 
     result[:AUCall]  = sum(aucpartl)
     result[:AUClast] = sum(aucpartl[1:lastobs-1])
-    result[:Rlast]  = exr[end]
+    result[:Rlast]   = exr[lastobs]
 
     if  length(keldata) > 0
         rsqn                     = bestkelint(keldata)

@@ -603,8 +603,10 @@ function acceptance_conclusion_text()
                                  ". A scenario reports nothing when its code chunk errored out. ",
                                  "The results table of such a scenario is also absent from ",
                                  "this report.")
-        println(io, "\nEvery divergence is listed in the journal below and in ",
-                "`docs/src/validation_divergences.tsv`. ",
+        # The path is given as a paragraph of its own: inside a text line it
+        # is not broken and runs outside the margin.
+        println(io, "\nEvery divergence is listed in the journal below. The same list is ",
+                "written next to the report as\n\n`docs/src/validation_divergences.tsv`\n\n",
                 "In the present state the report does not establish conformance.")
     end
     return String(take!(io))
@@ -814,9 +816,9 @@ const COVERAGE_ITEMS = [
     (item = "Graphics: urine excretion rate against interval midpoints",
      scenarios = ["GRAPH-DATA"], elsewhere = "",
      note = "The figure is checked against midtime and excretionrate, and its maximum against TmaxRate and MaxRate"),
-    (item = "Minrate (urine)",
-     scenarios = String[], elsewhere = "cannot be qualified",
-     note = "Identically zero: nca! prepends a zero to the rate vector for the curve origin and takes the minimum after that (nca.jl, urine branch)"),
+    (item = "Rlast and AUClast of a urine profile ending with a zero rate",
+     scenarios = String[], elsewhere = "package test suite",
+     note = "The reference data holds no zero excretion rate. The rule that Rlast is the last measurable rate is checked in the package test suite"),
     (item = "Derived parameters (Cllast, Cl_pred, Cl_F_pred, Vz_pred, Vz_F_pred, Vss, Vss_pred, Vsstau, Vsstau_pred, LZ, Rsqn, AUCBTW)",
      scenarios = ["DERIVED-ID"], elsewhere = "",
      note = "No external counterpart exists. Each is checked against the identity that defines it"),

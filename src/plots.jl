@@ -148,7 +148,7 @@ function plotlabel(d, ld = nothing)
     title = ""
     if isnothing(d) return title end
     if length(d) > 0
-        # Порядок обхода Dict не определён. Подписи строятся в порядке сортировки ключей.
+        # Dict iteration order is undefined. Labels are built in sorted key order.
         for k in sort!(collect(keys(d)))
             v  = d[k]
             kv = k
@@ -197,7 +197,6 @@ plotylabel(::UPKSubject)      = "Excretion rate"
 
 function _subjplot(subj, kwargs, ls; obsname::Symbol = NCARESOBS)
 
-    # Что рисуется, определяют plotobs и plottime.
     subjobs  = plotobs(subj, obsname)
     subjtime = plottime(subj)
 

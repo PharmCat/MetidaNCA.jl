@@ -120,6 +120,8 @@ Base.length(::ConstantCovariate) = 1
 Base.length(v::TimeVaryingCovariate) = length(value(v))
 
 # Dose settings
+
+_dtfloat(x) = x isa Integer ? float(x) : x
 """
     DoseTime(dose::D, time::T, tau::TAU) where D <: Number where T <: Number where TAU <: Number
 
@@ -142,16 +144,10 @@ struct DoseTime{D <: Number, T <: Number, TAU <: Number, R <: Number, RO}
         new{D, T, TAU, R, RO}(dose, time, tau, rate, route)::DoseTime
     end
     function DoseTime(dose, time, tau)
-        if isa(time, Int) time_ = float(time) else time_ = time end
-        if isa(dose, Int) dose_ = float(dose) else dose_ = dose end
-        if isa(tau, Int) tau_   = float(tau)  else tau_  = tau  end
-        DoseTime(dose, time, tau, 0.0, nothing)
+        DoseTime(_dtfloat(dose), _dtfloat(time), _dtfloat(tau), 0.0, nothing)
     end
     function DoseTime(;dose = NaN, time = 0.0, tau = NaN, rate = 0.0, route = nothing)
-        if isa(time, Int) time_ = float(time) else time_ = time end
-        if isa(dose, Int) dose_ = float(dose) else dose_ = dose end
-        if isa(tau, Int) tau_   = float(tau)  else tau_  = tau  end
-        DoseTime(dose, time, tau, rate, route)
+        DoseTime(_dtfloat(dose), _dtfloat(time), _dtfloat(tau), _dtfloat(rate), route)
     end
 end
 

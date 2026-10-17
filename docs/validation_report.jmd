@@ -5,8 +5,10 @@ author: Vladimir Arnautov
 date: `j import Dates; Dates.Date(Dates.now())`
 ---
 
+\clearpage
 
-```julia; echo = false
+
+```julia; echo = false; results = "hidden"
 # Loaded before the package imports, and in a chunk of its own, on purpose.
 # This file defines the recording and verdict functions. They must be in scope
 # even if a package used only for display is missing from the active
@@ -17,7 +19,7 @@ date: `j import Dates; Dates.Date(Dates.now())`
 include("acceptance.jl")
 ```
 
-```julia; echo = false
+```julia; echo = false; results = "hidden"
 using Dates, DataFrames, CSV, PrettyTables, Statistics, Plots
 ```
 
@@ -253,6 +255,8 @@ use.
 print(mdtable(dfdep))
 ```
 Table: Dependencies of MetidaNCA and the versions loaded during this build
+
+\pagebreak
 
 # Operation qualification
 
@@ -906,13 +910,6 @@ derived comparison inherits whatever its inputs inherit and establishes nothing 
 inputs themselves. The reference is the right-hand side computed from the same result, so
 the comparison requires exact agreement.
 
-`Minrate` is documented as the lowest excretion rate of a urine profile and is not qualified
-in this chapter. The computed value does not meet the documented definition: `nca!` prepends
-a zero to the excretion-rate vector to give the curve an origin and computes `Minrate` after
-the insertion, so the value is identically zero. Two data sets were examined, with observed
-excretion rates of 0.333 to 4.0 and of 75 to 450. `Minrate` equals 0.0 in both. The coverage
-table reports `Minrate` as not covered and states the reason.
-
 ```julia; echo = false, results = "tex"
 
 # The urine and pharmacodynamics subjects are built here and reused by the
@@ -1341,6 +1338,8 @@ print("Full comparison log: docs/src/validation_acceptance.tsv\n\n" *
   * Repository - GitHub repository: https://github.com/PharmCat/MetidaNCA.jl
   * Master branch - main branch on GitHub ([link](https://github.com/PharmCat/MetidaNCA.jl/tree/main)).
   * Current machine - pc that used for validation report generating.
+
+\pagebreak
 
 # Reference
 

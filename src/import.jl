@@ -1,4 +1,4 @@
-# Заполняет словарь d индексами индивидуальных значений
+# Fills dictionary d with indexes of individual values
 
 function nonunique(v)
     cm = StatsBase.countmap(v)
@@ -431,7 +431,7 @@ function upkimport(stime, etime, conc, vol; elimrange = ElimRange(), dosetime = 
 
     #if isnothing(dosetime) dosetime = DoseTime(NaN, zero(promote_type(eltype(stimec), eltype(etimec))), NaN) end
 
-    time_type = promote_type(typeof(zero(eltype(stime))), typeof(zero(eltype(stime))))
+    time_type = promote_type(typeof(zero(eltype(stime))), typeof(zero(eltype(etime))))
     zerotime  = zero(time_type)
     if isnothing(dosetime)
         dosetime = DoseTime(NaN, zerotime, NaN*zerotime)
