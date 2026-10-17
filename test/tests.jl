@@ -115,6 +115,8 @@ include("refdicts.jl")
     pl = @test_nowarn MetidaNCA.pkplot(ds; typesort = [:Subject, :Formulation], pagesort = MetidaNCA.NoPageSort(), legend = true)
     @test isa(pl, Plots.Plot) == true
 
+    pl = @test_nowarn MetidaNCA.pkplot(ds; typesort = [:Subject, :Formulation], legend = true, onlyplots = true)
+    @test length(pl) == 10
     # NCA Plots
     # Single
     pl = @test_nowarn MetidaNCA.pkplot(dsnca[1];  legend = true)
@@ -129,6 +131,9 @@ include("refdicts.jl")
     # DataSet
     pl = @test_nowarn MetidaNCA.pkplot(dsnca;  legend = true)
     pl = @test_nowarn MetidaNCA.pkplot(dsnca; elim = true, legend = true)
+
+    pl = @test_nowarn MetidaNCA.pkplot(dsnca; elim = true, onlyplots = true)
+
 
     # pagesort
     pl = @test_nowarn MetidaNCA.pkplot(dsnca; typesort = :Subject, pagesort = :Formulation, legend = true)
@@ -231,7 +236,7 @@ include("refdicts.jl")
 
 
     # Missing string LLOQ
-    MetidaNCA.pkimport(lloqpk, :Time, :Concentration, io = io, verbose = 2, warn = false)
+    MetidaNCA.pkimport(lloqpk, :Time, :Concentration, warn = false)
     dsncafromds =  MetidaNCA.nca(lloqpk, :Time, :Concentration, io = io, verbose = 2, warn = false)
     @test  sbj[:AUClast]  ≈ dsncafromds[:AUClast]
 

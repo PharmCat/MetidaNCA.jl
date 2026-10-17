@@ -202,34 +202,32 @@ function _subjplot(subj, kwargs, ls; obsname::Symbol = NCARESOBS)
     subjtime = plottime(subj)
 
     k = keys(kwargs)
-    if :yscale in k
-        if kwargs[:yscale] in [:ln, :log, :log2, :log10]
-            ls = false
-            if !(:minorticks in k) kwargs[:minorticks] = true end
+    if :yscale in k && kwargs[:yscale] in [:ln, :log, :log2, :log10]
+        ls = false
+        if !(:minorticks in k) kwargs[:minorticks] = true end
 
-            inds = findall(x-> x > 0, subjobs)
-            time = subjtime[inds]
-            obs  = subjobs[inds]
-            if !(:yticks in k)
-                if kwargs[:yscale] == :log10
-                    b = 10
-                elseif kwargs[:yscale] == :log2
-                    b = 2
-                elseif kwargs[:yscale] == :ln || kwargs[:yscale] == :log
-                    b = ℯ
-                end
-                
-                t = collect(floor(log(b, minimum(obs))):ceil(log(b, maximum(obs))))
-                pushfirst!(t, first(t) - 1)
-                kwargs[:yticks] = b .^ t
-                
+        inds = findall(x-> x > 0, subjobs)
+        time = subjtime[inds]
+        obs  = subjobs[inds]
+        if !(:yticks in k)
+            if kwargs[:yscale] == :log10
+                b = 10
+            elseif kwargs[:yscale] == :log2
+                b = 2
+            elseif kwargs[:yscale] == :ln || kwargs[:yscale] == :log
+                b = ℯ
             end
-            if !(:ylims in k)
-                kwargs[:ylims] = (minimum(obs)*0.5, maximum(obs)*2.)
-            else
-                if kwargs[:ylims][1] <= 0
-                    kwargs[:ylims] = (minimum(obs)/b, kwargs[:ylims][2])
-                end
+            
+            t = collect(floor(log(b, minimum(obs))):ceil(log(b, maximum(obs))))
+            pushfirst!(t, first(t) - 1)
+            kwargs[:yticks] = b .^ t
+            
+        end
+        if !(:ylims in k)
+            kwargs[:ylims] = (minimum(obs)*0.5, maximum(obs)*2.)
+        else
+            if kwargs[:ylims][1] <= 0
+                kwargs[:ylims] = (minimum(obs)/b, kwargs[:ylims][2])
             end
         end
     else
@@ -512,7 +510,7 @@ function pkplot(data::DataSet{T};
         kwargs[:drawth] = false
     end
     if uylims && !(:ylims in k)
-        kwargs[:ylims] = (findmin(x -> minconc(x; obsname = obsname), getdata(data))[1], findmax(x -> maxconc(x), getdata(data))[1]*1.15)
+        kwargs[:ylims] = (findmin(x -> minconc(x; obsname = kwargs[:obsname]), getdata(data))[1], findmax(x -> maxconc(x), getdata(data))[1]*1.15)
     end
     if !isnothing(filter) data = subset(data, filter) end
 
@@ -603,7 +601,7 @@ end
 """
     pkplot(data::DataSet{T}; elim = false, kelexcl = true, kelpoints = true, kwargs...) where T <: NCAPKResult
 """
-function pkplot(data::DataSet{T}; elim = false, kelexcl = true, kelpoints = true, kwargs...) where T <: NCAPKResult
+function pkplot(data::DataSet{T}; elim = false, kelexcl = true, kelpoints = true, onlyplots = false, kwargs...) where T <: NCAPKResult
     k = keys(kwargs)
     ds = map(x-> x.data, data)
     plts = pkplot(ds; kwargs...)
@@ -620,7 +618,10 @@ function pkplot(data::DataSet{T}; elim = false, kelexcl = true, kelpoints = true
             _elimplot!(plts[i].plot, data[i].data, data[i].keldata, ls; kelexcl = kelexcl, kelpoints = kelpoints, obsname = data[i].obsname)
         end
     end
-    plts
+    if onlyplots
+        return map(x -> x.plot, plts.ds)
+    end
+    return plts
 end
 
 """

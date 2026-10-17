@@ -314,11 +314,11 @@ struct LimitRule{T<:Number}
     # aftet Cmax - last
     # first afer last
     # other 
-    function LimitRule(lloq::T, btmax, atmax, nan, rm::Bool) where T <: Real
+    function LimitRule(lloq::T, btmax, atmax, nan, rm::Bool) where T <: Number
         new{T}(lloq, T(btmax), T(atmax), T(nan), rm)::LimitRule
     end
     function LimitRule(lloq::Int, btmax, atmax, nan, rm::Bool)
-        new{Float64}(lloq, Float64(btmax), Float64(atmax), Float64(nan), rm)::LimitRule
+        new{Float64}(Float64(lloq), Float64(btmax), Float64(atmax), Float64(nan), rm)::LimitRule
     end
     function LimitRule(;nan = NaN, lloq = NaN, btmax = NaN, atmax = NaN,  rm::Bool = false)
         LimitRule(lloq, btmax, atmax, nan, rm)

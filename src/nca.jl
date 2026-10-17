@@ -441,16 +441,16 @@ Applicable `kwargs` see  [`nca!`](@ref).
 
 See also: [`ElimRange`](@ref), [`DoseTime`](@ref), [`LimitRule`](@ref).
 """
-function nca(args...; type::Symbol = :bps, bl = 0, th = 0, kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), limitrule::Union{Nothing, LimitRule} = nothing, io = stdout, wm = false, kwargs...)
+function nca(args...; type::Symbol = :bps, bl = 0, th = 0, elimrange = ElimRange(), dosetime = DoseTime(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true, kwargs...)
     if !(type in (:bps, :ur, :pd)) error("Unknown type") end
     if type == :bps
-        pki    = pkimport(args...;  elimrange = elimrange, dosetime = dosetime, limitrule = limitrule, kwargs...)
+        pki    = pkimport(args...;  elimrange = elimrange, dosetime = dosetime, limitrule = limitrule, warn = warn)
     elseif type == :ur
-        pki    = upkimport(args...; elimrange = elimrange, dosetime = dosetime, kwargs...)
+        pki    = upkimport(args...; elimrange = elimrange, dosetime = dosetime, warn = warn)
     elseif type == :pd
-        pki    = pdimport(args...; th = th, bl = bl, limitrule = limitrule, kwargs...)
+        pki    = pdimport(args...; th = th, bl = bl, limitrule = limitrule, warn = warn)
     end
-    nca!(pki; io = io, wm = wm, kwargs...)
+    nca!(pki; kwargs...)
 end
 
 """

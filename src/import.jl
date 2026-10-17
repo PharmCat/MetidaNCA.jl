@@ -173,8 +173,7 @@ function pkimport(data, time, obs, sort;
     warn = true, 
     checktime = true,
     nutcfunk = last,
-    units::Union{Nothing, NCAUnits} = nothing, 
-    kwargs...)
+    units::Union{Nothing, NCAUnits} = nothing)
     
     sort = parse_gkw(sort)
     obs  = parse_gkw(obs)
@@ -269,7 +268,7 @@ end
 
 Import PK data from tabular data `data`, `time` - time column, `obs` - concentration column.
 """
-function pkimport(data, time, obs; elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true, kwargs...)
+function pkimport(data, time, obs; elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true)
     obs   = parse_gkw(obs)
 
     obsvals = [copy(Tables.getcolumn(data, y)) for y in obs]
@@ -313,7 +312,7 @@ end
 Import PK data from time vector `time` and concentration vector `obs`.
 
 """
-function pkimport(time, obs; obsname = NCARESOBS, elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true, kwargs...)
+function pkimport(time, obs; obsname = NCARESOBS, elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true)
     
     timevals = checktimevec(time)
    
@@ -541,11 +540,15 @@ end
 
 Import PD data from tabular data `data`, `time` - time column, `obs` - observations column.
 """
-function pdimport(data, time, obs; bl = 0, th = 0, id = Dict{Symbol, Any}(), warn = true)
+function pdimport(data, time, obs; bl = 0, th = 0, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true)
 
     timevals = checktimevec(Tables.getcolumn(data, time))
     obsvals  = checkobsvec(copy(Tables.getcolumn(data, obs)), warn)
-    PDSubject(timevals, obsvals, bl, th,  id)
+    pds = PDSubject(timevals, obsvals, bl, th,  id)
+    if !isnothing(limitrule)
+        applylimitrule!(pds, limitrule)
+    end
+    pds
 end
 """
     pdimport(time, obs;
@@ -556,8 +559,12 @@ end
 
 Import PD data from time vector `time` and observations vector `obs`.
 """
-function pdimport(time, obs; bl = 0, th = 0, id = Dict{Symbol, Any}(), warn = true)
+function pdimport(time, obs; bl = 0, th = 0, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true)
     timevals = checktimevec(time)
     obsvals  = checkobsvec(copy(obs), warn)
-    PDSubject(timevals, obsvals, bl, th,  id)
+    pds = PDSubject(timevals, obsvals, bl, th,  id)
+    if !isnothing(limitrule)
+        applylimitrule!(pds, limitrule)
+    end
+    pds
 end
