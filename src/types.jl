@@ -64,6 +64,9 @@ mutable struct ElimRange{Symbol, T}
     kelauto::Bool
     kelexcl::Vector{T}
     function ElimRange(kelstart::T, kelend::T, kelauto::Bool, kelexcl::Vector{T}; time = false)::ElimRange where T
+        if !kelauto
+            if kelend <= kelstart error("Start point: $(kelstart) end point: $(kelend), check that kelend > kelstart") end
+        end
         if time
             if kelstart > kelend throw(ArgumentError("Kel start > kel end")) end
             if kelstart in kelexcl || kelend in kelexcl throw(ArgumentError("Kel start or kel end in exclusions")) end
@@ -77,7 +80,18 @@ mutable struct ElimRange{Symbol, T}
             new{:point, T}(kelstart, kelend, kelauto, kelexcl)::ElimRange
         end
     end
-    function ElimRange(;kelstart = 0, kelend = 0, kelauto::Bool = true, kelexcl = Int[], time = false)
+    function ElimRange(kelstart::T, kelend::T, kelexcl::Vector{T}; time = false)::ElimRange where T
+        if kelstart < kelend
+            kelauto = false
+        else
+            kelauto = true
+        end
+        ElimRange(kelstart, kelend, kelauto, kelexcl; time = time)
+    end
+    function ElimRange(;kelstart::T = 0, kelend::T = 0, kelauto::Bool = true, kelexcl = nothing, time = false) where T
+        if isnothing(kelexcl) 
+            kelexcl = T[]
+        end
         ElimRange(kelstart, kelend, kelauto, kelexcl; time = time)
     end
 end
@@ -194,27 +208,14 @@ mutable struct PKSubject{T <: Number, O, C <: Any, V <: Any} <: AbstractSubject
     kelrange::ElimRange
     dosetime::Vector{DoseTime}
     id::Dict{Symbol, V}
-    function PKSubject(time::Vector{T}, conc::O, covars::C, kelrange::ElimRange, dosetime, id::Dict{Symbol, V} = Dict{Symbol, Any}())  where T <: Number where O where C  where V
+    function PKSubject(time::Vector{T}, conc::O, covars::C, kelrange::ElimRange, dosetime::Vector{<:DoseTime}, id::Dict{Symbol, V} = Dict{Symbol, Any}())  where T <: Number where O where C  where V
         if !checkdosetime(dosetime) error("DoseTime Vector should be sorted.") end
         new{T, O, C, V}(time, conc, covars, kelrange, dosetime, id)::PKSubject
     end
-    function PKSubject(time::Vector{T}, conc, kelrange::ElimRange, dosetime, id)  where T 
-        PKSubject(time, conc, nothing, kelauto, kelrange, dosetime, id)
+    function PKSubject(time::Vector{T}, conc, kelrange::ElimRange, dosetime::Vector{<:DoseTime}, id)  where T 
+        PKSubject(time, conc, nothing, kelrange, dosetime, id)
     end
-    function PKSubject(time::Vector{T}, conc, covars, kelrange::ElimRange, dosetime, id)  where T 
-        PKSubject(time, conc, covars, kelauto, kelrange, dosetime, id)
-    end
-    #=
-    function PKSubject(time::Vector, conc::Vector, sort::Dict)
-        PKSubject(time, conc, true, ElimRange(), DoseTime(NaN, 0), KelData(), sort)
-    end
-    function PKSubject(time::Vector, conc::Vector, kelauto::Bool, kelrange, dosetime; sort = Dict())
-        PKSubject(time, conc, kelauto, kelrange, dosetime, KelData(), sort)
-    end
-    function PKSubject(time::Vector, conc::Vector; sort = Dict())
-        PKSubject(time, conc, true, ElimRange(), DoseTime(NaN, 0), KelData(), sort)
-    end
-    =#
+
 end
 
 function Base.length(obj::T) where T <: AbstractSubject

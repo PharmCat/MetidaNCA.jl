@@ -1867,6 +1867,64 @@ end
       @test_nowarn options = MetidaNCA.NCAOptions() 
 end
 
+@testset "  Analysis does not change its input                       " begin
+    @testset "  nca! leaves kelexcl and kelauto of the subject       " begin
+        subj = MetidaNCA.pkimport(missingpk, :Time, :Concentration)
+        @test isempty(MetidaNCA.getkelrange(subj).kelexcl)
+ 
+        MetidaNCA.nca!(subj)
+        @test isempty(MetidaNCA.getkelrange(subj).kelexcl)
+        @test MetidaNCA.getkelauto(subj) == true
+ 
+        subj2 = MetidaNCA.pkimport(missingpk, :Time, :Concentration;
+                    dosetime = MetidaNCA.DoseTime(dose = 100, time = 0.5))
+        MetidaNCA.nca!(subj2)
+        @test isempty(MetidaNCA.getkelrange(subj2).kelexcl)
+    end
+    @testset "  A second nca! on the same subject repeats the first  " begin
+        subj = MetidaNCA.pkimport(missingpk, :Time, :Concentration;
+                   dosetime = MetidaNCA.DoseTime(dose = 100, time = 0.5))
+        r1 = MetidaNCA.nca!(subj)
+        r2 = MetidaNCA.nca!(subj)
+        for p in (:AUClast, :AUMClast, :Kel, :HL, :NpLZ, :ARsq, :AUCinf, :MRTlast)
+            v1, v2 = r1[p], r2[p]
+            @test (isnan(v1) && isnan(v2)) || v1 == v2
+        end
+    end
+    @testset "  A user-set kelauto is kept                           " begin
+        subj = MetidaNCA.pkimport(missingpk, :Time, :Concentration;
+                   elimrange = MetidaNCA.ElimRange(kelstart = 13, kelend = 18, kelauto = false,))
+        @test MetidaNCA.getkelauto(subj) == false          
+        MetidaNCA.nca!(subj)
+        @test MetidaNCA.getkelauto(subj) == false
+        @test MetidaNCA.getkelrange(subj).kelstart == 13
+        @test MetidaNCA.getkelrange(subj).kelend   == 18
+    end
+    @testset "  In time mode kelexcl keeps times only                " begin
+        subj = MetidaNCA.pkimport(missingpk, :Time, :Concentration;
+                   elimrange = MetidaNCA.ElimRange(10.0, 72.0, true, Float64[]; time = true))
+        MetidaNCA.nca!(subj)
+        @test isempty(MetidaNCA.getkelrange(subj).kelexcl)
+    end
+    @testset "  pkimport(time, obs) copies the observation vector    " begin
+        t  = [0.0, 1.0, 2.0, 3.0]
+        c  = [0.0, 10.0, 8.0, 5.0]
+        cr = copy(c)
+ 
+        subj = MetidaNCA.pkimport(t, c)
+        MetidaNCA.applylimitrule!(subj, MetidaNCA.LimitRule(lloq = 6.0, btmax = 0.0, atmax = 0.0))
+        @test c == cr
+ 
+        trev = [3.0, 2.0, 1.0, 0.0]
+        crev = [5.0, 8.0, 10.0, 0.0]
+        trevr, crevr = copy(trev), copy(crev)
+        MetidaNCA.pkimport(trev, crev)
+        @test trev == trevr
+        @test crev == crevr
+    end
+end
+
+
 include("luldt_test.jl")
 
 include("reference_testset.jl")

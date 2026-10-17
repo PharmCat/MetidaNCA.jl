@@ -52,7 +52,7 @@ function ctmax(time::AbstractVector, obs::AbstractVector, taulastp::Int = length
     cmax  = obs[f]
     cmin  = obs[f]
     tmaxn = f
-    if taulastp == f return cmax, first(time), tmaxn, cmin end
+    if taulastp == f return cmax, time[tmaxn], tmaxn, cmin end
     @inbounds for i = f+1:taulastp
         if !isnanormissing(obs[i])
             if obs[i] > cmax
@@ -65,23 +65,7 @@ function ctmax(time::AbstractVector, obs::AbstractVector, taulastp::Int = length
     end
     return cmax, time[tmaxn], tmaxn, cmin
 end
-   #=
-function ctmax(time::AbstractVector, obs::AbstractVector)
- 
-    f = findfirst(!isnanormissing, obs)
-    cmax  = obs[f]
-    tmaxn = f
-    if length(obs) - f == 0 return cmax, time[f], tmaxn end
-    @inbounds for i = f + 1:length(obs)
-        if !isnanormissing(obs[i]) && obs[i] > cmax
-            cmax  = obs[i]
-            tmaxn = i
-        end
-    end
-    return cmax, time[tmaxn], tmaxn
-   
-end
- =#
+
 function ctmax(data::PKSubject, dt::Int = 0)
     if dt == 0 dt = length(data.dosetime) end
     datadt = data.dosetime[dt]
@@ -159,6 +143,11 @@ function slope(x::AbstractVector{X}, y::AbstractVector{Y}; funk::Function = iden
     n > 2 ? ar  = 1 - (1 - r2)*(n - 1)/(n - 2) : ar = NaN
 
     return a, b, r2, ar, n
+end
+
+function bestkelint(keldata, tie = 0.0001)
+    best = maximum(x for x in keldata.ar if !isnan(x); init = -Inf)
+    argmax(i -> (keldata.ar[i] >= best - tie, keldata.n[i]), eachindex(keldata.ar))
 end
 #=
 function logslope(x, y)
@@ -752,7 +741,8 @@ function nca!(data::PKSubject{T, OBS}, obs::Symbol = NCARESOBS;
 
     if  length(keldata) > 0
         #data.keldata             = keldata
-        result[:ARsq], rsqn      = findmax(keldata.ar)
+        rsqn                     = bestkelint(keldata)
+        result[:ARsq]            = keldata.ar[rsqn]
         result[:Rsq]             = keldata.r[rsqn]
         #kel                      = abs(keldata.a[rsqn])
         result[:Kel]             = abs(keldata.a[rsqn]) / oneunit(T)
@@ -898,7 +888,7 @@ function nca!(data::PKSubject{T, OBS}, obs::Symbol = NCARESOBS;
             aucpartlsum[i]  = sum(view(aucpartl, 1:i))
             aumcpartlsum[i] = sum(view(aumcpartl, 1:i))
         end
-        if  used_dosetime_time > 0
+        if  used_dosetime_time > zero(used_dosetime_time)
             time_cp .+= used_dosetime_time
         end
 
@@ -942,7 +932,7 @@ function nca!(data::PKSubject{T, OBS}, obs::Symbol = NCARESOBS;
             println(io, "    @ - Interpolated points ($(length(einds)))")
         end
         println(io, "")
-        if used_dosetime_tau < time_cp[end] && used_dosetime_tau > 0
+        if !isnan(used_dosetime_tau) && used_dosetime_tau < time_cp[end] && used_dosetime_tau > zero(used_dosetime_time)
             println(io, "    Tau + dosetime is less then end time. Interpolation used.")
             println(io, "    Ctau: $(result[:Ctau])")
             println(io, "    AUC  final part: $(eaucpartl)")
@@ -1121,7 +1111,8 @@ function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}, obs::Symbol = NCARESOBS;
     result[:Rlast]  = exr[end]
 
     if  length(keldata) > 0
-        result[:ARsq], rsqn      = findmax(keldata.ar)
+        rsqn                     = bestkelint(keldata)
+        result[:ARsq]            = keldata.ar[rsqn]
         result[:Rsq]             = keldata.r[rsqn]
         result[:Kel]             = abs(keldata.a[rsqn]) / oneunit(ttype)
         result[:LZ]              = keldata.a[rsqn]

@@ -302,8 +302,16 @@ function _pddtplot!(p, subj, kwargs)
             plot!(p, [minimum(subj.time), maximum(subj.time)], [getbl(subj), getbl(subj)], lc = kwargs[:linecolor], ls = :dash, label = "BL")
         end
     end
-    if kwargs[:drawdt] == true && !isnan(subj.dosetime.time) 
-        plot!(p, [subj.dosetime.time, subj.dosetime.time], [minconc(subj),  maxconc(subj)], label = "DoseTime", ls = :dot, lc = kwargs[:linecolor])
+    if kwargs[:drawdt] == true
+        if  isa(subj.dosetime, DoseTime) && !isnan(subj.dosetime.time) 
+            plot!(p, [subj.dosetime.time, subj.dosetime.time], [minconc(subj),  maxconc(subj)], label = "DoseTime", ls = :dot, lc = kwargs[:linecolor])
+        else
+            if length(subj.dosetime) > 0
+                for d in subj.dosetime
+                    if !isnan(d.time)  plot!(p, [d.time, d.time], [minconc(subj),  maxconc(subj)], label = "DoseTime", ls = :dot, lc = kwargs[:linecolor]) end
+                end
+            end
+        end
     end
     return p
 end
@@ -661,7 +669,7 @@ function vpcplot(data::DataSet{T}; timef = identity, meanf = mean, intf = x->qf(
     kwargs = Dict{Symbol, Any}(kwargs)
     k, means, lb, ub = vpcdata(data, timef = timef, meanf = meanf, intf = intf)
     if !(:ribbon in keys(kwargs))
-        kwargs[:ribbon] = (means .- lb, ub .- means)
+        kwargs[:ribbon] = (means .- ub, lb .- means)
     end
     p = plot(k, means; kwargs...)
     return p
@@ -689,7 +697,7 @@ function vpcdata(data::DataSet{T}; timef = identity, meanf = mean, intf = x->qf(
     ub = zeros(length(k))
     lb = zeros(length(k))
     for i = 1:length(k)
-        ub[i], lb[i] = intf(dict[k[i]])
+        lb[i], ub[i] = intf(dict[k[i]])
     end
     k, means, lb, ub
 end

@@ -137,7 +137,6 @@ end
 
 """
     pkimport(data, time, obs, sort;
-        kelauto = true,
         elimrange = ElimRange(),
         dosetime = DoseTime(),
         limitrule::Union{Nothing, LimitRule} = nothing,
@@ -152,7 +151,6 @@ Import PK data from table `data`.
 
 keywords:
 
-* `kelauto` - if `true` auto range settings, if `false` used `kelstart`/`kelend` from `elimrange`;
 * `elimrange` - set elimination range settings;
 * `dosetime` - set dose and dose time, by default dosetime = 0, dose is `NaN`;
 * `limitrule` - apply limitrule to subject;
@@ -271,7 +269,7 @@ end
 
 Import PK data from tabular data `data`, `time` - time column, `obs` - concentration column.
 """
-function pkimport(data, time, obs; kelauto = true,  elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true, kwargs...)
+function pkimport(data, time, obs; elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true, kwargs...)
     obs   = parse_gkw(obs)
 
     obsvals = [copy(Tables.getcolumn(data, y)) for y in obs]
@@ -297,7 +295,7 @@ function pkimport(data, time, obs; kelauto = true,  elimrange = ElimRange(), dos
         sort!(dosetime_, by = x -> x.time)
     end
 
-    pks = PKSubject(timevals, (; zip(obs, obsvals)...), kelauto, elimrange,  dosetime_, id)
+    pks = PKSubject(timevals, (; zip(obs, obsvals)...), elimrange,  dosetime_, id)
     if !isnothing(limitrule)
         applylimitrule!(pks, limitrule)
     end
@@ -305,7 +303,6 @@ function pkimport(data, time, obs; kelauto = true,  elimrange = ElimRange(), dos
 end
 """
     pkimport(time, obs;
-        kelauto = true,
         elimrange = ElimRange(),
         dosetime = DoseTime(),
         id = Dict{Symbol, Any}(),
@@ -316,11 +313,11 @@ end
 Import PK data from time vector `time` and concentration vector `obs`.
 
 """
-function pkimport(time, obs; obsname = NCARESOBS, kelauto = true,  elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true, kwargs...)
+function pkimport(time, obs; obsname = NCARESOBS, elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true, kwargs...)
     
     timevals = checktimevec(time)
    
-    obsvals  = checkobsvec(obs, warn)
+    obsvals  = checkobsvec(copy(obs), warn)
 
     dosetime_ = makedosetimevec(dosetime, zero(eltype(timevals)))
 
@@ -339,8 +336,7 @@ function pkimport(time, obs; obsname = NCARESOBS, kelauto = true,  elimrange = E
             end
         end
     end
-
-    pks = PKSubject(timevals, (obsname = obsvals,), kelauto, elimrange,  dosetime_, id)
+    pks = PKSubject(timevals, NamedTuple{(obsname,)}((obsvals,)), elimrange, dosetime_, id)
     if !isnothing(limitrule)
         applylimitrule!(pks, limitrule)
     end
@@ -355,7 +351,7 @@ function pkimport(data; time, conc, sort = nothing, kwargs...)
 end
 
 """
-    upkimport(data, stime, etime, conc, vol, sort; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
+    upkimport(data, stime, etime, conc, vol, sort; elimrange = ElimRange(), dosetime = DoseTime())
 
 Import urine PK data from table `data`.
 
