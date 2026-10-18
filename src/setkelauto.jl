@@ -9,9 +9,9 @@ Set range for elimination parameters calculation for subject.
 """
 function setkelauto!(data::PKSubject, kelauto::Bool)
     if !kelauto
-        if !(data.kelrange.kelend > data.kelrange.kelstart > 0) error("Start point: $(data.kelrange.kelstart) end point: $(data.kelrange.kelend), check that data.kelrange.kelend > data.kelrange.kelstart > 0") end
+        if data.kelrange.kelend <= data.kelrange.kelstart  error("Start point: $(data.kelrange.kelstart) end point: $(data.kelrange.kelend), check that data.kelrange.kelend > data.kelrange.kelstart") end
     end
-    data.kelauto = kelauto
+    data.kelrange.kelauto = kelauto
     data
 end
 
@@ -59,5 +59,5 @@ end
     getkelauto!(data::T) where T <: PKSubject
 """
 function getkelauto(data::PKSubject) 
-    data.kelauto
+    data.kelrange.kelauto
 end

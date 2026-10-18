@@ -5,8 +5,10 @@ author: Vladimir Arnautov
 date: `j import Dates; Dates.Date(Dates.now())`
 ---
 
+\clearpage
 
-```julia; echo = false
+
+```julia; echo = false; results = "hidden"
 # Loaded before the package imports, and in a chunk of its own, on purpose.
 # This file defines the recording and verdict functions. They must be in scope
 # even if a package used only for display is missing from the active
@@ -17,7 +19,7 @@ date: `j import Dates; Dates.Date(Dates.now())`
 include("acceptance.jl")
 ```
 
-```julia; echo = false
+```julia; echo = false; results = "hidden"
 using Dates, DataFrames, CSV, PrettyTables, Statistics, Plots
 ```
 
@@ -174,13 +176,18 @@ performed before merging into JuliaRegistries/General repository
 
 ```julia; echo = false; results = "hidden"
 using MetidaNCA, Pkg
-pkgversion(m::Module) = Pkg.TOML.parsefile(joinpath(dirname(string(first(methods(m.eval)).file)), "..", "Project.toml"))["version"]
-ver = pkgversion(MetidaNCA)
 
 # Project file of the package under test. The path is the one the loaded module
 # came from, which `validation_subject_check()` in validation.jl has already
 # matched against the repository this report describes.
+#
+# The version was read through `first(methods(MetidaNCA.eval)).file` until
+# 2026-10-17. On Julia 1.13 that field is "boot.jl", so the path became
+# "../Project.toml", the read failed, the chunk aborted at its first statement
+# and the report carried "Error: UndefVarError: ver not defined" in place of
+# the version. `pkgdir` is the documented way to the directory.
 METIDANCA_PROJECT = Pkg.TOML.parsefile(joinpath(pkgdir(MetidaNCA), "Project.toml"))
+ver               = METIDANCA_PROJECT["version"]
 METIDANCA_COMPAT  = get(METIDANCA_PROJECT, "compat", Dict{String, Any}())
 JULIA_BOUND       = Text(string(get(METIDANCA_COMPAT, "julia", "-")))
 
@@ -248,6 +255,8 @@ use.
 print(mdtable(dfdep))
 ```
 Table: Dependencies of MetidaNCA and the versions loaded during this build
+
+\pagebreak
 
 # Operation qualification
 
@@ -317,10 +326,16 @@ dfn = DataFrame(
 "MRTinf" "Mean residence time (MRT) extrapolated to infinity"
 "MRTinf_pred" "Mean residence time (inf) predicted"
 # Cllast
-"Clinf" "Clearence"
-# Vzlast
-"Vzinf" "Volume of distribution"
-# Vssinf
+"Cl" "Clearance, intravascular administration"
+"Cl_F" "Apparent clearance, extravascular administration"
+"Cl_pred" "Clearance based on AUCinf_pred"
+"Cl_F_pred" "Apparent clearance based on AUCinf_pred"
+"Vz" "Volume of distribution, intravascular administration"
+"Vz_F" "Apparent volume of distribution, extravascular administration"
+"Vz_pred" "Volume of distribution based on AUCinf_pred"
+"Vz_F_pred" "Apparent volume of distribution based on AUCinf_pred"
+"Vss" "Volume of distribution at steady state, intravascular administration"
+"Vss_pred" "Volume of distribution at steady state based on AUCinf_pred"
 
 # Ctau
 # Ctaumin
@@ -338,8 +353,12 @@ dfn = DataFrame(
 "AUMCtau" "AUMC in Tau range"
 "MRTtauinf" "MRT based on Tau"
 "MRTtauinf_pred" "Mean residence time (inf) predicted based on Tau"
-"Cltau" "Clearence in Tau range"
-"Vztau" "Volume of distribution in Tau range"], ["Name", "Description"])
+"Cltau" "Clearance in Tau range, intravascular administration"
+"Cltau_F" "Apparent clearance in Tau range, extravascular administration"
+"Vztau" "Volume of distribution in Tau range, intravascular administration"
+"Vztau_F" "Apparent volume of distribution in Tau range, extravascular administration"
+"Vsstau" "Volume of distribution at steady state in Tau range"
+"Vsstau_pred" "Volume of distribution at steady state in Tau range based on MRTtauinf_pred"], ["Name", "Description"])
 
 # Resolved against the document, not against pathof(MetidaNCA): the two differ
 # when the documentation environment resolves the package to a copy from the
@@ -409,7 +428,6 @@ isfile(REFSET) || error("Reference set not found next to the report (test/csv/" 
                         "reference_values.csv). Build from the repository working tree.")
 
 # NO TAU
-# Vssinf
 
 dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :lint)
 
@@ -875,25 +893,22 @@ print(acceptance_note("TRAP-REIMP"))
 
 # Derived parameters
 
-Six parameters have no external reference. `Cllast` and `Vzlast` relate the dose to the
-observed area, not to the extrapolated area. `Vsstau` is the steady-state volume over the
-dosing interval. `LZ` is the regression slope with its sign. `Rsqn` is the index of the
-candidate interval selected by the terminal-phase search. `AUCBTW` is the area between the
-baseline and the threshold. Phoenix WinNonlin publishes none of the six.
+Thirteen parameters have no external reference in the set of Appendix 2. `Cllast` relates
+the dose to the observed area, not to the extrapolated area. `Cl` and `Vz` of an
+intravascular single dose are reported by this build, and the reference set covers the
+intravascular route only at steady state. `Cl_pred`, `Cl_F_pred`, `Vz_pred`
+and `Vz_F_pred` relate the dose to the predicted area `AUCinf_pred`. `Vss` and `Vss_pred`
+are the volumes at steady state of an intravascular dose. `Vsstau` and `Vsstau_pred` are the
+same volumes over a dosing interval. `LZ` is the regression slope with its sign. `Rsqn` is
+the index of the candidate interval selected by the terminal-phase search. `AUCBTW` is the
+area between the baseline and the threshold.
 
-For each of the six the report establishes that the computed value equals the value given by
+For each of them the report establishes that the computed value equals the value given by
 the identity that defines the parameter, where the parameters on the right-hand side are
 themselves qualified. The evidence is of the kind described as derived in section 1.2.1. A
 derived comparison inherits whatever its inputs inherit and establishes nothing about the
 inputs themselves. The reference is the right-hand side computed from the same result, so
 the comparison requires exact agreement.
-
-`Minrate` is documented as the lowest excretion rate of a urine profile and is not qualified
-in this chapter. The computed value does not meet the documented definition: `nca!` prepends
-a zero to the excretion-rate vector to give the curve an origin and computes `Minrate` after
-the insertion, so the value is identically zero. Two data sets were examined, with observed
-excretion rates of 0.333 to 4.0 and of 75 to 450. `Minrate` equals 0.0 in both. The coverage
-table reports `Minrate` as not covered and states the reason.
 
 ```julia; echo = false, results = "tex"
 
@@ -913,8 +928,8 @@ function identity!(df, par, identity, subject, value, reference)
     return st
 end
 
-# Plasma: single dose, extravascular, so that Cllast and Vzlast exist and the
-# steady-state volume does not.
+# Plasma, single dose, extravascular: the apparent parameters carry the suffix
+# _F, and the parameters of the steady state do not exist.
 dtd = MetidaNCA.DoseTime(dose = 100, time = 0.0)
 MetidaNCA.setdosetime!(ds, dtd)
 dsd = MetidaNCA.nca!(ds; adm = :ev, calcm = :lint)
@@ -923,26 +938,42 @@ subjd = MetidaNCA.getid(dsd, :, :Subject)
 for (i, r) in enumerate(dsd)
     s = Int(subjd[i])
     res = r.result
-    identity!(dfd, :LZ,     "-Kel",                     s, res[:LZ],     -res[:Kel])
-    identity!(dfd, :Cllast, "Dose / AUClast",           s, res[:Cllast],  res[:Dose] / res[:AUClast])
-    identity!(dfd, :Vzlast, "Dose / (AUClast * Kel)",   s, res[:Vzlast],  res[:Dose] / res[:AUClast] / res[:Kel])
-    identity!(dfd, :Vssinf, "Clinf * MRTinf",           s, res[:Vssinf],  res[:Clinf] * res[:MRTinf])
+    identity!(dfd, :LZ,        "-Kel",                      s, res[:LZ],        -res[:Kel])
+    identity!(dfd, :Cllast,    "Dose / AUClast",            s, res[:Cllast],     res[:Dose] / res[:AUClast])
+    identity!(dfd, :Cl_F_pred, "Dose / AUCinf_pred",        s, res[:Cl_F_pred],  res[:Dose] / res[:AUCinf_pred])
+    identity!(dfd, :Vz_F_pred, "Cl_F_pred / Kel",           s, res[:Vz_F_pred],  res[:Cl_F_pred] / res[:Kel])
+    identity!(dfd, :MRTinf_pred, "AUMCinf_pred / AUCinf_pred", s, res[:MRTinf_pred], res[:AUMCinf_pred] / res[:AUCinf_pred])
     # Rsqn names the interval the search selected. The adjusted coefficient of
     # that interval must equal the reported value.
     kd = MetidaNCA.getkeldata(r)
-    identity!(dfd, :Rsqn,   "ARsq = keldata[Rsqn]",     s, kd.ar[Int(res[:Rsqn])], res[:ARsq])
+    identity!(dfd, :Rsqn,      "ARsq = keldata[Rsqn]",      s, kd.ar[Int(res[:Rsqn])], res[:ARsq])
 end
 
-# Steady state, for the parameters that only exist with a dosing interval.
+# Plasma, single dose, intravascular: the volumes at steady state exist only
+# for this route.
+dsi = MetidaNCA.nca!(ds; adm = :iv, calcm = :lint)
+subji = MetidaNCA.getid(dsi, :, :Subject)
+for (i, r) in enumerate(dsi)
+    s = Int(subji[i])
+    res = r.result
+    identity!(dfd, :Cl,      "Dose / AUCinf",       s, res[:Cl],      res[:Dose] / res[:AUCinf])
+    identity!(dfd, :Vz,      "Cl / Kel",            s, res[:Vz],      res[:Cl] / res[:Kel])
+    identity!(dfd, :Cl_pred, "Dose / AUCinf_pred",  s, res[:Cl_pred], res[:Dose] / res[:AUCinf_pred])
+    identity!(dfd, :Vz_pred, "Cl_pred / Kel",       s, res[:Vz_pred], res[:Cl_pred] / res[:Kel])
+    identity!(dfd, :Vss,     "Cl * MRTinf",         s, res[:Vss],     res[:Cl] * res[:MRTinf])
+    identity!(dfd, :Vss_pred, "Cl_pred * MRTinf_pred", s, res[:Vss_pred], res[:Cl_pred] * res[:MRTinf_pred])
+end
+
+# Steady state, intravascular: the volumes over the dosing interval.
 dts = MetidaNCA.DoseTime(dose = 120, time = 0.0, tau = 12)
 MetidaNCA.setdosetime!(ds, dts)
-dss = MetidaNCA.nca!(ds; adm = :ev, calcm = :lint)
+dss = MetidaNCA.nca!(ds; adm = :iv, calcm = :lint)
 subjs = MetidaNCA.getid(dss, :, :Subject)
 for (i, r) in enumerate(dss)
     s = Int(subjs[i])
     res = r.result
-    identity!(dfd, :Vsstau,      "Cltau * MRTtauinf",               s, res[:Vsstau],      res[:Cltau] * res[:MRTtauinf])
-    identity!(dfd, :MRTinf_pred, "AUMCinf_pred / AUCinf_pred",      s, res[:MRTinf_pred], res[:AUMCinf_pred] / res[:AUCinf_pred])
+    identity!(dfd, :Vsstau,      "Cltau * MRTtauinf",      s, res[:Vsstau],      res[:Cltau] * res[:MRTtauinf])
+    identity!(dfd, :Vsstau_pred, "Cltau * MRTtauinf_pred", s, res[:Vsstau_pred], res[:Cltau] * res[:MRTtauinf_pred])
 end
 
 # Pharmacodynamics: the area between baseline and threshold, which with the
@@ -1307,6 +1338,8 @@ print("Full comparison log: docs/src/validation_acceptance.tsv\n\n" *
   * Repository - GitHub repository: https://github.com/PharmCat/MetidaNCA.jl
   * Master branch - main branch on GitHub ([link](https://github.com/PharmCat/MetidaNCA.jl/tree/main)).
   * Current machine - pc that used for validation report generating.
+
+\pagebreak
 
 # Reference
 

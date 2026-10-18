@@ -10,11 +10,24 @@ Maximum concentration from dose time to dose time + tau (if tau > 0). Firs obser
 
 Time at maximum concentration from dose time to dose time + tau (if tau > 0). Firs observation used.
 
+### :Tlag
+
+Time of the last observation below the limit of quantification before the first
+measurable observation. Calculated for extravascular administration only. If the
+first observation is measurable, there is no earlier time in the profile and
+`Tlag` is set to zero.
+
 ### :Cdose
 
 By default dose time is 0. If concentration at dose time present in observation list - this concentration will be used.
 For extravascular setting (:ev) if τ used (τ > 0) Cdose set as minimum concentration from dose time to τ time [:Ctaumin](#:Ctaumin), else set equal to zero.
 For IV (:iv) if 1-st observation > 2-nd observation > 0 then logarithmic extrapolation used, else set equal to 1-st observation.
+
+If dose time falls between sampling points, a point with that time and with the
+concentration given by the rules above is inserted into the profile, and the
+area is calculated from it. Concentration at dose time is not interpolated from
+the neighbouring observations: for extravascular administration without `tau` it
+is equal to zero.
 
 ### AUC / AUMC
 
@@ -80,6 +93,16 @@ All values used to calculate AUC.
 ### :Kel
 
 𝝺z - elimination constant. Linear regression at the terminal phase used for logarithmic transformed concentration data.
+
+The interval is selected automatically if `kelauto = true`. Regressions are run
+over the last three points with non-zero concentration, then over the last four,
+five and so on. Points prior to `Cmax` are not used; the `Cmax` point itself
+enters the interval for a bolus model (`adm = :iv`) only. Points with zero
+concentration are excluded. Of the intervals obtained, the one with the highest
+adjusted coefficient of determination is taken, and where values agree within
+0.0001 the one with more points is taken. The interval bounds returned by
+`getkeldata` are the points actually used, with excluded and zero points
+dropped.
 
 ### :HL
 

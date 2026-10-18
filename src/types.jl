@@ -1,4 +1,4 @@
-
+abstract type AbstractNCAResult{T} <: AbstractSubjectResult{T} end
 # Elimination data
 struct KelData{S<:Number, E<:Number}
     s::Vector{S}
@@ -52,6 +52,7 @@ Elimination settings for PK subject.
 
 * `kelstart` - start time;
 * `kelend` - end time;
+* `kelauto` 
 * `kelexcl` - excluded values.
 
 if keyword `time == false` (by default) - means that the time point number is used to specify start point, 
@@ -60,23 +61,38 @@ end point and excluded values; `time == true`  - real time values will be used t
 mutable struct ElimRange{Symbol, T}
     kelstart::T
     kelend::T
+    kelauto::Bool
     kelexcl::Vector{T}
-    function ElimRange(kelstart::T, kelend::T, kelexcl::Vector{T}; time = false)::ElimRange where T
+    function ElimRange(kelstart::T, kelend::T, kelauto::Bool, kelexcl::Vector{T}; time = false)::ElimRange where T
+        if !kelauto
+            if kelend <= kelstart error("Start point: $(kelstart) end point: $(kelend), check that kelend > kelstart") end
+        end
         if time
             if kelstart > kelend throw(ArgumentError("Kel start > kel end")) end
             if kelstart in kelexcl || kelend in kelexcl throw(ArgumentError("Kel start or kel end in exclusions")) end
-            new{:time, T}(kelstart, kelend, kelexcl)::ElimRange
+            new{:time, T}(kelstart, kelend, kelauto, kelexcl)::ElimRange
         else
             if kelstart > kelend throw(ArgumentError("Kel start > kel end")) end
             if kelstart < 0 throw(ArgumentError("Kel start point < 0")) end
             if kelend   < 0 throw(ArgumentError("Kel endpoint < 0")) end
             if any(x -> x < 0, kelexcl) throw(ArgumentError("Exclude point < 0")) end
             if kelstart in kelexcl || kelend in kelexcl throw(ArgumentError("Kel start or kel end in exclusions")) end
-            new{:point, T}(kelstart, kelend, kelexcl)::ElimRange
+            new{:point, T}(kelstart, kelend, kelauto, kelexcl)::ElimRange
         end
     end
-    function ElimRange(;kelstart = 0, kelend = 0, kelexcl = Int[], time = false)
-        ElimRange(kelstart, kelend, kelexcl; time = time)
+    function ElimRange(kelstart::T, kelend::T, kelexcl::Vector{T}; time = false)::ElimRange where T
+        if kelstart < kelend
+            kelauto = false
+        else
+            kelauto = true
+        end
+        ElimRange(kelstart, kelend, kelauto, kelexcl; time = time)
+    end
+    function ElimRange(;kelstart::T = 0, kelend::T = 0, kelauto::Bool = true, kelexcl = nothing, time = false) where T
+        if isnothing(kelexcl) 
+            kelexcl = T[]
+        end
+        ElimRange(kelstart, kelend, kelauto, kelexcl; time = time)
     end
 end
 
@@ -104,6 +120,8 @@ Base.length(::ConstantCovariate) = 1
 Base.length(v::TimeVaryingCovariate) = length(value(v))
 
 # Dose settings
+
+_dtfloat(x) = x isa Integer ? float(x) : x
 """
     DoseTime(dose::D, time::T, tau::TAU) where D <: Number where T <: Number where TAU <: Number
 
@@ -126,16 +144,10 @@ struct DoseTime{D <: Number, T <: Number, TAU <: Number, R <: Number, RO}
         new{D, T, TAU, R, RO}(dose, time, tau, rate, route)::DoseTime
     end
     function DoseTime(dose, time, tau)
-        if isa(time, Int) time_ = float(time) else time_ = time end
-        if isa(dose, Int) dose_ = float(dose) else dose_ = dose end
-        if isa(tau, Int) tau_   = float(tau)  else tau_  = tau  end
-        DoseTime(dose, time, tau, 0.0, nothing)
+        DoseTime(_dtfloat(dose), _dtfloat(time), _dtfloat(tau), 0.0, nothing)
     end
     function DoseTime(;dose = NaN, time = 0.0, tau = NaN, rate = 0.0, route = nothing)
-        if isa(time, Int) time_ = float(time) else time_ = time end
-        if isa(dose, Int) dose_ = float(dose) else dose_ = dose end
-        if isa(tau, Int) tau_   = float(tau)  else tau_  = tau  end
-        DoseTime(dose, time, tau, rate, route)
+        DoseTime(_dtfloat(dose), _dtfloat(time), _dtfloat(tau), _dtfloat(rate), route)
     end
 end
 
@@ -180,7 +192,6 @@ Fields:
 * time::Vector{T} - time values;
 * obs::O - observations;
 * covars::C - covariates;
-* kelauto::Bool 
 * kelrange::ElimRange
 * dosetime::Vector{DoseTime}
 * id::Dict{Symbol, V}
@@ -190,31 +201,17 @@ mutable struct PKSubject{T <: Number, O, C <: Any, V <: Any} <: AbstractSubject
     time::Vector{T}
     obs::O
     covars::C
-    kelauto::Bool
     kelrange::ElimRange
     dosetime::Vector{DoseTime}
     id::Dict{Symbol, V}
-    function PKSubject(time::Vector{T}, conc::O, covars::C, kelauto::Bool, kelrange::ElimRange, dosetime, id::Dict{Symbol, V} = Dict{Symbol, Any}())  where T <: Number where O where C  where V
+    function PKSubject(time::Vector{T}, conc::O, covars::C, kelrange::ElimRange, dosetime::Vector{<:DoseTime}, id::Dict{Symbol, V} = Dict{Symbol, Any}())  where T <: Number where O where C  where V
         if !checkdosetime(dosetime) error("DoseTime Vector should be sorted.") end
-        new{T, O, C, V}(time, conc, covars, kelauto, kelrange, dosetime, id)::PKSubject
+        new{T, O, C, V}(time, conc, covars, kelrange, dosetime, id)::PKSubject
     end
-    function PKSubject(time::Vector{T}, conc, kelauto::Bool, kelrange::ElimRange, dosetime, id)  where T 
-        PKSubject(time, conc, nothing, kelauto, kelrange, dosetime, id)
+    function PKSubject(time::Vector{T}, conc, kelrange::ElimRange, dosetime::Vector{<:DoseTime}, id)  where T 
+        PKSubject(time, conc, nothing, kelrange, dosetime, id)
     end
-    function PKSubject(time::Vector{T}, conc, covars, kelauto::Bool, kelrange::ElimRange, dosetime, id)  where T 
-        PKSubject(time, conc, covars, kelauto, kelrange, dosetime, id)
-    end
-    #=
-    function PKSubject(time::Vector, conc::Vector, sort::Dict)
-        PKSubject(time, conc, true, ElimRange(), DoseTime(NaN, 0), KelData(), sort)
-    end
-    function PKSubject(time::Vector, conc::Vector, kelauto::Bool, kelrange, dosetime; sort = Dict())
-        PKSubject(time, conc, kelauto, kelrange, dosetime, KelData(), sort)
-    end
-    function PKSubject(time::Vector, conc::Vector; sort = Dict())
-        PKSubject(time, conc, true, ElimRange(), DoseTime(NaN, 0), KelData(), sort)
-    end
-    =#
+
 end
 
 function Base.length(obj::T) where T <: AbstractSubject
@@ -241,35 +238,56 @@ struct NCAOptions{P <: Union{AbstractVector, Nothing}}
 end
 
 """
-    NCAResult(subject::T, options, obsname::Symbol, keldata::KD, result::Dict{Symbol, U}) where T <: AbstractSubject where KD where U
+    NCAPKResult(subject::T, options, obsname::Symbol, keldata::KelData, kelrange::ElimRange, result::Dict{Symbol, U}) where T <: AbstractSubject where U
 
-NCA resulst.
+NCA PK/UPK resulst.
 
 Fields:
 
 * data::T
 * options::Dict{Symbol}
-* obsname::Union{Symbol, Nothing}
-* keldata::KD
+* obsname::Symbol
+* keldata::KelData
+* kelrange::ElimRange
 * result::Dict{Symbol, U}
 """
-struct NCAResult{T, KD <: Union{KelData, Nothing}, U} <: AbstractSubjectResult{T}
+struct NCAPKResult{T, U} <: AbstractNCAResult{T}
     data::T
     options::Dict{Symbol}
-    obsname::Union{Symbol, Nothing}
-    keldata::KD
+    obsname::Symbol
+    keldata::KelData
+    kelrange::ElimRange
     result::Dict{Symbol, U}
-    function NCAResult(subject::T, options, obsname::Union{Symbol, Nothing}, keldata::KD, result::Dict{Symbol, U}) where T <: AbstractSubject where KD where U 
-        new{T, KD, U}(subject, options, obsname, keldata, result)
+    function NCAPKResult(subject::T, options, obsname::Symbol, keldata::KelData, kelrange::ElimRange, result::Dict{Symbol, U}) where T <: AbstractSubject where U 
+        new{T, U}(subject, options, obsname, keldata, kelrange, result)
     end
-    function NCAResult(subject, options, result)
-        NCAResult(subject, options, nothing, nothing, result)
+    function NCAPKResult(subject, options, result)
+        NCAPKResult(subject, options, NCARESOBS, KelData(), ElimRange(), result)
     end
-    #=
-    function NCAResult(subject::T, method, result) where T <: AbstractSubject
-        NCAResult(subject, method, result, Dict())
+end
+"""
+    NCAPDResult(subject::T, options, obsname::Symbol, result::Dict{Symbol, U}) where T <: AbstractSubject where U 
+
+NCA PD resulst.
+
+Fields:
+
+* data::T
+* options::Dict{Symbol}
+* obsname::Symbol
+* result::Dict{Symbol, U}
+"""
+struct NCAPDResult{T, U} <: AbstractNCAResult{T}
+    data::T
+    options::Dict{Symbol}
+    obsname::Symbol
+    result::Dict{Symbol, U}
+    function NCAPDResult(subject::T, options, obsname::Symbol, result::Dict{Symbol, U}) where T <: AbstractSubject where U 
+        new{T, U}(subject, options, obsname, result)
     end
-    =#
+    function NCAPDResult(subject, options, result)
+        NCAPDResult(subject, options, NCARESOBS, result)
+    end
 end
 
 """
@@ -291,11 +309,11 @@ Rule for PK subject.
 
 See also: [`applylimitrule!`](@ref)
 """
-struct LimitRule{T<:Real}
+struct LimitRule{T<:Number}
     lloq::T
-    btmax::Float64
-    atmax::Float64
-    nan::Float64
+    btmax::T
+    atmax::T
+    nan::T
     rm::Bool
     # Need to rewrite intervals 
     # drop before dosetime
@@ -304,8 +322,11 @@ struct LimitRule{T<:Real}
     # aftet Cmax - last
     # first afer last
     # other 
-    function LimitRule(lloq::T, btmax, atmax, nan, rm::Bool) where T <: Real
-        new{T}(lloq, btmax, atmax, nan, rm)::LimitRule
+    function LimitRule(lloq::T, btmax, atmax, nan, rm::Bool) where T <: Number
+        new{T}(lloq, T(btmax), T(atmax), T(nan), rm)::LimitRule
+    end
+    function LimitRule(lloq::Int, btmax, atmax, nan, rm::Bool)
+        new{Float64}(Float64(lloq), Float64(btmax), Float64(atmax), Float64(nan), rm)::LimitRule
     end
     function LimitRule(;nan = NaN, lloq = NaN, btmax = NaN, atmax = NaN,  rm::Bool = false)
         LimitRule(lloq, btmax, atmax, nan, rm)
@@ -321,18 +342,17 @@ mutable struct UPKSubject{T <: Tuple{Number, Number}, O <: Union{Number, Missing
     time::Vector{T}
     obs::Vector{O}
     vol::Vector{VOL}
-    kelauto::Bool
     kelrange::ElimRange
     dosetime::DoseTime
     #keldata::KelData
     id::Dict{Symbol, V}
-    function UPKSubject(time::Vector{T}, conc::Vector{O}, vol::Vector{VOL}, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, id::Dict{Symbol, V} = Dict{Symbol, Any}()) where T <: Tuple{Number, Number} where O <: Union{Number, Missing} where VOL <: Union{Number, Missing} where V
-        new{T, O, VOL, V}(time, conc, vol, kelauto, kelrange, dosetime, id)
+    function UPKSubject(time::Vector{T}, conc::Vector{O}, vol::Vector{VOL}, kelrange::ElimRange, dosetime::DoseTime, id::Dict{Symbol, V} = Dict{Symbol, Any}()) where T <: Tuple{Number, Number} where O <: Union{Number, Missing} where VOL <: Union{Number, Missing} where V
+        new{T, O, VOL, V}(time, conc, vol, kelrange, dosetime, id)
     end
-    function UPKSubject(time::AbstractVector{Tuple{S,E}}, conc::Vector, vol::Vector, kelauto::Bool, kelrange::ElimRange, dosetime::DoseTime, id::Dict{Symbol, V}) where V where S where E
+    function UPKSubject(time::AbstractVector{Tuple{S,E}}, conc::Vector, vol::Vector, kelrange::ElimRange, dosetime::DoseTime, id::Dict{Symbol, V}) where V where S where E
         ttype = promote_type(S, E)
 
-        UPKSubject(time, conc, vol, kelauto, kelrange, dosetime, id)
+        UPKSubject(time, conc, vol, kelrange, dosetime, id)
     end
 end
 
@@ -352,35 +372,30 @@ mutable struct PDSubject{T <: Number, O <: Union{Number, Missing}, V <: Any} <: 
     end
 end
 
+
+
+
+
 function gettime(subj::T) where T <: AbstractSubject
     getfield(subj, :time)
 end
-function getobs_(obsvals::AbstractVector, ::Nothing)
-    obsvals
-end 
-function getobs_(obsvals::AbstractVector, obs::Symbol)
-    if obs == NCARESOBS 
-        return obsvals
-    else 
-        error("Observation's name provided, but subject have no multiple observation.")
+#
+# GET OBSERVATION
+#
+function getobs(subj::T, obs::Symbol = NCARESOBS) where T <: PKSubject
+    o = getfield(subj, :obs)
+    if length(o) > 1 && obs == NCARESOBS 
+        error("Multiple observation used. No name provided.")
+    elseif length(o) == 1 && obs == NCARESOBS 
+        return first(o)
+    else
+        return o[obs]
     end
-end 
-function getobs_(obsvals, ::Nothing)
-    if length(obsvals) == 1 return first(obsvals) end
-    k = first(keys(obsvals))
-    @warn "Subject have multiple observations, but no observation's name provided, first ($k) returned. This method is deprecated."
-    obsvals[k]
-end 
-function getobs_(obsvals, obs::Symbol)
-    if obs == NCARESOBS 
-        return getobs_(obsvals, nothing) 
-    else 
-        return obsvals[obs] 
-    end
-end 
-function getobs(subj::T, obs::Union{Symbol, Nothing} = nothing) where T <: AbstractSubject
-    getobs_(getfield(subj, :obs), obs)
 end
+function getobs(subj::T, obs::Symbol = NCARESOBS) where T <: AbstractSubject
+    return getfield(subj, :obs)
+end
+
 
 function getfirstkey(subj::PKSubject)
     getfirstkey_(subj.obs)

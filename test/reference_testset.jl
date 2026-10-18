@@ -70,8 +70,22 @@ function refresult(meta, pkdata, upkdata, pddata)
     end
 end
 
+#=
+Нижняя граница числа сравнений со эталонным набором.
+
+Параметр из эталонного набора, которого нет в результате, пропускается (строка
+`haskey(result, par) || continue` ниже): так пропускаются параметры, которых по
+данному пути введения не существует. Пропуск молчаливый, поэтому
+переименование параметра уменьшает число сравнений, а набор тестов остаётся
+зелёным. Итоговое число сравнений сверяется с этой границей.
+=#
+const REF_CHECKS_MIN = 3340
+
 # verbose = true: в сводке видно, какие именно сценарии проверены и сколько значений
 @testset verbose = true "  Reference set (Extrnal Software)                        " begin
+
+    refchecks = Ref(0)
+    refskipped = Dict{String, Vector{Symbol}}()
 
     # check_references() возвращает true либо бросает исключение с перечнем расхождений;
     # справочные сообщения о пропусках идут через @info, поэтому @test_nowarn здесь не годится
@@ -112,7 +126,10 @@ end
             checked = 0
             for (par, ref) in sort(collect(refval[sc]); by = first)
                 result = bysubject ? res[1].result : res.result
-                haskey(result, par) || continue          # параметра нет в MetidaNCA
+                if !haskey(result, par)                  # параметра нет в MetidaNCA
+                    push!(get!(refskipped, sc, Symbol[]), par)
+                    continue
+                end
                 col = bysubject ? res[:, par] : [result[par]]
                 any(ismissing, col) && continue
                 vals = float.(col)
@@ -127,6 +144,13 @@ end
                 end
             end
             @test checked > 0                            # сценарий реально что-то проверил
+            refchecks[] += checked
         end
     end
+
+    for sc in sort(collect(keys(refskipped)))
+        @info "Параметры эталонного набора, которых нет в результате" scenario = sc parameters = sort(unique(refskipped[sc]))
+    end
+    @info "Сравнений с эталонным набором" checks = refchecks[] minimum = REF_CHECKS_MIN
+    @test refchecks[] >= REF_CHECKS_MIN
 end

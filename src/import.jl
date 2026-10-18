@@ -1,4 +1,4 @@
-# Заполняет словарь d индексами индивидуальных значений
+# Fills dictionary d with indexes of individual values
 
 function nonunique(v)
     cm = StatsBase.countmap(v)
@@ -137,7 +137,6 @@ end
 
 """
     pkimport(data, time, obs, sort;
-        kelauto = true,
         elimrange = ElimRange(),
         dosetime = DoseTime(),
         limitrule::Union{Nothing, LimitRule} = nothing,
@@ -152,7 +151,6 @@ Import PK data from table `data`.
 
 keywords:
 
-* `kelauto` - if `true` auto range settings, if `false` used `kelstart`/`kelend` from `elimrange`;
 * `elimrange` - set elimination range settings;
 * `dosetime` - set dose and dose time, by default dosetime = 0, dose is `NaN`;
 * `limitrule` - apply limitrule to subject;
@@ -169,15 +167,13 @@ See also: [`ElimRange`](@ref), [`DoseTime`](@ref), [`LimitRule`](@ref).
 """
 function pkimport(data, time, obs, sort;
     covars = [],
-    kelauto = true,  
     elimrange = ElimRange(), 
     dosetime = nothing, 
     limitrule::Union{Nothing, LimitRule} = nothing, 
     warn = true, 
     checktime = true,
     nutcfunk = last,
-    units::Union{Nothing, NCAUnits} = nothing, 
-    kwargs...)
+    units::Union{Nothing, NCAUnits} = nothing)
     
     sort = parse_gkw(sort)
     obs  = parse_gkw(obs)
@@ -255,7 +251,7 @@ function pkimport(data, time, obs, sort;
             covars_v = nothing
         end
  
-        sdata[i] = PKSubject(timevals_sp, (; zip(obs, obsvals)...), covars_v, kelauto, elimrange,  dosetime_, Dict(sort .=> k))
+        sdata[i] = PKSubject(timevals_sp, (; zip(obs, obsvals)...), covars_v, elimrange,  dosetime_, Dict(sort .=> k))
         i += one(Int)
     end
     ds = DataSet(identity.(sdata))
@@ -272,7 +268,7 @@ end
 
 Import PK data from tabular data `data`, `time` - time column, `obs` - concentration column.
 """
-function pkimport(data, time, obs; kelauto = true,  elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true, kwargs...)
+function pkimport(data, time, obs; elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true)
     obs   = parse_gkw(obs)
 
     obsvals = [copy(Tables.getcolumn(data, y)) for y in obs]
@@ -298,7 +294,7 @@ function pkimport(data, time, obs; kelauto = true,  elimrange = ElimRange(), dos
         sort!(dosetime_, by = x -> x.time)
     end
 
-    pks = PKSubject(timevals, (; zip(obs, obsvals)...), kelauto, elimrange,  dosetime_, id)
+    pks = PKSubject(timevals, (; zip(obs, obsvals)...), elimrange,  dosetime_, id)
     if !isnothing(limitrule)
         applylimitrule!(pks, limitrule)
     end
@@ -306,7 +302,6 @@ function pkimport(data, time, obs; kelauto = true,  elimrange = ElimRange(), dos
 end
 """
     pkimport(time, obs;
-        kelauto = true,
         elimrange = ElimRange(),
         dosetime = DoseTime(),
         id = Dict{Symbol, Any}(),
@@ -317,11 +312,11 @@ end
 Import PK data from time vector `time` and concentration vector `obs`.
 
 """
-function pkimport(time, obs; kelauto = true,  elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true, kwargs...)
+function pkimport(time, obs; obsname = NCARESOBS, elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true)
     
     timevals = checktimevec(time)
    
-    obsvals  = checkobsvec(obs, warn)
+    obsvals  = checkobsvec(copy(obs), warn)
 
     dosetime_ = makedosetimevec(dosetime, zero(eltype(timevals)))
 
@@ -340,8 +335,7 @@ function pkimport(time, obs; kelauto = true,  elimrange = ElimRange(), dosetime 
             end
         end
     end
-
-    pks = PKSubject(timevals, obsvals, kelauto, elimrange,  dosetime_, id)
+    pks = PKSubject(timevals, NamedTuple{(obsname,)}((obsvals,)), elimrange, dosetime_, id)
     if !isnothing(limitrule)
         applylimitrule!(pks, limitrule)
     end
@@ -356,7 +350,7 @@ function pkimport(data; time, conc, sort = nothing, kwargs...)
 end
 
 """
-    upkimport(data, stime, etime, conc, vol, sort; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
+    upkimport(data, stime, etime, conc, vol, sort; elimrange = ElimRange(), dosetime = DoseTime())
 
 Import urine PK data from table `data`.
 
@@ -375,7 +369,7 @@ function upkimport(data, stime, etime, conc, vol, sort; kwargs...)
     d      = Dict{Tuple{eltype.(cdata)...}, Vector{Int}}()
     indsdict!(d, cdata)
 
-    tnames = Symbol.(names(data))
+    tnames = Symbol.(Tables.columns(data)) 
     isa(stime, Symbol) || stime in tnames || error("column Start Time ($stime) not found")
     isa(etime, Symbol) || etime in tnames || error("column End Time ($etime) not found")
     isa(conc, Symbol) || conc in tnames || error("column Concentration ($conc) not found")
@@ -405,7 +399,7 @@ function upkimport(data, stime, etime, conc, vol, sort; kwargs...)
     return DataSet(identity.(sdata))
 end
 """
-    upkimport(data, stime, etime, conc, vol; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
+    upkimport(data, stime, etime, conc, vol;  elimrange = ElimRange(), dosetime = DoseTime())
 
 Import single urine PK data from table `data`.
 
@@ -418,7 +412,7 @@ function upkimport(data, stime, etime, conc, vol; kwargs...)
     upkimport(Tables.getcolumn(data, stime), Tables.getcolumn(data, etime), Tables.getcolumn(data, conc), Tables.getcolumn(data, vol); kwargs...)
 end
 """
-    upkimport(stime, etime, conc, vol; kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime())
+    upkimport(stime, etime, conc, vol; elimrange = ElimRange(), dosetime = DoseTime())
 
 Import urine PK data from time vectors:
 * `stime` - start times;
@@ -426,7 +420,7 @@ Import urine PK data from time vectors:
 * `conc` - concentrations;
 * `vol` - volumes.
 """
-function upkimport(stime, etime, conc, vol; kelauto = true,  elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), warn = true)
+function upkimport(stime, etime, conc, vol; elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), warn = true)
     any(isnanormissing, stime) && error("Some Start Time values is NaN or Missing!")
     any(isnanormissing, etime) && error("Some End Time values is NaN or Missing!")
     timeranges = collect(zip(stime, etime))
@@ -435,10 +429,9 @@ function upkimport(stime, etime, conc, vol; kelauto = true,  elimrange = ElimRan
     concvals_sp = conc[sp]
     volvals_sp  = vol[sp]
 
-
     #if isnothing(dosetime) dosetime = DoseTime(NaN, zero(promote_type(eltype(stimec), eltype(etimec))), NaN) end
 
-    time_type = promote_type(typeof(zero(eltype(stime))), typeof(zero(eltype(stime))))
+    time_type = promote_type(typeof(zero(eltype(stime))), typeof(zero(eltype(etime))))
     zerotime  = zero(time_type)
     if isnothing(dosetime)
         dosetime = DoseTime(NaN, zerotime, NaN*zerotime)
@@ -455,7 +448,7 @@ function upkimport(stime, etime, conc, vol; kelauto = true,  elimrange = ElimRan
             timevals_sp[c][1] == timevals_sp[c-1][2] || error("Start time ($(timevals_sp[c][1])) for observation $c not equal End time ($(timevals_sp[c-1][2])) for observation $(c-1)!")
         end
     end
-    UPKSubject(timevals_sp, concvals_sp, volvals_sp, kelauto, elimrange,  dosetime, id)
+    UPKSubject(timevals_sp, concvals_sp, volvals_sp, elimrange,  dosetime, id)
 end
 
 """
@@ -547,11 +540,15 @@ end
 
 Import PD data from tabular data `data`, `time` - time column, `obs` - observations column.
 """
-function pdimport(data, time, obs; bl = 0, th = 0, id = Dict{Symbol, Any}(), warn = true)
+function pdimport(data, time, obs; bl = 0, th = 0, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true)
 
     timevals = checktimevec(Tables.getcolumn(data, time))
     obsvals  = checkobsvec(copy(Tables.getcolumn(data, obs)), warn)
-    PDSubject(timevals, obsvals, bl, th,  id)
+    pds = PDSubject(timevals, obsvals, bl, th,  id)
+    if !isnothing(limitrule)
+        applylimitrule!(pds, limitrule)
+    end
+    pds
 end
 """
     pdimport(time, obs;
@@ -562,8 +559,12 @@ end
 
 Import PD data from time vector `time` and observations vector `obs`.
 """
-function pdimport(time, obs; bl = 0, th = 0, id = Dict{Symbol, Any}(), warn = true)
+function pdimport(time, obs; bl = 0, th = 0, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true)
     timevals = checktimevec(time)
     obsvals  = checkobsvec(copy(obs), warn)
-    PDSubject(timevals, obsvals, bl, th,  id)
+    pds = PDSubject(timevals, obsvals, bl, th,  id)
+    if !isnothing(limitrule)
+        applylimitrule!(pds, limitrule)
+    end
+    pds
 end

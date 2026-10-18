@@ -148,7 +148,7 @@ function plotlabel(d, ld = nothing)
     title = ""
     if isnothing(d) return title end
     if length(d) > 0
-        # Порядок обхода Dict не определён. Подписи строятся в порядке сортировки ключей.
+        # Dict iteration order is undefined. Labels are built in sorted key order.
         for k in sort!(collect(keys(d)))
             v  = d[k]
             kv = k
@@ -163,10 +163,10 @@ end
 
 # ---- the range of the y axis ------------------------------------------------
 # Used by this file only
-function maxconc(subj::T; obsname::Union{Symbol, Nothing} = nothing) where T <: AbstractSubject
+function maxconc(subj::T; obsname::Symbol = NCARESOBS) where T <: AbstractSubject
     maximum(Iterators.filter(x-> !(ismissing(x) || isnan(x)), getobs(subj, obsname)))
 end
-function minconc(subj::T, pos = false; obsname::Union{Symbol, Nothing} = nothing) where T <: AbstractSubject
+function minconc(subj::T, pos = false; obsname::Symbol = NCARESOBS) where T <: AbstractSubject
     if pos
         return minimum(Iterators.filter(x-> x > zero(x), getobs(subj, obsname)))
     else
@@ -174,9 +174,9 @@ function minconc(subj::T, pos = false; obsname::Union{Symbol, Nothing} = nothing
     end
 end
 
-maxconc(subj::UPKSubject; obsname::Union{Symbol, Nothing} = nothing) =
-    maximum(Iterators.filter(x-> !(ismissing(x) || isnan(x)), excretionrate(subj; obsname = obsname)))
-function minconc(subj::UPKSubject, pos = false; obsname::Union{Symbol, Nothing} = nothing)
+maxconc(subj::UPKSubject; obsname::Symbol = NCARESOBS) = maximum(Iterators.filter(x-> !(ismissing(x) || isnan(x)), excretionrate(subj; obsname = obsname)))
+
+function minconc(subj::UPKSubject, pos = false; obsname::Symbol = NCARESOBS)
     r = excretionrate(subj; obsname = obsname)
     if pos
         return minimum(Iterators.filter(x-> x > zero(x), r))
@@ -189,47 +189,44 @@ end
 plottime(subj::AbstractSubject) = gettime(subj)
 plottime(subj::UPKSubject)      = midtime(subj)
 
-plotobs(subj::AbstractSubject, obsname = nothing) = getobs(subj, obsname)
-plotobs(subj::UPKSubject, obsname = nothing)      = excretionrate(subj; obsname = obsname)
+plotobs(subj::AbstractSubject, obsname::Symbol = NCARESOBS) = getobs(subj, obsname)
+plotobs(subj::UPKSubject, obsname::Symbol = NCARESOBS)      = excretionrate(subj; obsname = obsname)
 
 plotylabel(::AbstractSubject) = "Concentration"
 plotylabel(::UPKSubject)      = "Excretion rate"
 
-function _subjplot(subj, kwargs, ls; obsname = nothing)
+function _subjplot(subj, kwargs, ls; obsname::Symbol = NCARESOBS)
 
-    # Что рисуется, определяют plotobs и plottime.
     subjobs  = plotobs(subj, obsname)
     subjtime = plottime(subj)
 
     k = keys(kwargs)
-    if :yscale in k
-        if kwargs[:yscale] in [:ln, :log, :log2, :log10]
-            ls = false
-            if !(:minorticks in k) kwargs[:minorticks] = true end
+    if :yscale in k && kwargs[:yscale] in [:ln, :log, :log2, :log10]
+        ls = false
+        if !(:minorticks in k) kwargs[:minorticks] = true end
 
-            inds = findall(x-> x > 0, subjobs)
-            time = subjtime[inds]
-            obs  = subjobs[inds]
-            if !(:yticks in k)
-                if kwargs[:yscale] == :log10
-                    b = 10
-                elseif kwargs[:yscale] == :log2
-                    b = 2
-                elseif kwargs[:yscale] == :ln || kwargs[:yscale] == :log
-                    b = ℯ
-                end
-                
-                t = collect(floor(log(b, minimum(obs))):ceil(log(b, maximum(obs))))
-                pushfirst!(t, first(t) - 1)
-                kwargs[:yticks] = b .^ t
-                
+        inds = findall(x-> x > 0, subjobs)
+        time = subjtime[inds]
+        obs  = subjobs[inds]
+        if !(:yticks in k)
+            if kwargs[:yscale] == :log10
+                b = 10
+            elseif kwargs[:yscale] == :log2
+                b = 2
+            elseif kwargs[:yscale] == :ln || kwargs[:yscale] == :log
+                b = ℯ
             end
-            if !(:ylims in k)
-                kwargs[:ylims] = (minimum(obs)*0.5, maximum(obs)*2.)
-            else
-                if kwargs[:ylims][1] <= 0
-                    kwargs[:ylims] = (minimum(obs)/b, kwargs[:ylims][2])
-                end
+            
+            t = collect(floor(log(b, minimum(obs))):ceil(log(b, maximum(obs))))
+            pushfirst!(t, first(t) - 1)
+            kwargs[:yticks] = b .^ t
+            
+        end
+        if !(:ylims in k)
+            kwargs[:ylims] = (minimum(obs)*0.5, maximum(obs)*2.)
+        else
+            if kwargs[:ylims][1] <= 0
+                kwargs[:ylims] = (minimum(obs)/b, kwargs[:ylims][2])
             end
         end
     else
@@ -302,8 +299,16 @@ function _pddtplot!(p, subj, kwargs)
             plot!(p, [minimum(subj.time), maximum(subj.time)], [getbl(subj), getbl(subj)], lc = kwargs[:linecolor], ls = :dash, label = "BL")
         end
     end
-    if kwargs[:drawdt] == true && !isnan(subj.dosetime.time) 
-        plot!(p, [subj.dosetime.time, subj.dosetime.time], [minconc(subj),  maxconc(subj)], label = "DoseTime", ls = :dot, lc = kwargs[:linecolor])
+    if kwargs[:drawdt] == true
+        if  isa(subj.dosetime, DoseTime) && !isnan(subj.dosetime.time) 
+            plot!(p, [subj.dosetime.time, subj.dosetime.time], [minconc(subj),  maxconc(subj)], label = "DoseTime", ls = :dot, lc = kwargs[:linecolor])
+        else
+            if length(subj.dosetime) > 0
+                for d in subj.dosetime
+                    if !isnan(d.time)  plot!(p, [d.time, d.time], [minconc(subj),  maxconc(subj)], label = "DoseTime", ls = :dot, lc = kwargs[:linecolor]) end
+                end
+            end
+        end
     end
     return p
 end
@@ -324,7 +329,7 @@ Plot for subject
 * `drawdt` (`false`) - draw drawdose time;
 
 """
-function pkplot(subj::AbstractSubject; ls = false, xticksn = :auto, yticksn = :auto, obsname = nothing, kwargs...)
+function pkplot(subj::AbstractSubject; ls = false, xticksn = :auto, yticksn = :auto, obsname::Symbol = NCARESOBS, kwargs...)
 
     kwargs = Dict{Symbol, Any}(kwargs)
     k = keys(kwargs)
@@ -365,7 +370,7 @@ function pkplot(subj::AbstractSubject; ls = false, xticksn = :auto, yticksn = :a
     return p
 end
 
-function pkplot!(subj; ls = false, xticksn = :auto, yticksn = :auto, obsname = nothing, kwargs...)
+function pkplot!(subj; ls = false, xticksn = :auto, yticksn = :auto, obsname::Symbol = NCARESOBS, kwargs...)
     time = gettime(subj)
     obs  = getobs(subj, obsname)
     kwargs = Dict{Symbol, Any}(kwargs)
@@ -492,7 +497,7 @@ function pkplot(data::DataSet{T};
         kwargs[:ls] = false
     end
     if !(:obsname in k)
-        kwargs[:obsname] = nothing
+        kwargs[:obsname] = NCARESOBS
     end
     if !(:elim in k)
         kwargs[:elim] = false
@@ -504,7 +509,7 @@ function pkplot(data::DataSet{T};
         kwargs[:drawth] = false
     end
     if uylims && !(:ylims in k)
-        kwargs[:ylims] = (findmin(x -> minconc(x; obsname = obsname), getdata(data))[1], findmax(x -> maxconc(x), getdata(data))[1]*1.15)
+        kwargs[:ylims] = (findmin(x -> minconc(x; obsname = kwargs[:obsname]), getdata(data))[1], findmax(x -> maxconc(x), getdata(data))[1]*1.15)
     end
     if !isnothing(filter) data = subset(data, filter) end
 
@@ -593,9 +598,9 @@ end
 
 
 """
-    pkplot(data::DataSet{T}; elim = false, kelexcl = true, kelpoints = true, kwargs...) where T <: NCAResult
+    pkplot(data::DataSet{T}; elim = false, kelexcl = true, kelpoints = true, kwargs...) where T <: NCAPKResult
 """
-function pkplot(data::DataSet{T}; elim = false, kelexcl = true, kelpoints = true, kwargs...) where T <: NCAResult
+function pkplot(data::DataSet{T}; elim = false, kelexcl = true, kelpoints = true, onlyplots = false, kwargs...) where T <: NCAPKResult
     k = keys(kwargs)
     ds = map(x-> x.data, data)
     plts = pkplot(ds; kwargs...)
@@ -612,11 +617,14 @@ function pkplot(data::DataSet{T}; elim = false, kelexcl = true, kelpoints = true
             _elimplot!(plts[i].plot, data[i].data, data[i].keldata, ls; kelexcl = kelexcl, kelpoints = kelpoints, obsname = data[i].obsname)
         end
     end
-    plts
+    if onlyplots
+        return map(x -> x.plot, plts.ds)
+    end
+    return plts
 end
 
 """
-    pkplot(data::NCAResult; elim = false, kelexcl = true, kelpoints = true, kwargs...)
+    pkplot(data::NCAPKResult; elim = false, kelexcl = true, kelpoints = true, kwargs...)
 
 Plot PK profile with elmination results.
 
@@ -624,7 +632,7 @@ Plot PK profile with elmination results.
 * `kelexcl` - draw exclusions;
 * `kelpoints` - draw points for elimination calculation;
 """
-function pkplot(data::NCAResult; elim = false, kelexcl = true, kelpoints = true, kwargs...)
+function pkplot(data::NCAPKResult; elim = false, kelexcl = true, kelpoints = true, kwargs...)
     k = keys(kwargs)
     if !(:ls in k)
         ls = false
@@ -661,7 +669,7 @@ function vpcplot(data::DataSet{T}; timef = identity, meanf = mean, intf = x->qf(
     kwargs = Dict{Symbol, Any}(kwargs)
     k, means, lb, ub = vpcdata(data, timef = timef, meanf = meanf, intf = intf)
     if !(:ribbon in keys(kwargs))
-        kwargs[:ribbon] = (means .- lb, ub .- means)
+        kwargs[:ribbon] = (means .- ub, lb .- means)
     end
     p = plot(k, means; kwargs...)
     return p
@@ -689,7 +697,7 @@ function vpcdata(data::DataSet{T}; timef = identity, meanf = mean, intf = x->qf(
     ub = zeros(length(k))
     lb = zeros(length(k))
     for i = 1:length(k)
-        ub[i], lb[i] = intf(dict[k[i]])
+        lb[i], ub[i] = intf(dict[k[i]])
     end
     k, means, lb, ub
 end

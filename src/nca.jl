@@ -52,7 +52,7 @@ function ctmax(time::AbstractVector, obs::AbstractVector, taulastp::Int = length
     cmax  = obs[f]
     cmin  = obs[f]
     tmaxn = f
-    if taulastp == f return cmax, first(time), tmaxn, cmin end
+    if taulastp == f return cmax, time[tmaxn], tmaxn, cmin end
     @inbounds for i = f+1:taulastp
         if !isnanormissing(obs[i])
             if obs[i] > cmax
@@ -65,42 +65,26 @@ function ctmax(time::AbstractVector, obs::AbstractVector, taulastp::Int = length
     end
     return cmax, time[tmaxn], tmaxn, cmin
 end
-   #=
-function ctmax(time::AbstractVector, obs::AbstractVector)
- 
-    f = findfirst(!isnanormissing, obs)
-    cmax  = obs[f]
-    tmaxn = f
-    if length(obs) - f == 0 return cmax, time[f], tmaxn end
-    @inbounds for i = f + 1:length(obs)
-        if !isnanormissing(obs[i]) && obs[i] > cmax
-            cmax  = obs[i]
-            tmaxn = i
-        end
-    end
-    return cmax, time[tmaxn], tmaxn
-   
-end
- =#
+
+#=
+    ctmax(data::PKSubject, dt::Int = 0)
+
+Cmax, Tmax, index of Cmax and Cmin for a subject. Window from dose time `dt` to
+`tau` if `tau` set, else to the last observation. Returns the same four values
+as the vector method.
+=#
 function ctmax(data::PKSubject, dt::Int = 0)
     if dt == 0 dt = length(data.dosetime) end
     datadt = data.dosetime[dt]
-    fobs = firstobs(gettime(data), getobs(data), datadt.time)
-    if  datadt.tau > 0
-        taulastp = findlast(x -> x <= datadt.time + datadt.tau, gettime(data))
-    else
-        taulastp = length(data)
-    end
-    cmax  = getobs(data)[fobs]
-    tmaxn = fobs
-    if length(data) - fobs == 0 return cmax, gettime(data)[fobs], tmaxn end
-    @inbounds for i = fobs + 1:length(data)
-        if !isnanormissing(getobs(data)[i]) && getobs(data)[i] > cmax
-            cmax  = getobs(data)[i]
-            tmaxn = i
-        end
-    end
-    return cmax, data.time[tmaxn], tmaxn
+    time   = gettime(data)
+    obs    = getobs(data)
+    fobs   = firstobs(time, obs, datadt.time)
+    taulastp = datadt.tau > 0 ?
+        something(findlast(x -> x <= datadt.time + datadt.tau, time), length(data)) :
+        length(data)
+    taulastp < fobs && return NaN, NaN, 0, NaN
+    cmax, tmax, tmaxn, cmin = ctmax(view(time, fobs:taulastp), view(obs, fobs:taulastp))
+    return cmax, tmax, tmaxn + fobs - 1, cmin
 end
 
 function logtpredict(c₁, c₂, cx, t₁, t₂)
@@ -160,6 +144,11 @@ function slope(x::AbstractVector{X}, y::AbstractVector{Y}; funk::Function = iden
 
     return a, b, r2, ar, n
 end
+
+function bestkelint(keldata, tie = 0.0001)
+    best = maximum(x for x in keldata.ar if !isnan(x); init = -Inf)
+    argmax(i -> (keldata.ar[i] >= best - tie, keldata.n[i]), eachindex(keldata.ar))
+end
 #=
 function logslope(x, y)
     if length(x) != length(y) throw(ArgumentError("Unequal vector length!")) end
@@ -206,7 +195,7 @@ end
 function aumcpart(t₁, t₂, c₁, c₂, calcm, aftertmax)
     if calcm == :lint || c₁ <= zero(c₁) && c₂ <= zero(c₂)
         aumc  = linaumc(t₁, t₂, c₁, c₂)
-    elseif calcm == :logt && aftertmax && c₁ > zero(c₁) && c₂ > zero(c₂)
+    elseif calcm == :logt && aftertmax && c₁ > zero(c₁) && c₂ > zero(c₂) && !isapprox(c₁, c₂; atol=sqrt(eps())) 
         aumc  = logaumc(t₁, t₂, c₁, c₂)
     elseif calcm == :luld &&  c₁ > c₂ > zero(c₂)
         aumc  = logaumc(t₁, t₂, c₁, c₂)
@@ -333,30 +322,32 @@ function getetimep(time, time_cp, excl::ElimRange{:point})
 end
 # 3
 # Elimination, TlastN, Tlast
-function step_3_elim!(result, data, adm, tmaxn, time_cp::AbstractVector{T}, obs_cp::AbstractVector{O}, keldata, kelauto) where T where O
+function step_3_elim!(result, data, adm, tmaxn, time_cp::AbstractVector{T}, obs_cp::AbstractVector{O}, keldata, kelrange) where T where O
     resize!(keldata)
 
     time   = gettime(data)
     obsnum = length(time_cp)
     # data.kelrange.kelexcl - indexes; excltime - time values
-    excltime, _ = getexcltimes(time, data.kelrange)
+    excltime, _ = getexcltimes(time, kelrange)
     # Unitful values
     r_time_cp = reinterpret(typeof(one(T)), time_cp)
     r_obs_cp  = reinterpret(typeof(one(O)), obs_cp)
 
-    tlastn   = findlast(x-> x > zero(x), r_obs_cp)
+    # with no measurable observation the last point is reported, Clast is zero
+    tlastn   = something(findlast(x-> x > zero(x), r_obs_cp), obsnum)
     tlast    = r_time_cp[tlastn]
 
-    if kelauto
+    if kelrange.kelauto
         if (adm != :iv && obsnum - tmaxn > 2) || (adm == :iv && obsnum - tmaxn > 1)
+            # Points prior to Cmax are not used. The Cmax point itself is used for a bolus model only.
             if adm == :iv
                 stimep = tmaxn
             else
                 stimep = tmaxn + 1
             end
             timep = collect(stimep:obsnum) # time points (and conc) - indexes for time vector from start to end
-            # Esclude all indexes in data.kelrange.kelexcl
-            if length(data.kelrange.kelexcl) > 0
+            # Esclude all indexes in kelrange.kelexcl
+            if length(kelrange.kelexcl) > 0
                 exclinds = findall(x -> x in excltime, time_cp)
                 filter!(x-> x ∉ exclinds, timep)
             end
@@ -376,27 +367,30 @@ function step_3_elim!(result, data, adm, tmaxn, time_cp::AbstractVector{T}, obs_
             end
         end
     else
-        stimep = getstimep(time, time_cp, data.kelrange) 
+        stimep = getstimep(time, time_cp, kelrange) 
         if isnothing(stimep)
             @warn "Start-time not found - automatic kel calclation used."
-            return step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, keldata, true)
+            kelrange.kelauto = true
+            return step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, keldata, kelrange)
         end
-        etimep = getetimep(time, time_cp, data.kelrange) 
+        etimep = getetimep(time, time_cp, kelrange) 
         if isnothing(stimep)
             @warn "End-time not found - automatic kel calclation used."
-            return step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, keldata, true) 
+            kelrange.kelauto = true
+            return step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, keldata, kelrange) 
         end
         timep = collect(stimep:etimep)
-        if length(data.kelrange.kelexcl) > 0
-            @inbounds for i in data.kelrange.kelexcl
+        if length(kelrange.kelexcl) > 0
+            @inbounds for i in kelrange.kelexcl
                 filter!(x-> x ∉ findall(x -> x in excltime, time_cp), timep)
             end
         end
-        zcinds = findall(x -> x <= 0, obs_cp)
+        zcinds = findall(x -> x <= zero(O), obs_cp)
         filter!(x-> x ∉ zcinds, timep)
         if length(timep) > 1
             sl = slope(view(r_time_cp, timep), view(r_obs_cp, timep), funk = log)
-            push!(keldata, time_cp[stimep], time_cp[etimep], sl[1], sl[2], sl[3], sl[4], sl[5])
+
+            push!(keldata, time_cp[first(timep)], time_cp[last(timep)], sl[1], sl[2], sl[3], sl[4], sl[5])
         end
     end
     # keldata - New KelData, excltime excluded time values, t last N and tlast
@@ -405,8 +399,8 @@ end
 # 6
 function step_6_areas(time_cp::AbstractVector{T}, obs_cp::AbstractVector{O}, calcm, tmaxn, tlastn) where T where O
     obsnum     = length(time_cp)
-    auctype    = typeof(zero(eltype(time_cp))*zero(eltype(obs_cp)))
-    aumctype   = typeof(zero(eltype(time_cp))^2*zero(eltype(obs_cp)))
+    auctype    = typeof(zero(T)*zero(O))
+    aumctype   = typeof(zero(T)^2*zero(O))
     aucpartl   = Array{auctype, 1}(undef, obsnum - 1)
     aumcpartl  = Array{aumctype, 1}(undef, obsnum - 1)
     #Calculate all AUC/AUMC part based on data
@@ -450,16 +444,16 @@ Applicable `kwargs` see  [`nca!`](@ref).
 
 See also: [`ElimRange`](@ref), [`DoseTime`](@ref), [`LimitRule`](@ref).
 """
-function nca(args...; type::Symbol = :bps, bl = 0, th = 0, kelauto = true,  elimrange = ElimRange(), dosetime = DoseTime(), limitrule::Union{Nothing, LimitRule} = nothing, io = stdout, wm = false, kwargs...)
+function nca(args...; type::Symbol = :bps, bl = 0, th = 0, elimrange = ElimRange(), dosetime = DoseTime(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true, kwargs...)
     if !(type in (:bps, :ur, :pd)) error("Unknown type") end
     if type == :bps
-        pki    = pkimport(args...; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime, limitrule = limitrule, kwargs...)
+        pki    = pkimport(args...;  elimrange = elimrange, dosetime = dosetime, limitrule = limitrule, warn = warn)
     elseif type == :ur
-        pki    = upkimport(args...; kelauto = kelauto,  elimrange = elimrange, dosetime = dosetime, kwargs...)
+        pki    = upkimport(args...; elimrange = elimrange, dosetime = dosetime, warn = warn)
     elseif type == :pd
-        pki    = pdimport(args...; th = th, bl = bl, limitrule = limitrule, kwargs...)
+        pki    = pdimport(args...; th = th, bl = bl, limitrule = limitrule, warn = warn)
     end
-    nca!(pki; io = io, wm = wm, kwargs...)
+    nca!(pki; kwargs...)
 end
 
 """
@@ -478,7 +472,7 @@ Non-compartmental (NCA) analysis of PK/PD data.
 
 Other keywords is the same as in `nca!` method for `PKSubject`.
 """
-function nca!(data::DataSet{Subj}, obs::Union{Symbol, Nothing} = nothing;  wm::Bool = false, io = stdout, kwargs...) where Subj <: AbstractSubject
+function nca!(data::DataSet{Subj}, obs::Symbol = Symbol();  wm::Bool = false, io = stdout, kwargs...) where Subj <: AbstractSubject
 
     writetostdout = false
     if wm
@@ -557,20 +551,36 @@ Results:
 * MRTlast
 * MRTinf
 * MRTinf_pred
+* Tlast
+* Dose
+* Obsnum
+* Rsqn
+* LZ
 * Cllast
-* Clinf
-* Vzlast
-* Vzinf
-* Vssinf
+
+Intravascular administration (`adm = :iv`):
+
+* Cl
+* Cl_pred
+* Vz
+* Vz_pred
+* Vss
+* Vss_pred
+
+Extravascular administration (`adm = :ev`):
+
+* Cl_F
+* Cl_F_pred
+* Vz_F
+* Vz_F_pred
 
 Steady-state parameters (tau used):
 
 * AUCtau
 * AUMCtau
 * Ctau
-* Cavg
-* Ctaumax
 * Ctaumin
+* Cavg
 * Accind
 * Fluc
 * Fluctau
@@ -578,13 +588,17 @@ Steady-state parameters (tau used):
 * Swingtau
 * MRTtauinf
 * MRTtauinf_pred
-* Cltau
-* Vztau
+* Cltau (`adm = :iv`)
+* Cltau_F (`adm = :ev`)
+* Vsstau (`adm = :iv`)
+* Vsstau_pred (`adm = :iv`)
+
+With tau `Vz` and `Vz_F` are computed from `AUCtau`.
 
 `partials` is a vector of vectors, tuples or pairs. Example: `partials = [(1,2), (3,4)]`, `partials = [[1,2], (3,4)]`
 
 """
-function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS; 
+function nca!(data::PKSubject{T, OBS}, obs::Symbol = NCARESOBS; 
     adm = :ev, calcm = :lint, usedose::Int = 0,
     intpm = :calcm,  
     partials = nothing, 
@@ -596,6 +610,11 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
     kwargs...) where T where OBS
 
     O = eltype(getobs(data, obs))
+
+    zeroauc  = zero(T)*zero(O)
+    zeroaumc = zero(T)^2*zero(O)
+
+    kelrange = deepcopy(data.kelrange)
 
     ptype  = promote_type(Float64, T, O)
 
@@ -634,11 +653,11 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
 ################################################################################
     # STEP 1 FILTER ALL BEFORE DOSETIME AND ALL NAN OR MISSING VALUES
     if validobsn(gettime(data), getobs(data, obs)) == 0
-        return NCAResult(data, options, result) 
+        return NCAPKResult(data, options, result)
     end
     time_cp, obs_cp, einds = step_1_filterpksubj(gettime(data), getobs(data, obs), used_dosetime_time)
     if length(obs_cp) < 2
-        return NCAResult(data, options, result)
+        return NCAPKResult(data, options, result)
     end
 ################################################################################
     # STEP 2 - CMAX TMAX FOR TAU RANGE Clast Tlast; interpolate NaN and missings
@@ -663,16 +682,17 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
     # Get last concentration
     if length(einds) > 0
         for ei in einds
-            if ei ∉ data.kelrange.kelexcl push!(data.kelrange.kelexcl, ei) end
+            if ei ∉ kelrange.kelexcl push!(kelrange.kelexcl, ei) end
         end
-        sort!(data.kelrange.kelexcl)
-        if data.kelrange.kelstart in data.kelrange.kelexcl || data.kelrange.kelend in data.kelrange.kelexcl
-            data.kelauto = true
+        sort!(kelrange.kelexcl)
+        if kelrange.kelstart in kelrange.kelexcl || kelrange.kelend in kelrange.kelexcl
+            println(io, "    Elimination range bounds in exclusions, set kelauto = true;")
+            kelrange.kelauto = true
         end
     end
 
 
-    keldata, excltime, tlastn, tlast = step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, KelData(T[], T[], Float64[], Float64[], Float64[], Float64[], Int[]), data.kelauto)
+    keldata, excltime, tlastn, tlast = step_3_elim!(result, data, adm, tmaxn, time_cp, obs_cp, KelData(T[], T[], Float64[], Float64[], Float64[], Float64[], Int[]), kelrange)
     # C last and T last
     result[:Tlast]   = time_cp[tlastn]
     result[:Clast]   = obs_cp[tlastn]
@@ -694,7 +714,7 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
     else
         if adm == :iv
             if  first(obs_cp) > obs_cp[2] > zero(O)
-                result[:Cdose] = logcpredict(first(time_cp), time_cp[2], 0, first(obs_cp), obs_cp[2])
+                result[:Cdose] = logcpredict(first(time_cp), time_cp[2], zero(T), first(obs_cp), obs_cp[2])
             else
                 result[:Cdose] = first(obs_cp)
             end
@@ -732,19 +752,24 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
     end
     #-----------------------------------------------------------------------
     #-----------------------------------------------------------------------
-    tlagn = findfirst(!iszero, obs_cp)
-
-    if isnothing(tlagn)
-        result[:Tlag] = NaN*zero(T)
-    elseif tlagn > 1
-        result[:Tlag] = time_cp[tlagn-1]
-    else
-        result[:Tlag] = zero(T)
+    # Tlag only for extravascular
+    if adm == :ev
+        tlagn = findfirst(!iszero, obs_cp)
+        # Time of the last point below the limit of quantification before the
+        # first measurable observation. A measurable first point gives zero.
+        if isnothing(tlagn)
+            result[:Tlag] = NaN*zero(T)
+        elseif tlagn > 1
+            result[:Tlag] = time_cp[tlagn-1]
+        else
+            result[:Tlag] = zero(T)
+        end
     end
 
     if  length(keldata) > 0
         #data.keldata             = keldata
-        result[:ARsq], rsqn      = findmax(keldata.ar)
+        rsqn                     = bestkelint(keldata)
+        result[:ARsq]            = keldata.ar[rsqn]
         result[:Rsq]             = keldata.r[rsqn]
         #kel                      = abs(keldata.a[rsqn])
         result[:Kel]             = abs(keldata.a[rsqn]) / oneunit(T)
@@ -762,10 +787,19 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
         result[:MRTinf]          = result[:AUMCinf] / result[:AUCinf]
         result[:MRTinf_pred]     = result[:AUMCinf_pred] / result[:AUCinf_pred]
         if used_dosetime_dose > zero(used_dosetime_dose)
-            result[:Vzlast]          = used_dosetime_dose / result[:AUClast] / result[:Kel]
-            result[:Vzinf]           = used_dosetime_dose / result[:AUCinf] / result[:Kel]
-            result[:Clinf]           = used_dosetime_dose / result[:AUCinf]
-            result[:Vssinf]          = result[:Clinf] * result[:MRTinf]
+            if adm == :iv
+                result[:Vz]              = used_dosetime_dose / result[:AUCinf] / result[:Kel]
+                result[:Vz_pred]         = used_dosetime_dose / result[:AUCinf_pred] / result[:Kel]
+                result[:Cl]              = used_dosetime_dose / result[:AUCinf]
+                result[:Cl_pred]         = used_dosetime_dose / result[:AUCinf_pred]
+                result[:Vss]             = result[:Cl] * result[:MRTinf]
+                result[:Vss_pred]        = result[:Cl_pred] * result[:MRTinf_pred]
+            elseif adm == :ev
+                result[:Vz_F]              = used_dosetime_dose / result[:AUCinf] / result[:Kel]
+                result[:Vz_F_pred]         = used_dosetime_dose / result[:AUCinf_pred] / result[:Kel]
+                result[:Cl_F]              = used_dosetime_dose / result[:AUCinf]
+                result[:Cl_F_pred]         = used_dosetime_dose / result[:AUCinf_pred]
+            end
         end
     else
         result[:Kel] = NaN / oneunit(T)
@@ -774,8 +808,8 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
     # STEP 8
     # Steady-state parameters
     if used_dosetime_tau > zero(used_dosetime_tau)
-        eaucpartl  = zero(T)*zero(O)
-        eaumcpartl = zero(T)^2*zero(O)
+        eaucpartl  = zeroauc
+        eaumcpartl = zeroaumc
         if time_cp[taulastp] < used_dosetime_tau < time_cp[end]
             result[:Ctau] = interpolate(time_cp[taulastp], time_cp[taulastp + 1], used_dosetime_tau, obs_cp[taulastp], obs_cp[taulastp + 1], intpm, true)
             eaucpartl = aucpart(time_cp[taulastp], used_dosetime_tau, obs_cp[taulastp], result[:Ctau], calcm, true)
@@ -809,13 +843,22 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
         result[:Fluc]     = (result[:Cmax] - result[:Ctaumin])/result[:Cavg] * 100
         result[:Fluctau]  = (result[:Cmax] - result[:Ctau])/result[:Cavg] * 100
         #If Kel calculated
-        result[:Cltau]           = used_dosetime_dose / result[:AUCtau]
+        if adm == :iv
+            result[:Cltau]           = used_dosetime_dose / result[:AUCtau]
+        elseif adm == :ev
+            result[:Cltau_F]         = used_dosetime_dose / result[:AUCtau]
+        end
         if !isnan(result[:Kel])
-            result[:Accind]   = 1 / (1 - (exp(-result[:Kel] * used_dosetime_tau)))
+            result[:Accind]          = 1 / (1 - (exp(-result[:Kel] * used_dosetime_tau)))
             result[:MRTtauinf]       = (result[:AUMCtau] + used_dosetime_tau * (result[:AUCinf] - result[:AUCtau])) / result[:AUCtau]
             result[:MRTtauinf_pred]  = (result[:AUMCtau] + used_dosetime_tau * (result[:AUCinf_pred] - result[:AUCtau])) / result[:AUCtau]
-            result[:Vztau]           = used_dosetime_dose / result[:AUCtau] / result[:Kel]
-            result[:Vsstau]          = result[:Cltau] * result[:MRTtauinf]
+            if adm == :iv
+                result[:Vztau]        = used_dosetime_dose / result[:AUCtau] / result[:Kel]
+                result[:Vsstau]       = result[:Cltau] * result[:MRTtauinf]
+                result[:Vsstau_pred]  = result[:Cltau] * result[:MRTtauinf_pred]
+            elseif adm == :ev
+                result[:Vztau_F]      = used_dosetime_dose / result[:AUCtau] / result[:Kel]
+            end
         end
 
 
@@ -836,8 +879,8 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
             firstp = findfirst(x -> x >= stime, time_cp)
             #last point
             lastp  = findlast(x -> x <= etime, time_cp)
-            firstpart = zero(T)*zero(O)
-            lastpart  = zero(T)*zero(O)
+            firstpart = zeroauc
+            lastpart  = zeroauc
             if stime < time_cp[firstp]
                 firstpartc = interpolate(time_cp[firstp - 1], time_cp[firstp], stime, obs_cp[firstp - 1], obs_cp[firstp], intpm,  stime > result[:Tmax])
                 firstpart += aucpart(stime, time_cp[firstp], firstpartc, obs_cp[firstp], calcm, stime > result[:Tmax])
@@ -890,11 +933,12 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
             aucpartlsum[i]  = sum(view(aucpartl, 1:i))
             aumcpartlsum[i] = sum(view(aumcpartl, 1:i))
         end
-        if  used_dosetime_time > 0
+        if  used_dosetime_time > zero(used_dosetime_time)
             time_cp .+= used_dosetime_time
         end
+
         hnames = [:Time, :Concentrtion, :AUC, :AUC_cum, :AUMC, :AUMC_cum, :Info]
-        mx = metida_table(time_cp, obs_cp, pushfirst!(aucpartl, 0.0),  pushfirst!(aucpartlsum, 0.0), pushfirst!(aumcpartl, 0.0),  pushfirst!(aumcpartlsum, 0.0), fill("", length(obs_cp));
+        mx = metida_table(time_cp, obs_cp, pushfirst!(aucpartl, zeroauc),  pushfirst!(aucpartlsum, zeroauc), pushfirst!(aumcpartl, zeroaumc),  pushfirst!(aumcpartlsum, zeroaumc), fill("", length(obs_cp));
         names = hnames)
         if cdoseins > 0
             mx[1, 7] = "D*"
@@ -904,7 +948,7 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
         if !isnan(result[:Kel])
             @inbounds for i = 1:length(time_cp)
                 if time_cp[i] >= keldata.s[rsqn] && time_cp[i] <= keldata.e[rsqn]
-                    if length(data.kelrange.kelexcl) > 0
+                    if length(kelrange.kelexcl) > 0
                         if time_cp[i] in excltime
                             mx[i, 7] = "Excl"
                         else
@@ -921,7 +965,7 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
         end
         hnames = (["Time" "Conc." "AUC"  "AUC" "AUMC" "AUMC" "Info"],
                   ["" "" "" "(cum.)" "" "(cum.)" ""])
-        PrettyTables.pretty_table(io, mx; tf = PrettyTables.tf_compact, header = hnames, formatters = PrettyTables.ft_printf("%3.4g"))
+        PrettyTables.pretty_table(io, mx; tf = PrettyTables.tf_compact, header = hnames, formatters = ft_siground(4))
         println(io, "")
         println(io, "    Cdose: $(result[:Cdose]), Dose time: $(used_dosetime_time)")
         if isnan(result[:Kel])
@@ -933,7 +977,7 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
             println(io, "    @ - Interpolated points ($(length(einds)))")
         end
         println(io, "")
-        if used_dosetime_tau < time_cp[end] && used_dosetime_tau > 0
+        if !isnan(used_dosetime_tau) && used_dosetime_tau < time_cp[end] && used_dosetime_tau > zero(used_dosetime_time)
             println(io, "    Tau + dosetime is less then end time. Interpolation used.")
             println(io, "    Ctau: $(result[:Ctau])")
             println(io, "    AUC  final part: $(eaucpartl)")
@@ -943,12 +987,12 @@ function nca!(data::PKSubject{T, OBS}, obs::Union{Symbol, Nothing} = NCARESOBS;
 
         if verbose > 1
             println(io, "    Results:")
-            PrettyTables.pretty_table(io, result; tf = PrettyTables.tf_compact, header = ["Parameter", "Value"], formatters = PrettyTables.ft_printf("%4.6g"))
+            PrettyTables.pretty_table(io, result; tf = PrettyTables.tf_compact, header = ["Parameter", "Value"], formatters = ft_siground(6))
         end
     end
 ################################################################################
 
-    ncares = NCAResult(data, options, obs, keldata, result)
+    ncares = NCAPKResult(data, options, obs, keldata, kelrange, result)
     modify!(ncares)
 
     #-----------------------------------------------------------------------
@@ -972,12 +1016,12 @@ of the interval instead shifts the whole excretion-rate curve, and with it
 midtime(subj::UPKSubject) = map(x -> (x[1] + x[2]) / 2, gettime(subj))
 
 #=
-    excretionrate(subj::UPKSubject; obsname = nothing)
+    excretionrate(subj::UPKSubject; obsname = NCARESOBS)
 
 Excretion rate of every collection interval, `C · Vol / (t_end - t_start)`,
 computed from the actual interval boundaries.
 =#
-excretionrate(subj::UPKSubject; obsname::Union{Symbol, Nothing} = nothing) =
+excretionrate(subj::UPKSubject; obsname::Symbol = NCARESOBS) =
     exrate(gettime(subj), getobs(subj, obsname), subj.vol)
 
 function exrate(time::AbstractVector{Tuple{S, E}}, conc::AbstractVector{C}, vol::AbstractVector{V})  where S where E where C where V
@@ -1035,13 +1079,18 @@ Results:
 * Rsqn
 * HL
 * AUCinf
+* AUCpct
+
+`Rlast` is the last measurable (non-zero) excretion rate, `AUClast` is
+calculated to the mid-point of the interval with that rate.
 """
-function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}, obs::Union{Symbol, Nothing} = nothing; adm = :ev, calcm = :lint, intpm = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = identity, kwargs...) where S where E where O where VOL where V
+function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}, obs::Symbol = NCARESOBS; adm = :ev, calcm = :lint, intpm = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = identity, kwargs...) where S where E where O where VOL where V
 
     ptype  = promote_type(Float64, S, E, O, VOL)
     ttype  = promote_type(S, E)
     result   = Dict{Symbol, ptype}()
-    
+    kelrange = deepcopy(data.kelrange)
+
     options =  Dict(:type => :urine, :adm => adm, :calcm => calcm, :intpm => intpm, :verbose => verbose, :warn => warn, :modify! => modify!)
 
     if verbose > 0
@@ -1078,25 +1127,18 @@ function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}, obs::Union{Symbol, Nothi
     pushfirst!(vol, zero(VOL))
     pushfirst!(exr, zero(eltype(exr)))
 
-    result[:Maxrate], result[:Tmax], tmaxn, result[:Minrate] = ctmax(mtime, exr)
+    result[:Maxrate], result[:Tmax], tmaxn, rmin = ctmax(mtime, exr)
 
     if data.dosetime.dose > zero(data.dosetime.dose)
         result[:Prec]  = result[:AR]/data.dosetime.dose * 100
     end
     obsnum = length(exr)
 
-    lastobs = length(exr)
-    for i = length(exr):-1:1
-        if exr[i] > zero(eltype(exr))
-            break
-        else
-            lastobs = i
-        end
-    end
+    lastobs = something(findlast(x -> x > zero(eltype(exr)), exr), 1)
 
     # STEP 3
     # Elimination
-    keldata, excltime = step_3_elim!(result, data, adm, tmaxn, mtime, exr, KelData(ttype[], ttype[], Float64[], Float64[], Float64[], Float64[], Int[]), data.kelauto)
+    keldata, excltime = step_3_elim!(result, data, adm, tmaxn, mtime, exr, KelData(ttype[], ttype[], Float64[], Float64[], Float64[], Float64[], Int[]), kelrange)
 
     #result[:Kel]
     #result[:HL]
@@ -1108,10 +1150,11 @@ function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}, obs::Union{Symbol, Nothi
 
     result[:AUCall]  = sum(aucpartl)
     result[:AUClast] = sum(aucpartl[1:lastobs-1])
-    result[:Rlast]  = exr[end]
+    result[:Rlast]   = exr[lastobs]
 
     if  length(keldata) > 0
-        result[:ARsq], rsqn      = findmax(keldata.ar)
+        rsqn                     = bestkelint(keldata)
+        result[:ARsq]            = keldata.ar[rsqn]
         result[:Rsq]             = keldata.r[rsqn]
         result[:Kel]             = abs(keldata.a[rsqn]) / oneunit(ttype)
         result[:LZ]              = keldata.a[rsqn]
@@ -1124,7 +1167,7 @@ function nca!(data::UPKSubject{Tuple{S, E}, O, VOL, V}, obs::Union{Symbol, Nothi
         result[:AUCpct]          = (result[:AUCinf] - result[:AUClast]) / result[:AUCinf] * 100
     end
 
-    ncares = NCAResult(data, options, obs, keldata, result)
+    ncares = NCAPKResult(data, options, obs, keldata, kelrange, result)
     modify!(ncares)
     #-----------------------------------------------------------------------
     return ncares
@@ -1228,10 +1271,10 @@ function nca!(data::PDSubject{T,O}, obs::Union{Symbol, Nothing} = nothing; calcm
 
 ################################################################################
     # STEP 1 FILTER ALL BEFORE DOSETIME AND ALL NAN OR MISSING VALUES
-    if validobsn(gettime(data), getobs(data)) == 0 return NCAResult(data, options, result) end
+    if validobsn(gettime(data), getobs(data)) == 0 return NCAPDResult(data, options, result) end
     time_cp, obs_cp, einds = step_1_filterpksubj(gettime(data), getobs(data), first(gettime(data)))
     if length(obs_cp) < 2
-        return NCAResult(data, options, result)
+        return NCAPDResult(data, options, result)
     end
 ################################################################################
     result[:Obsnum] = obsnum = length(obs_cp)
@@ -1366,15 +1409,15 @@ function nca!(data::PDSubject{T,O}, obs::Union{Symbol, Nothing} = nothing; calcm
 
         hnames = (["Time" "Obs." "AUCABL"  "AUCBBL" "AUCATH" "AUCBTH"],
                   ["" "" "" "" "" "" ""])
-        PrettyTables.pretty_table(io, mx; tf = PrettyTables.tf_compact, header = hnames, formatters = PrettyTables.ft_printf("%3.4g"))
+        PrettyTables.pretty_table(io, mx; tf = PrettyTables.tf_compact, header = hnames, formatters = ft_siground(4))
         println(io, "")
         if verbose > 1
             println(io, "    Results:")
-            PrettyTables.pretty_table(io, result; tf = PrettyTables.tf_compact, header = ["Parameter", "Value"], formatters = PrettyTables.ft_printf("%4.6g"))
+            PrettyTables.pretty_table(io, result; tf = PrettyTables.tf_compact, header = ["Parameter", "Value"], formatters = ft_siground(6))
         end
     end
 
-    ncares = NCAResult(data, options, result)
+    ncares = NCAPDResult(data, options, result)
     modify!(ncares)
     #-----------------------------------------------------------------------
     return ncares
