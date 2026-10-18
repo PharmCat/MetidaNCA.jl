@@ -238,16 +238,17 @@ struct NCAOptions{P <: Union{AbstractVector, Nothing}}
 end
 
 """
-    NCAPKResult(subject::T, options, obsname::Symbol, keldata::KelData, kelrange::ElimRange, result::Dict{Symbol, U}) where T <: AbstractSubject where U 
+    NCAPKResult(subject::T, options, obsname::Symbol, keldata::KelData, kelrange::ElimRange, result::Dict{Symbol, U}) where T <: AbstractSubject where U
 
-NCA resulst.
+NCA PK/UPK resulst.
 
 Fields:
 
 * data::T
 * options::Dict{Symbol}
-* obsname::Union{Symbol, Nothing}
-* keldata::KD
+* obsname::Symbol
+* keldata::KelData
+* kelrange::ElimRange
 * result::Dict{Symbol, U}
 """
 struct NCAPKResult{T, U} <: AbstractNCAResult{T}
@@ -264,7 +265,18 @@ struct NCAPKResult{T, U} <: AbstractNCAResult{T}
         NCAPKResult(subject, options, NCARESOBS, KelData(), ElimRange(), result)
     end
 end
+"""
+    NCAPDResult(subject::T, options, obsname::Symbol, result::Dict{Symbol, U}) where T <: AbstractSubject where U 
 
+NCA PD resulst.
+
+Fields:
+
+* data::T
+* options::Dict{Symbol}
+* obsname::Symbol
+* result::Dict{Symbol, U}
+"""
 struct NCAPDResult{T, U} <: AbstractNCAResult{T}
     data::T
     options::Dict{Symbol}

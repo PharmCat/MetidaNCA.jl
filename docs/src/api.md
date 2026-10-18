@@ -58,12 +58,17 @@ MetidaNCA.LimitRule
 MetidaNCA.PKSubject
 ```
 
-### MetidaNCA.NCAResult
+### MetidaNCA.NCAPKResult
 
 ```@docs
-MetidaNCA.NCAResult
+MetidaNCA.NCAPKResult
 ```
 
+### MetidaNCA.NCAPDResult
+
+```@docs
+MetidaNCA.NCAPDResult
+```
 
 ## Functions
 

@@ -66,13 +66,13 @@ function ctmax(time::AbstractVector, obs::AbstractVector, taulastp::Int = length
     return cmax, time[tmaxn], tmaxn, cmin
 end
 
-"""
+#=
     ctmax(data::PKSubject, dt::Int = 0)
 
 Cmax, Tmax, index of Cmax and Cmin for a subject. Window from dose time `dt` to
 `tau` if `tau` set, else to the last observation. Returns the same four values
 as the vector method.
-"""
+=#
 function ctmax(data::PKSubject, dt::Int = 0)
     if dt == 0 dt = length(data.dosetime) end
     datadt = data.dosetime[dt]
