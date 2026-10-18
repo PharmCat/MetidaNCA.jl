@@ -51,7 +51,7 @@ dsncanp = nca!(ds, modify!  = newparam)
 dsncanp[1][:AUChalf]
 ```
 
-Function `newparam` applyed to [`NCAResult`](@ref).
+Function `newparam` applyed to results.
 
 
 ## Print output
