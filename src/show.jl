@@ -1,4 +1,13 @@
 
+# Table values are rounded by value, not by a Printf format string: Printf
+# takes a Float and fails on a unitful value. The magnitude is rounded and the
+# unit is kept. Anything that is not a number is printed as it is.
+_siground(x::Integer, sd) = x
+_siground(x::Number,  sd) = round(x / oneunit(x); sigdigits = sd) * oneunit(x)
+_siground(x,          sd) = x
+
+ft_siground(sd) = (v, i, j) -> _siground(v, sd)
+
 function Base.show(io::IO, obj::DoseTime)
     print(io, "Dose: $(obj.dose); Time: $(obj.time); Tau: $(obj.tau)")
     if !isnothing(obj.route)

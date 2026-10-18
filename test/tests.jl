@@ -2166,6 +2166,25 @@ end
         @test isnan(rp[:AUClast])
     end
 
+    @testset "  subject without a valid observation                 " begin
+        # the early return of nca! must build a result of the right type
+        s1 = MetidaNCA.pkimport([0.0, 1.0, 2.0], [NaN, NaN, NaN])
+        r1 = MetidaNCA.nca!(s1)
+        @test r1 isa MetidaNCA.NCAPKResult
+        @test length(r1.result) == 0
+        # one observation left after filtering
+        s2 = MetidaNCA.pkimport([0.0, 1.0, 2.0], [NaN, 5.0, NaN])
+        @test MetidaNCA.nca!(s2) isa MetidaNCA.NCAPKResult
+        # the same for pharmacodynamics
+        p1 = MetidaNCA.pdimport([0.0, 1.0, 2.0], [NaN, NaN, NaN]; bl = 1.0, th = 2.0)
+        @test MetidaNCA.nca!(p1) isa MetidaNCA.NCAPDResult
+        # a data set with such a subject still gives a result for every subject
+        pkd = deepcopy(pkdata2)
+        pkd[pkd.Subject .== 1, :Concentration] .= NaN
+        ds  = MetidaNCA.pkimport(pkd, :Time, :Concentration, [:Subject, :Formulation])
+        @test length(MetidaNCA.nca!(ds)) == length(ds)
+    end
+
     @testset "  limitrule as an import keyword                       " begin
         lr = MetidaNCA.LimitRule(lloq = 5.0, btmax = 0.0, atmax = 0.0)
         s1 = MetidaNCA.pkimport([0.0, 1.0, 2.0, 3.0], [0.0, 10.0, 5.0, 1.0]; limitrule = lr)

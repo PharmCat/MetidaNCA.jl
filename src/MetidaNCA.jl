@@ -32,7 +32,7 @@ setdosetime!, setkelauto!, setkelrange!, applylimitrule!, setbl!, setth!,
 pkplot, vpcplot,
 getkeldata, getkelauto, getkelrange, getdosetime, getbl, getth, subset,
 metida_table,
-PKSubject, UPKSubject, PDSubject, NCAResult
+PKSubject, UPKSubject, PDSubject, NCAPKResult, NCAPDResult
 
 function __init__()
     @require Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80" begin

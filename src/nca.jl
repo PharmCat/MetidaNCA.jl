@@ -653,11 +653,11 @@ function nca!(data::PKSubject{T, OBS}, obs::Symbol = NCARESOBS;
 ################################################################################
     # STEP 1 FILTER ALL BEFORE DOSETIME AND ALL NAN OR MISSING VALUES
     if validobsn(gettime(data), getobs(data, obs)) == 0
-        return NCAResult(data, options, result) 
+        return NCAPKResult(data, options, result)
     end
     time_cp, obs_cp, einds = step_1_filterpksubj(gettime(data), getobs(data, obs), used_dosetime_time)
     if length(obs_cp) < 2
-        return NCAResult(data, options, result)
+        return NCAPKResult(data, options, result)
     end
 ################################################################################
     # STEP 2 - CMAX TMAX FOR TAU RANGE Clast Tlast; interpolate NaN and missings
@@ -965,7 +965,7 @@ function nca!(data::PKSubject{T, OBS}, obs::Symbol = NCARESOBS;
         end
         hnames = (["Time" "Conc." "AUC"  "AUC" "AUMC" "AUMC" "Info"],
                   ["" "" "" "(cum.)" "" "(cum.)" ""])
-        PrettyTables.pretty_table(io, mx; tf = PrettyTables.tf_compact, header = hnames, formatters = PrettyTables.ft_printf("%3.4g"))
+        PrettyTables.pretty_table(io, mx; tf = PrettyTables.tf_compact, header = hnames, formatters = ft_siground(4))
         println(io, "")
         println(io, "    Cdose: $(result[:Cdose]), Dose time: $(used_dosetime_time)")
         if isnan(result[:Kel])
@@ -987,7 +987,7 @@ function nca!(data::PKSubject{T, OBS}, obs::Symbol = NCARESOBS;
 
         if verbose > 1
             println(io, "    Results:")
-            PrettyTables.pretty_table(io, result; tf = PrettyTables.tf_compact, header = ["Parameter", "Value"], formatters = PrettyTables.ft_printf("%4.6g"))
+            PrettyTables.pretty_table(io, result; tf = PrettyTables.tf_compact, header = ["Parameter", "Value"], formatters = ft_siground(6))
         end
     end
 ################################################################################
@@ -1271,10 +1271,10 @@ function nca!(data::PDSubject{T,O}, obs::Union{Symbol, Nothing} = nothing; calcm
 
 ################################################################################
     # STEP 1 FILTER ALL BEFORE DOSETIME AND ALL NAN OR MISSING VALUES
-    if validobsn(gettime(data), getobs(data)) == 0 return NCAResult(data, options, result) end
+    if validobsn(gettime(data), getobs(data)) == 0 return NCAPDResult(data, options, result) end
     time_cp, obs_cp, einds = step_1_filterpksubj(gettime(data), getobs(data), first(gettime(data)))
     if length(obs_cp) < 2
-        return NCAResult(data, options, result)
+        return NCAPDResult(data, options, result)
     end
 ################################################################################
     result[:Obsnum] = obsnum = length(obs_cp)
@@ -1409,11 +1409,11 @@ function nca!(data::PDSubject{T,O}, obs::Union{Symbol, Nothing} = nothing; calcm
 
         hnames = (["Time" "Obs." "AUCABL"  "AUCBBL" "AUCATH" "AUCBTH"],
                   ["" "" "" "" "" "" ""])
-        PrettyTables.pretty_table(io, mx; tf = PrettyTables.tf_compact, header = hnames, formatters = PrettyTables.ft_printf("%3.4g"))
+        PrettyTables.pretty_table(io, mx; tf = PrettyTables.tf_compact, header = hnames, formatters = ft_siground(4))
         println(io, "")
         if verbose > 1
             println(io, "    Results:")
-            PrettyTables.pretty_table(io, result; tf = PrettyTables.tf_compact, header = ["Parameter", "Value"], formatters = PrettyTables.ft_printf("%4.6g"))
+            PrettyTables.pretty_table(io, result; tf = PrettyTables.tf_compact, header = ["Parameter", "Value"], formatters = ft_siground(6))
         end
     end
 
