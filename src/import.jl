@@ -5,30 +5,71 @@ function nonunique(v)
     return [x for x in unique(v) if cm[x] > 1]
 end
 
+function checkblq(::T) where T <: AbstractString
+    true
+end
+function checkblq(x::T) where T <: AbstractFloat
+    if !isnan(x) error("Wrong BLQ value") end
+    true
+end
+checkblq(Nothing) = true
+checkblq(::Any) = error("Wrong BLQ value") 
 
 parse_gkw(s::String) = [Symbol(s)]
 parse_gkw(s::Symbol) = [s]
 parse_gkw(s::AbstractVector{<:AbstractString}) = Symbol.(s)
 parse_gkw(s::AbstractVector{Symbol}) = s
 
-function floatparse(data::Missing, warn) 
-    warn && @warn "Value $data parsed as `NaN`"
-    return NaN
+function floatparse(data::Missing, warn, blq) 
+    return missing
 end
 
-function floatparse(data::Nothing, warn) 
-    warn && @warn "Value $data parsed as `NaN`"
-    return NaN
+function floatparse(data::Nothing, warn, blq) 
+    warn && @warn "Nothing parsed as Missing"
+    return missing
 end
 
-floatparse(data::AbstractFloat, ::Any) = data
+floatparse(data::AbstractFloat, ::Any, ::AbstractFloat) = data
 
-function floatparse(data::AbstractString, warn) 
+function floatparse(data::AbstractFloat, ::Any, ::Nothing) 
+    if isnan(data)
+        return missing
+    else
+        return data
+    end
+end
+function floatparse(data::AbstractFloat, ::Any, blq::String) 
+    if blq == "NaN"
+        return data
+    else
+        if isnan(data) return missing else return data end
+    end
+end
+
+function _floatparse(data::AbstractString, warn)
     tp = tryparse(Float64, data)
-    warn && isnothing(tp) && @warn "Value $data parsed as `NaN`"
-    floatparse(tp, false) 
+    if isnothing(tp) || isnan(tp)
+        warn && @warn "Value $data parsed as missing"
+        return missing
+    end
+    return tp
 end
-function floatparse(data::Int, warn)
+
+function floatparse(data::AbstractString, warn, blq::String)
+    if data == blq return NaN end
+    return _floatparse(data, warn)
+end
+
+function floatparse(data::AbstractString, warn, blq::AbstractFloat)
+    if data == "NaN" return NaN end
+    _floatparse(data, warn)
+end
+
+function floatparse(data::AbstractString, warn, ::Nothing)
+    return _floatparse(data, warn)
+end
+
+function floatparse(data::Int, warn, blq)
     float(data) 
 end
 #=
@@ -89,27 +130,36 @@ Check element type of time column
 Check element type of observation / concentration column
 return new arrays
 =#
-function checkobsvec(vec::AbstractVector{<: Union{Number, Missing}}, warn) 
-    return vec
-end
-#=
-function checkobsvec(vec::AbstractVector{Union{<: AbstractFloat, Missing}}, warn) 
-    return vec
+function checkobsvec(vec::AbstractVector{<: Union{AbstractFloat, Missing}}, warn, ::Nothing)
+    return replace(vec, NaN => missing)
 end
 
-function checkobsvec(vec::AbstractVector{<: AbstractFloat}, warn) 
-    return vec
-end
-=#
-function checkobsvec(vec::AbstractVector{<: Union{Integer, Missing}}, warn)
+
+function checkobsvec(vec::AbstractVector{<: Union{T, Missing}}, warn, ::Union{AbstractFloat, Nothing}) where T <: Integer
+    # Для Int нет NaN => все они будут значимыми или отсутствующими
     warn && @warn "Concentration values transformed to float."
     return float.(vec)
 end
-function checkobsvec(vec::AbstractVector, warn)
+function checkobsvec(vec::AbstractVector{<: Union{T, Missing}}, warn, ::Union{AbstractFloat, Nothing}) where T <: Number
+    return identity.(vec)
+end
+
+function checkobsvec(vec::AbstractVector{<: Union{Number, Missing}}, warn, blq::AbstractString)
+    if blq == "NaN"
+        # Если "NaN" => NaN значения и так будут переданы как BLQ
+        return checkobsvec(vec, warn, NaN) 
+    else
+        # Если не "NaN" => NaN значения не BLQ и будут переданы как missing
+        return replace(vec, NaN => missing)
+    end    
+end
+function checkobsvec(vec::AbstractVector{<: Union{<: AbstractString, Missing}}, warn, blq)
     warn && @warn "Some concentration values maybe not a number, try to fix."
-    rvec = floatparse.(vec, warn)
+    rvec = floatparse.(vec, warn, blq)
     return rvec
 end
+
+
 
 function checktimevec(vec::AbstractVector)
     timevals = identity.(vec)
@@ -117,10 +167,10 @@ function checktimevec(vec::AbstractVector)
     return timevals
 end
 
-function checkvalues!(timevals_sp, obsvals; warn = true)
+function checkvalues!(timevals_sp, obsvals; warn = true, blq = NaN)
     timevals = checktimevec(timevals_sp)
     
-    obsvals = checkobsvec.(obsvals, warn)
+    obsvals = checkobsvec.(obsvals, warn, blq)
     
     timevals, obsvals
 end
@@ -150,7 +200,7 @@ Import PK data from table `data`.
 * `sort` - subject sorting columns.
 
 keywords:
-
+* `blq` - BLQ value, can be only NaN or string values, by default  blq = NaN;
 * `elimrange` - set elimination range settings;
 * `dosetime` - set dose and dose time, by default dosetime = 0, dose is `NaN`;
 * `limitrule` - apply limitrule to subject;
@@ -160,20 +210,27 @@ keywords:
 
 !!! note
 
-    If time column have non-unique values - last pair time-concentration will be used.
+    BLQ replacement:
+    1. `NaN` - internal representation of BLQ value
+    2. If `blq` is string and values is string - replace "NaN" -> "missing" then "blq" -> NaN
+    2. If `blq` is string and values is not string - replace "NaN" -> "missing" then "blq" -> NaN
+    
 
 
 See also: [`ElimRange`](@ref), [`DoseTime`](@ref), [`LimitRule`](@ref).
 """
 function pkimport(data, time, obs, sort;
+    blq = NaN,
     covars = [],
     elimrange = ElimRange(), 
     dosetime = nothing, 
     limitrule::Union{Nothing, LimitRule} = nothing, 
     warn = true, 
-    checktime = true,
     nutcfunk = last,
     units::Union{Nothing, NCAUnits} = nothing)
+
+
+    checkblq(blq)
     
     sort = parse_gkw(sort)
     obs  = parse_gkw(obs)
@@ -208,42 +265,17 @@ function pkimport(data, time, obs, sort;
         v = d[k]
         timevals = view(timec, v)
 
-        if checktime && !allunique(timevals)
-            
-            #concvals = concc[v]
-            obsvals = [Tables.getcolumn(data, y)[v] for y in obs]
-
+        if  !allunique(timevals)
             nuv      = nonunique(timevals) # non unique values
-            warn && @warn "Subject: $k, Not all time values is unique ($nuv), function '$(nutcfunk)' used to get observation!"
-            # maybe it should be optimized
-            delinds = Int[]
-            for nu in nuv
-                nuvinds = findall(x -> x == nu, timevals)   # non unique indexex
-                for ov in obsvals
-                    ov[first(nuvinds)] = nutcfunk(view(ov, nuvinds)) # replace first nu value with result of nutcfunk
-                end
-                append!(delinds, view(nuvinds, 2:length(nuvinds)))
-            end
-            sort!(delinds)
-            deleteat!(v, delinds)
-
-            for ov in obsvals
-                deleteat!(ov, delinds)  
-            end
-            timevals = view(timec, v)
-            spt      = sortperm(timevals)
-            for ov in obsvals
-                permute!(ov, spt)
-            end
-            permute!(v, spt)
-            timevals_spv = view(timec, v)
-        else
-            permute!(v, sortperm(timevals))
-            timevals_spv = view(timec, v)
-            obsvals      = [Tables.getcolumn(data, y)[v] for y in obs]
+            error("Subject: $k, Not all time values is unique ($nuv)!")
         end
 
-        timevals_sp, obsvals = checkvalues!(timevals_spv, obsvals; warn = warn)
+        permute!(v, sortperm(timevals))
+        timevals_spv = view(timec, v)
+        obsvals_spv  = [view(Tables.getcolumn(data, y), v) for y in obs]
+        
+
+        timevals_sp, obsvals_sp = checkvalues!(timevals_spv, obsvals_spv; warn = warn, blq = blq)
 
         if length(covars) > 0
             covars_v = (; zip(covars, [makecovariate(Tables.getcolumn(data, y)[v]) for y in covars])...)
@@ -251,7 +283,7 @@ function pkimport(data, time, obs, sort;
             covars_v = nothing
         end
  
-        sdata[i] = PKSubject(timevals_sp, (; zip(obs, obsvals)...), covars_v, elimrange,  dosetime_, Dict(sort .=> k))
+        sdata[i] = PKSubject(timevals_sp, (; zip(obs, obsvals_sp)...), covars_v, elimrange,  dosetime_, Dict(sort .=> k))
         i += one(Int)
     end
     ds = DataSet(identity.(sdata))
@@ -268,12 +300,16 @@ end
 
 Import PK data from tabular data `data`, `time` - time column, `obs` - concentration column.
 """
-function pkimport(data, time, obs; elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true)
+function pkimport(data, time, obs; 
+    blq = NaN, elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true)
+    
+    checkblq(blq)
+    
     obs   = parse_gkw(obs)
 
     obsvals = [copy(Tables.getcolumn(data, y)) for y in obs]
 
-    timevals, obsvals = checkvalues!(Tables.getcolumn(data, time), obsvals; warn = warn)
+    timevals, obsvals = checkvalues!(Tables.getcolumn(data, time), obsvals; warn = warn, blq = blq)
     
     dosetime_ = makedosetimevec(dosetime, zero(eltype(timevals)))
 
@@ -312,11 +348,14 @@ end
 Import PK data from time vector `time` and concentration vector `obs`.
 
 """
-function pkimport(time, obs; obsname = NCARESOBS, elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true)
+function pkimport(time, obs; 
+    blq = NaN, obsname = NCARESOBS, elimrange = ElimRange(), dosetime = nothing, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true)
     
+    checkblq(blq)
+
     timevals = checktimevec(time)
    
-    obsvals  = checkobsvec(copy(obs), warn)
+    obsvals  = checkobsvec(copy(obs), warn, blq)
 
     dosetime_ = makedosetimevec(dosetime, zero(eltype(timevals)))
 
@@ -473,7 +512,7 @@ Keywords:
 * `warn` - warning supress if `false`.
 
 """
-function pdimport(data, time, obs, sort; bl = 0, th = 0, dosetime::Union{Nothing, DoseTime} = nothing, limitrule::Union{Nothing, LimitRule} = nothing, warn = true)
+function pdimport(data, time, obs, sort; blq = nothing, bl = 0, th = 0, dosetime::Union{Nothing, DoseTime} = nothing, limitrule::Union{Nothing, LimitRule} = nothing, warn = true)
     
     sort = parse_gkw(sort)
 
@@ -522,7 +561,7 @@ function pdimport(data, time, obs, sort; bl = 0, th = 0, dosetime::Union{Nothing
         end
         sp = sortperm(timevals)
         timevals_spv = checktimevec(view(timevals, sp))
-        obsvals_spv  = checkobsvec(obsvals[sp], warn)
+        obsvals_spv  = checkobsvec(obsvals[sp], warn, blq)
         sdata[i]     = PDSubject(timevals_spv, obsvals_spv, bl, th, dosetime, Dict(sort .=> k))
         i += one(Int)
     end
@@ -540,10 +579,10 @@ end
 
 Import PD data from tabular data `data`, `time` - time column, `obs` - observations column.
 """
-function pdimport(data, time, obs; bl = 0, th = 0, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true)
+function pdimport(data, time, obs; blq = nothing, bl = 0, th = 0, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true)
 
     timevals = checktimevec(Tables.getcolumn(data, time))
-    obsvals  = checkobsvec(copy(Tables.getcolumn(data, obs)), warn)
+    obsvals  = checkobsvec(copy(Tables.getcolumn(data, obs)), warn, blq)
     pds = PDSubject(timevals, obsvals, bl, th,  id)
     if !isnothing(limitrule)
         applylimitrule!(pds, limitrule)
@@ -559,9 +598,9 @@ end
 
 Import PD data from time vector `time` and observations vector `obs`.
 """
-function pdimport(time, obs; bl = 0, th = 0, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true)
+function pdimport(time, obs; blq = nothing, bl = 0, th = 0, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true)
     timevals = checktimevec(time)
-    obsvals  = checkobsvec(copy(obs), warn)
+    obsvals  = checkobsvec(copy(obs), warn, blq)
     pds = PDSubject(timevals, obsvals, bl, th,  id)
     if !isnothing(limitrule)
         applylimitrule!(pds, limitrule)
