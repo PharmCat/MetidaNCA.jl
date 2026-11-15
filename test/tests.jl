@@ -272,7 +272,8 @@ include("refdicts.jl")
     pl = @test_nowarn MetidaNCA.pkplot!(pd; legend = true, drawbl = true, drawth = true, drawdt = true)
     # Multiple time
 
-    # ERROR - @test_logs (:warn, r"^Subject: \(1,\), Not all time values is unique \(.*\), function 'last' used to get observation!$") (:warn,"Some concentration values maybe not a number, try to fix.") ds = MetidaNCA.pkimport(multtimepk, :Time, :Concentration, :Subject)
+    # repeated time values are not supported
+    @test_throws "Subject: (1,), Not all time values is unique" MetidaNCA.pkimport(multtimepk, :Time, :Concentration, :Subject; warn = false)
 
     @test Set(MetidaNCA.nonunique(multtimepk.Time)) == Set([96.0, 4.0, 2.5])
 
@@ -321,11 +322,13 @@ include("refdicts.jl")
 
     dsncafromds =  MetidaNCA.nca(missingpk, :Time, :Concentration;
     limitrule = MetidaNCA.LimitRule(;lloq = 0, btmax = 0, atmax = NaN, nan = NaN, rm = true), modify! = newparam)
-    dsncafromds[:AUChalf] ≈ dsncafromds[:AUClast] / 2
+    @test dsncafromds[:AUChalf] ≈ dsncafromds[:AUClast] / 2
 
-    #redirect_stderr(Base.DevNull())
-    #missingpk.ConcentrationStr = string.(missingpk.Concentration)
-    # ERROR @test_logs (:warn, "Some concentration values maybe not a number, try to fix.") (:warn, "Value missing parsed as `NaN`") pkiw = MetidaNCA.pkimport(missingpk, :Time, :ConcentrationStr)
+    # a string column gives the same values as the numeric one: "NaN" is BLQ,
+    # "missing" is not a number
+    missingpk.ConcentrationStr = string.(missingpk.Concentration)
+    pkiw = @test_logs (:warn, "Some concentration values maybe not a number, try to fix.") (:warn, "Value missing parsed as missing") MetidaNCA.pkimport(missingpk, :Time, :ConcentrationStr)
+    @test isequal(MetidaNCA.getobs(pkiw), MetidaNCA.getobs(MetidaNCA.pkimport(missingpk, :Time, :Concentration)))
 
     # import covariates
     @test MetidaNCA.makecovariate([2])[1] == 2
@@ -2239,6 +2242,197 @@ end
         @test MetidaNCA.minconc(subj, true) > 0
         @test MetidaNCA.minconc(subj) >= 0
         @test MetidaNCA.maxconc(subj) > 0
+    end
+end
+
+# Import policy: NaN is BLQ, anything that is not a number is missing, the
+# blq keyword sets the BLQ label, time values are unique within a subject.
+# @test_broken marks a deviation from the policy found in the review; when the
+# deviation is fixed the test reports an unexpected pass and becomes @test.
+@testset "  Import: BLQ, missing and time values                     " begin
+    t4    = [0.0, 1.0, 2.0, 3.0]
+    obsof = MetidaNCA.getobs
+
+    @testset "  numeric column                                      " begin
+        c = [0.0, NaN, 2.0, missing]
+        @test isequal(obsof(MetidaNCA.pkimport(t4, c)), [0.0, NaN, 2.0, missing])
+        @test isequal(obsof(MetidaNCA.pkimport(t4, c; blq = NaN)), [0.0, NaN, 2.0, missing])
+        @test isequal(obsof(MetidaNCA.pkimport(t4, c; blq = NaN32)), [0.0, NaN, 2.0, missing])
+        @test isequal(obsof(MetidaNCA.pkimport(t4, c; blq = "NaN")), [0.0, NaN, 2.0, missing])
+        # a string label: NaN is not BLQ and becomes missing
+        @test isequal(obsof(MetidaNCA.pkimport(t4, c; blq = "BLQ")), [0.0, missing, 2.0, missing])
+        # integer values are converted to float
+        @test eltype(obsof(MetidaNCA.pkimport(t4, [0, 10, 5, 1]; warn = false))) == Float64
+        @test eltype(obsof(MetidaNCA.pkimport(t4, Int32[0, 10, 5, 1]; warn = false))) == Float64
+        @test eltype(obsof(MetidaNCA.pkimport(t4, [0, 10, 5, 1]; blq = "NaN", warn = false))) == Float64
+    end
+
+    @testset "  string column                                       " begin
+        s  = ["0", "BLQ", "1.5", "NaN", "abc", "", " 2 "]
+        ts = collect(0.0:6.0)
+        @test isequal(obsof(MetidaNCA.pkimport(ts, s; warn = false)),
+                      [0.0, missing, 1.5, NaN, missing, missing, 2.0])
+        @test isequal(obsof(MetidaNCA.pkimport(ts, s; blq = "BLQ", warn = false)),
+                      [0.0, NaN, 1.5, missing, missing, missing, 2.0])
+        @test isequal(obsof(MetidaNCA.pkimport(ts, s; blq = "NaN", warn = false)),
+                      [0.0, missing, 1.5, NaN, missing, missing, 2.0])
+        # the label is compared exactly: case and spaces matter
+        @test ismissing(obsof(MetidaNCA.pkimport([0.0, 1.0], ["1", "BLQ "]; blq = "BLQ", warn = false))[2])
+        @test ismissing(obsof(MetidaNCA.pkimport([0.0, 1.0], ["1", "blq"]; blq = "BLQ", warn = false))[2])
+        # an empty label marks empty strings
+        @test isnan(obsof(MetidaNCA.pkimport([0.0, 1.0], ["1", ""]; blq = "", warn = false))[2])
+        # missing in a string column stays missing
+        @test isequal(obsof(MetidaNCA.pkimport(t4, Union{Missing, String}["0", missing, "BLQ", "2"];
+                                               blq = "BLQ", warn = false)),
+                      [0.0, missing, NaN, 2.0])
+    end
+
+    @testset "  columns read by CSV                                 " begin
+        txt = "Subject,Time,C\n1,0,BLQ\n1,1,10\n1,2,5\n1,3,BLQ\n"
+        for pool in (false, true)
+            df = CSV.read(IOBuffer(txt), DataFrame; pool = pool)
+            s  = MetidaNCA.pkimport(df, :Time, :C, :Subject; blq = "BLQ", warn = false)[1]
+            @test isequal(obsof(s), [NaN, 10.0, 5.0, NaN])
+        end
+    end
+
+    @testset "  table forms and several observation columns         " begin
+        df = DataFrame(Subject = [1, 1, 1, 1, 2, 2, 2, 2],
+                       Time    = [3.0, 0.0, 1.0, 2.0, 0.0, 1.0, 2.0, 3.0],
+                       C1      = ["BLQ", "BLQ", "10", "5", "0", "8", "NaN", "abc"],
+                       C2      = [1.0, NaN, 2.0, 1.0, 0.0, 1.0, NaN, 0.5])
+        df0 = deepcopy(df)
+        ds  = MetidaNCA.pkimport(df, :Time, [:C1, :C2], :Subject; blq = "BLQ", warn = false)
+        # observations follow the sorted time values
+        @test MetidaNCA.gettime(ds[1]) == [0.0, 1.0, 2.0, 3.0]
+        @test isequal(MetidaNCA.getobs(ds[1], :C1), [NaN, 10.0, 5.0, NaN])
+        @test isequal(MetidaNCA.getobs(ds[1], :C2), [missing, 2.0, 1.0, 1.0])
+        @test isequal(MetidaNCA.getobs(ds[2], :C1), [0.0, 8.0, missing, missing])
+        # the default label keeps NaN in the numeric column
+        ds2 = MetidaNCA.pkimport(df, :Time, [:C1, :C2], :Subject; warn = false)
+        @test isequal(MetidaNCA.getobs(ds2[1], :C2), [NaN, 2.0, 1.0, 1.0])
+        @test isequal(MetidaNCA.getobs(ds2[2], :C1), [0.0, 8.0, NaN, missing])
+        # one subject from a table, and the keyword form
+        s1 = MetidaNCA.pkimport(df[1:4, :], :Time, :C1; blq = "BLQ", warn = false)
+        @test isequal(obsof(s1), [NaN, 10.0, 5.0, NaN])
+        s2 = MetidaNCA.pkimport(df[1:4, :]; time = :Time, conc = :C1, blq = "BLQ", warn = false)
+        @test isequal(obsof(s2), [NaN, 10.0, 5.0, NaN])
+        # the source table is not changed
+        @test isequal(df, df0)
+    end
+
+    @testset "  blq keyword values                                  " begin
+        @test_throws ErrorException MetidaNCA.pkimport(t4, [0.0, 1.0, 2.0, 3.0]; blq = 0.0)
+        @test_throws ErrorException MetidaNCA.pkimport(t4, [0.0, 1.0, 2.0, 3.0]; blq = 1)
+        @test_throws ErrorException MetidaNCA.pkimport(t4, [0.0, 1.0, 2.0, 3.0]; blq = missing)
+        @test_throws ErrorException MetidaNCA.pkimport(DataFrame(S = [1, 1], T = [0.0, 1.0], C = [0.0, 1.0]),
+                                                       :T, :C, :S; blq = 0.5)
+        # Review: checkblq(Nothing) defines a method for ::Any that the next
+        # line overwrites, so blq = nothing is rejected
+        @test_broken MetidaNCA.checkblq(nothing)
+        @test_broken isequal(obsof(MetidaNCA.pkimport(t4, [0.0, NaN, 2.0, 1.0]; blq = nothing)),
+                             [0.0, missing, 2.0, 1.0])
+        # Review: a label of another string type passes checkblq and fails
+        # in floatparse, which takes blq::String
+        @test_broken isnan(obsof(MetidaNCA.pkimport(t4, ["0", "BLQ", "2", "1"];
+                                                    blq = strip(" BLQ "), warn = false))[2])
+        @test_broken isnan(obsof(MetidaNCA.pkimport(t4, ["0", "BLQ", "2", "1"];
+                                                    blq = CSV.InlineStrings.String7("BLQ"), warn = false))[2])
+    end
+
+    @testset "  element types without a checkobsvec method          " begin
+        # Review: these columns were imported by 0.8.0 and now raise a
+        # MethodError (Vector{Any} is what XLSX gives for a mixed column)
+        @test_broken isequal(obsof(MetidaNCA.pkimport(t4, Any[0.0, "BLQ", 1.5, missing]; blq = "BLQ", warn = false)),
+                             [0.0, NaN, 1.5, missing])
+        @test_broken obsof(MetidaNCA.pkimport(t4, Any[0.0, 1.0, 1.5, 0.5]; warn = false)) == [0.0, 1.0, 1.5, 0.5]
+        @test_broken isequal(obsof(MetidaNCA.pkimport(t4, Union{Float64, String}[0.0, "BLQ", 1.5, 0.5]; blq = "BLQ", warn = false)),
+                             [0.0, NaN, 1.5, 0.5])
+        @test_broken all(ismissing, obsof(MetidaNCA.pkimport(t4, [missing, missing, missing, missing]; warn = false)))
+        @test_broken isequal(obsof(MetidaNCA.pkimport(t4, Union{Nothing, Float64}[0.0, nothing, 1.5, 0.5]; warn = false)),
+                             [0.0, missing, 1.5, 0.5])
+    end
+
+    @testset "  integer and unitful columns with a string label     " begin
+        # Review: with a string label integer values are not converted to
+        # float, and nca! fails on an interior missing value
+        @test_broken eltype(obsof(MetidaNCA.pkimport(t4, [0, 10, 5, 1]; blq = "BLQ", warn = false))) <: Union{Missing, Float64}
+        @test_broken !isnothing(MetidaNCA.nca!(MetidaNCA.pkimport([0.0, 1.0, 2.0, 3.0, 4.0],
+                                    Union{Missing, Int}[0, 10, missing, 4, 1]; blq = "BLQ", warn = false)))
+        uc = [0.0, NaN, 2.0, 1.0] .* u"ng/mL"
+        @test isnan(obsof(MetidaNCA.pkimport(t4 .* u"hr", uc; warn = false))[2])
+        # Review: replace(vec, NaN => missing) does not match a unitful NaN
+        @test_broken ismissing(obsof(MetidaNCA.pkimport(t4 .* u"hr", uc; blq = "BLQ", warn = false))[2])
+    end
+
+    @testset "  duplicate time values                               " begin
+        dd = DataFrame(Subject = [1, 1, 1, 1], Time = [0.0, 1.0, 1.0, 2.0], C = [0.0, 10.0, 11.0, 5.0])
+        @test_throws ErrorException MetidaNCA.pkimport(dd, :Time, :C, :Subject)
+        @test_throws "Not all time values is unique" MetidaNCA.pkimport(dd, :Time, :C, :Subject)
+        @test_throws ErrorException MetidaNCA.pkimport(multtimepk, :Time, :Concentration, :Subject; warn = false)
+        # Review: the other import forms accept repeated time values
+        @test_broken try MetidaNCA.pkimport(dd, :Time, :C); false catch e; e isa ErrorException end
+        @test_broken try MetidaNCA.pkimport(dd.Time, dd.C); false catch e; e isa ErrorException end
+        @test_broken try MetidaNCA.pdimport(dd, :Time, :C, :Subject; warn = false); false catch e; e isa ErrorException end
+        @test_broken try MetidaNCA.pdimport(dd.Time, dd.C); false catch e; e isa ErrorException end
+    end
+
+    @testset "  warnings                                            " begin
+        @test_logs (:warn, "Some concentration values maybe not a number, try to fix.") (:warn, "Value x parsed as missing") MetidaNCA.pkimport(t4, ["0", "BLQ", "2", "x"]; blq = "BLQ")
+        @test_logs (:warn, "Some concentration values maybe not a number, try to fix.") (:warn, "Value BLQ parsed as missing") MetidaNCA.pkimport(t4, ["0", "BLQ", "2", "1"])
+        @test_logs (:warn, "Concentration values transformed to float.") MetidaNCA.pkimport(t4, [0, 1, 2, 3])
+        @test_logs MetidaNCA.pkimport(t4, ["0", "BLQ", "2", "x"]; blq = "BLQ", warn = false)
+    end
+
+    @testset "  pharmacodynamic import                              " begin
+        # no label by default: NaN becomes missing
+        @test isequal(obsof(MetidaNCA.pdimport(t4, [0.0, NaN, 2.0, 1.0])), [0.0, missing, 2.0, 1.0])
+        @test isequal(obsof(MetidaNCA.pdimport(t4, [0.0, NaN, 2.0, 1.0]; blq = NaN)), [0.0, NaN, 2.0, 1.0])
+        @test isequal(obsof(MetidaNCA.pdimport(t4, ["0", "BLQ", "2", "1"]; blq = "BLQ", warn = false)),
+                      [0.0, NaN, 2.0, 1.0])
+        # Review: pdimport does not check blq, a number is taken as NaN
+        @test_broken try MetidaNCA.pdimport(t4, [0.0, NaN, 2.0, 1.0]; blq = 5.0); false catch e; e isa ErrorException end
+        # Review: the vector and one-subject forms do not sort time values
+        @test_broken MetidaNCA.gettime(MetidaNCA.pdimport([2.0, 0.0, 1.0, 3.0], [3.0, 0.0, 5.0, 1.0])) == [0.0, 1.0, 2.0, 3.0]
+    end
+
+    @testset "  BLQ label through nca(...)                          " begin
+        df = DataFrame(Time = [0.0, 1.0, 2.0, 3.0, 4.0], C = ["BLQ", "10", "5", "2", "BLQ"])
+        # Review: nca(...) does not pass blq to pkimport, the keyword goes to
+        # nca! and is ignored, so the labels become missing
+        @test_broken isequal(MetidaNCA.getobs(MetidaNCA.nca(df, :Time, :C; blq = "BLQ", warn = false).data)[1], NaN)
+    end
+
+    @testset "  BLQ and missing in the analysis                     " begin
+        tn = [0.0, 0.5, 1.0, 2.0, 4.0, 6.0, 8.0, 12.0]
+        cn = [0.0, 5.0, 12.0, 10.0, 6.0, 3.5, 2.0, 1.0]
+        # without a limit rule nca! treats BLQ and missing alike: skipped
+        # before the first measurable value, interpolated between measurable
+        # values, dropped after the last one
+        for pos in (1, 5, 8)
+            cb = Vector{Union{Missing, Float64}}(cn); cb[pos] = NaN
+            cm = Vector{Union{Missing, Float64}}(cn); cm[pos] = missing
+            rb = MetidaNCA.nca!(MetidaNCA.pkimport(tn, cb))
+            rm_ = MetidaNCA.nca!(MetidaNCA.pkimport(tn, cm))
+            for p in (:AUClast, :AUCall, :Cmax, :Tlast, :Kel)
+                @test isequal(rb[p], rm_[p])
+            end
+        end
+        # the nan step of a limit rule replaces BLQ and missing alike, the
+        # lloq step changes numbers only, rm removes BLQ and missing
+        c  = Union{Missing, String}["BLQ", "10", missing, "5", "2", "BLQ"]
+        tl = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0]
+        s1 = MetidaNCA.pkimport(tl, c; blq = "BLQ", warn = false, limitrule = MetidaNCA.LimitRule(nan = 0.0))
+        @test obsof(s1) == [0.0, 10.0, 0.0, 5.0, 2.0, 0.0]
+        s2 = MetidaNCA.pkimport(tl, c; blq = "BLQ", warn = false,
+                                limitrule = MetidaNCA.LimitRule(lloq = 2.0, btmax = 0.0, atmax = NaN))
+        @test isequal(obsof(s2), [NaN, 10.0, missing, 5.0, NaN, NaN])
+        s3 = MetidaNCA.pkimport(tl, c; blq = "BLQ", warn = false,
+                                limitrule = MetidaNCA.LimitRule(nan = 0.0, lloq = 1.0, btmax = 0.0, atmax = NaN))
+        @test isequal(obsof(s3), [0.0, 10.0, NaN, 5.0, 2.0, NaN])
+        s4 = MetidaNCA.pkimport(tl, c; blq = "BLQ", warn = false, limitrule = MetidaNCA.LimitRule(rm = true))
+        @test obsof(s4) == [10.0, 5.0, 2.0]
+        @test MetidaNCA.gettime(s4) == [1.0, 3.0, 4.0]
     end
 end
 

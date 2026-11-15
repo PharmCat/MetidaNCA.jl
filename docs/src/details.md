@@ -1,5 +1,53 @@
 # Details
 
+## Data import
+
+### Observation values
+
+[`pkimport`](@ref) and [`pdimport`](@ref) convert every observation to one of three kinds:
+
+* a number - a measured value; integer values are converted to float;
+* `NaN` - a value below the limit of quantification (BLQ); `NaN` is the internal representation of BLQ;
+* `missing` - no value: a missing cell, an empty string, any string that is not a number and is not the BLQ label.
+
+The `blq` keyword sets the label of BLQ values in the source data. It can be `NaN` (default for `pkimport`), a string, or `nothing` (default for `pdimport`).
+
+| Value in the data            | `blq = NaN`   | `blq = "BLQ"` | `blq = nothing` |
+|:-----------------------------|:--------------|:--------------|:----------------|
+| number                       | number        | number        | number          |
+| `NaN`                        | `NaN` (BLQ)   | `missing`     | `missing`       |
+| `missing`, `nothing`         | `missing`     | `missing`     | `missing`       |
+| string `"BLQ"`               | `missing`     | `NaN` (BLQ)   | `missing`       |
+| string `"NaN"`               | `NaN` (BLQ)   | `missing`     | `missing`       |
+| numeric string, e.g. `"1.5"` | `1.5`         | `1.5`         | `1.5`           |
+| any other string, `""` too   | `missing`     | `missing`     | `missing`       |
+
+`blq = "NaN"` works as `blq = NaN`. If `blq` is not `NaN`, `NaN` values in the data are not BLQ and become `missing`.
+
+The label is compared with the string in the data exactly: case and spaces matter, so `"BLQ "` and `"blq"` do not match `blq = "BLQ"` and become `missing`. Numeric strings are parsed with `tryparse(Float64, s)`, which accepts leading and trailing spaces.
+
+```julia
+ds = pkimport(data, :Time, :Concentration, :Subject; blq = "BLQ")
+```
+
+With `warn = true` a string column gives the warning `Some concentration values maybe not a number, try to fix.` and one warning `Value ... parsed as missing` for each string that becomes `missing`; an integer column gives `Concentration values transformed to float.`
+
+[`upkimport`](@ref) does not take `blq`: concentration and volume columns of urine data must be numeric.
+
+### Time values
+
+Time values must be numbers and must be unique within a subject. `pkimport` raises an error for a subject with repeated time values and names the subject and the repeated values. Time values are sorted, observations follow their time values. The source table is not changed.
+
+### BLQ and missing values in the analysis
+
+Without a limit rule [`nca!`](@ref) treats BLQ (`NaN`) and `missing` values in the same way:
+
+* values before the first measurable observation are skipped;
+* values between measurable observations are interpolated (`intpm` keyword);
+* values after the last measurable observation are dropped.
+
+The BLQ label therefore changes the result only through a [`LimitRule`](@ref), see the next section.
+
 ## Using LimitRule
 
 ```julia
@@ -7,8 +55,14 @@ ll = LimitRule(;lloq = 0.1, btmax = 0.0, atmax = NaN, nan = NaN, rm = true)
 
 ```
 
-It means that all values below `lloq` will be replaced by `btmax` before Tmax and replaced by `atmax` after Tmax; `NaN` values will be replaced by `nan`. If `rm` is `true`, all `NaN` values will be deleted. 
+It means that all numeric values at or below `lloq` will be replaced by `btmax` before Tmax and replaced by `atmax` after Tmax; BLQ (`NaN`) and `missing` values will be replaced by `nan` (if `nan` is not `NaN`). If `rm` is `true`, all BLQ (`NaN`) and `missing` values will be deleted.
 
+The steps are applied in this order: `nan`, then `lloq`, then `rm`. The `lloq` step does not change BLQ (`NaN`) values. To apply `btmax` and `atmax` to BLQ values, set `nan` to a value at or below `lloq`: BLQ values are replaced by `nan` in the first step and then by `btmax` or `atmax` in the second. `missing` values are changed in the same way, because the `nan` step does not distinguish BLQ from `missing`.
+
+```julia
+# BLQ before Tmax -> 0, BLQ after Tmax -> NaN
+ll = LimitRule(; nan = 0.0, lloq = 0.1, btmax = 0.0, atmax = NaN)
+```
 
 See also: [`applylimitrule!`](@ref).
 

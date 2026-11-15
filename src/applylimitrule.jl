@@ -4,8 +4,10 @@
 
 Apply rule to PK subject .
 
-* STEP 1 (NaN step): replace all `NaN` and `missing` values with nan keyword value (if `nan` not NaN);
-* STEP 2 (LLOQ step): replace values below `lloq` with `btmax` value if this value befor Tmax or with atmax if this value after Tmax (if `lloq` not NaN);
+* STEP 1 (NaN step): replace all `NaN` values with nan keyword value (if `nan` not NaN);
+
+* STEP 2 (LLOQ step): if value not NaN or missing - replace values below `lloq` with `btmax` value if this value befor Tmax or with atmax if this value after Tmax (if `lloq` not NaN);
+
 * STEP 3 (remove NaN): `rm` == true, then remove all `NaN` and `missing` values.
 """
 function applylimitrule!(data::Union{PKSubject, PDSubject}, rule::LimitRule)
@@ -78,7 +80,7 @@ function applylimitrule!(time, obs, rule::LimitRule)
     obsn = length(obs)
     if !isnan(rule.nan)
         for i = 1:obsn
-            if isnanormissing(obs[i])
+            if isnan(obs[i])
                 obs[i] = rule.nan
             end
         end

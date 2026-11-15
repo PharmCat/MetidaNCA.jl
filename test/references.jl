@@ -1,5 +1,5 @@
 ################################################################################
-# Загрузчик объединённого набора референсных значений.
+# Loader of the combined reference value set.
 ################################################################################
 
 using CSV, DataFrames
@@ -38,15 +38,15 @@ function reference_scenarios(path::AbstractString = REFERENCE_SCENARIOS_CSV)
 end
 
 #=
-Значения по сценариям. По умолчанию ключами служат имена параметров MetidaNCA;
-строки без соответствия пропускаются.
-Векторы упорядочены по номеру субъекта.
+Values by scenario. By default the keys are MetidaNCA parameter names; rows
+without a match are skipped.
+Vectors are ordered by subject number.
 =#
 function reference_values(path::AbstractString = REFERENCE_VALUES_CSV; phoenix::Bool = false)
     isfile(path) || error("Data file not found: $path")
     df = CSV.File(path) |> DataFrame
     namecol = phoenix ? :phoenix_parameter : :metida_parameter
-    # полный список субъектов сценария - по всем его строкам
+    # full list of the scenario subjects, from all its rows
     allsubj = Dict{String, Vector{Int}}()
     for r in eachrow(df)
         push!(get!(allsubj, String(r.scenario), Int[]), Int(r.subject))
@@ -66,9 +66,9 @@ function reference_values(path::AbstractString = REFERENCE_VALUES_CSV; phoenix::
         subj = allsubj[sc]
         d = Dict{Symbol, Vector{Float64}}()
         for (par, bysubj) in pars
-            # у отдельных параметров значение может отсутствовать (например, Swing
-            # не определён при Cmin = 0) - такие позиции заполняются NaN, чтобы
-            # длина вектора всегда соответствовала числу субъектов сценария
+            # a parameter can have no value for some subjects (for example, Swing
+            # is not defined at Cmin = 0); such positions are filled with NaN so
+            # that the vector length always equals the number of subjects
             d[par] = [get(bysubj, i, NaN) for i in subj]
         end
         out[sc] = d
@@ -78,8 +78,8 @@ end
 
 """
     reference_subjects(path = REFERENCE_VALUES_CSV) -> Dict{String, Vector{Int}}
-Номера субъектов каждого сценария в том порядке, в котором идут значения
-в векторах, возвращаемых `reference_values`.
+Subject numbers of each scenario, in the order of the values in the vectors
+returned by `reference_values`.
 """
 function reference_subjects(path::AbstractString = REFERENCE_VALUES_CSV)
     df = CSV.File(path) |> DataFrame
@@ -102,7 +102,7 @@ function check_references()
     rp = reference_values(; phoenix = true)
     subj = reference_subjects()
     problems = String[]
-    # сверка по списку сценариев из файла значений: у строк с origin = internal
+    # check against the scenario list of the values file: rows with origin = internal
     present = keys(subj)
     for k in setdiff(present, keys(sc))
         push!(problems, "No metadata for scenario: $k")
@@ -122,7 +122,7 @@ function check_references()
     isempty(gaps) || @info "Missing values replaced by NaN" Missings = gaps
 
     isempty(problems) || error("References set not agreed:\n  " * join(problems, "\n  "))
-    # соответствия, срез rp - строк с origin = internal
+    # correspondence, rp slice - rows with origin = internal
     nval = nrow(CSV.File(REFERENCE_VALUES_CSV) |> DataFrame)
     next = count(x -> x.origin == "external", values(sc))
     nint = count(x -> x.origin == "internal", values(sc))

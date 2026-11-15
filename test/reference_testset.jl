@@ -1,5 +1,5 @@
 ################################################################################
-# Проверка по объединённому набору референсов
+# Check against the combined reference set
 # test/csv/reference_values.csv 
 # test/csv/reference_scenarios.cs
 # (docs/acceptance.jl): ref_rtol 1e-4.
@@ -9,14 +9,14 @@ include("references.jl")
 
 const REF_RTOL = 1.0e-4
 
-# Номер и описание каждого сценария. Номера 1..10 совпадают с нумерацией
-# существующих блоков в tests.jl, чтобы проверку легко было соотнести:
+# Number and description of each scenario. Numbers 1..10 follow the blocks in
+# tests.jl, so that a check can be matched to its block:
 #
-#   #5  и #9  - origin = internal: это :luldt и :luld/IV, которых Phoenix не
-#               поддерживает. Значения взяты из test/refdicts.jl (refdict5 и
-#               refdict9);
-#   #10       - в tests.jl это тот же сценарий, что и #3 (120 / 0 / tau 12 / IV
-#               / lint)
+#   #5 and #9 - origin = internal: :luldt and :luld/IV, which Phoenix does not
+#               support. The values are taken from test/refdicts.jl (refdict5
+#               and refdict9);
+#   #10       - in tests.jl this is the same scenario as #3 (120 / 0 / tau 12 /
+#               IV / lint)
 #
 const REF_TESTS = Dict{String, Tuple{Int, String}}(
     "pk_d100_dt0_notau_lint"    => ( 1, "Linear trapezoidal, Dose 100, Dosetime 0, no tau"),
@@ -27,8 +27,8 @@ const REF_TESTS = Dict{String, Tuple{Int, String}}(
     "pk_d120_dt0_tau12_luld"    => ( 6, "Linear up Log down, Dose 120, Dosetime 0, tau 12"),
     "pk_d100_dt2_tau10_lint"    => ( 7, "Linear trapezoidal, Dose 100, Dosetime 2.0, tau 10"),
     "pk_d100_dt0.25_tau9_luld_iv" => ( 9, "Linear up Log down, Dose 100, Dosetime 0.25, tau 9 IV"),
-    # в tests.jl блок #8 озаглавлен "Linear trapezoidal", но считает :luld -
-    # здесь описание приведено в соответствие с кодом
+    # in tests.jl block #8 is titled "Linear trapezoidal" but uses :luld; the
+    # description here follows the code
     "pk_d100_dt0_tau100_luld"   => ( 8, "Linear up Log down, Dose 100, Dosetime 0.0, tau 100"),
     "pk_d100_dt0_tau36_luld"    => (11, "Linear up Log down, Dose 100, Dosetime 0, tau 36"),
     "pk_d100_dt0_tau60_luld"    => (12, "Linear up Log down, Dose 100, Dosetime 0, tau 60"),
@@ -46,7 +46,7 @@ function reftitle(sc, meta, number, descr)
 end
 
 """
-    refresult(scenario, meta, data) -> (результат, по_субъектам::Bool)
+    refresult(scenario, meta, data) -> (result, bysubject::Bool)
 """
 function refresult(meta, pkdata, upkdata, pddata)
     if meta.dataset == "pkdata2.csv"
@@ -66,29 +66,29 @@ function refresult(meta, pkdata, upkdata, pddata)
                                 bl = meta.bl, th = meta.th, id = Dict(:subj => 1))
         return MetidaNCA.nca!(pd), false
     else
-        error("Неизвестный набор данных в reference_scenarios.csv: $(meta.dataset)")
+        error("Unknown data set in reference_scenarios.csv: $(meta.dataset)")
     end
 end
 
 #=
-Нижняя граница числа сравнений со эталонным набором.
+Lower bound of the number of comparisons with the reference set.
 
-Параметр из эталонного набора, которого нет в результате, пропускается (строка
-`haskey(result, par) || continue` ниже): так пропускаются параметры, которых по
-данному пути введения не существует. Пропуск молчаливый, поэтому
-переименование параметра уменьшает число сравнений, а набор тестов остаётся
-зелёным. Итоговое число сравнений сверяется с этой границей.
+A reference parameter that is absent from the result is skipped (the line
+`haskey(result, par) || continue` below): this skips parameters that do not
+exist for the route of administration. The skip is silent, so renaming a
+parameter reduces the number of comparisons while the test set stays green.
+The final number of comparisons is checked against this bound.
 =#
 const REF_CHECKS_MIN = 3340
 
-# verbose = true: в сводке видно, какие именно сценарии проверены и сколько значений
+# verbose = true: the summary shows which scenarios were checked and how many values
 @testset verbose = true "  Reference set (Extrnal Software)                        " begin
 
     refchecks = Ref(0)
     refskipped = Dict{String, Vector{Symbol}}()
 
-    # check_references() возвращает true либо бросает исключение с перечнем расхождений;
-    # справочные сообщения о пропусках идут через @info, поэтому @test_nowarn здесь не годится
+    # check_references() returns true or throws with the list of differences; the
+    # messages about skipped values go through @info, so @test_nowarn does not fit
     @test check_references()
 
     refsc   = reference_scenarios()
@@ -98,8 +98,8 @@ const REF_CHECKS_MIN = 3340
     @test length(refsc) == length(refval)
     @test !isempty(refval)
 
-    # нумерация и описания берутся из REF_TESTS; сценарий, которого там нет,
-    # всё равно проверяется - под номером, следующим за максимальным известным
+    # numbers and descriptions come from REF_TESTS; a scenario that is not there
+    # is still checked, under the number after the largest known one
     nextnum = maximum(first.(values(REF_TESTS)))
     order = Dict{String, Tuple{Int, String}}()
     for sc in sort(collect(keys(refval)))
@@ -108,7 +108,7 @@ const REF_CHECKS_MIN = 3340
         else
             nextnum += 1
             order[sc] = (nextnum, sc)
-            @info "Сценарий без описания в REF_TESTS, добавлен по порядку" scenario = sc number = nextnum
+            @info "Scenario without a description in REF_TESTS, added in order" scenario = sc number = nextnum
         end
     end
 
@@ -126,7 +126,7 @@ const REF_CHECKS_MIN = 3340
             checked = 0
             for (par, ref) in sort(collect(refval[sc]); by = first)
                 result = bysubject ? res[1].result : res.result
-                if !haskey(result, par)                  # параметра нет в MetidaNCA
+                if !haskey(result, par)                  # MetidaNCA has no such parameter
                     push!(get!(refskipped, sc, Symbol[]), par)
                     continue
                 end
@@ -135,22 +135,22 @@ const REF_CHECKS_MIN = 3340
                 vals = float.(col)
                 length(vals) == length(ref) || continue
                 for i in eachindex(vals)
-                    # пропуск в выгрузке (Swing при Cmin = 0)
+                    # gap in the export (Swing at Cmin = 0)
                     isnan(ref[i]) && continue
                     checked += 1
                     @test isapprox(vals[i], ref[i]; rtol = REF_RTOL) ||
-                          error("$sc / $par / субъект $(refsubj[sc][i]): " *
-                                "получено $(vals[i]), эталон $(ref[i])")
+                          error("$sc / $par / subject $(refsubj[sc][i]): " *
+                                "computed $(vals[i]), reference $(ref[i])")
                 end
             end
-            @test checked > 0                            # сценарий реально что-то проверил
+            @test checked > 0                            # the scenario checked something
             refchecks[] += checked
         end
     end
 
     for sc in sort(collect(keys(refskipped)))
-        @info "Параметры эталонного набора, которых нет в результате" scenario = sc parameters = sort(unique(refskipped[sc]))
+        @info "Reference parameters absent from the result" scenario = sc parameters = sort(unique(refskipped[sc]))
     end
-    @info "Сравнений с эталонным набором" checks = refchecks[] minimum = REF_CHECKS_MIN
+    @info "Comparisons with the reference set" checks = refchecks[] minimum = REF_CHECKS_MIN
     @test refchecks[] >= REF_CHECKS_MIN
 end

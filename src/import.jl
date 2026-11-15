@@ -12,7 +12,7 @@ function checkblq(x::T) where T <: AbstractFloat
     if !isnan(x) error("Wrong BLQ value") end
     true
 end
-checkblq(Nothing) = true
+checkblq(::Nothing) = true
 checkblq(::Any) = error("Wrong BLQ value") 
 
 parse_gkw(s::String) = [Symbol(s)]
@@ -540,24 +540,9 @@ function pdimport(data, time, obs, sort; blq = nothing, bl = 0, th = 0, dosetime
         timevals = timec[v]
         obsvals  = obsc[v]
 
-        if !allunique(timevals)
-
-            nuv = nonunique(timevals)
-            warn && @warn "Not all time values is unique ($nuv), last observation used! ($k)"
-
-            nuvinds = findall(x -> x == first(nuv), timevals)
-            resize!(nuvinds, length(nuvinds) - 1)
-            if length(nuv) > 1
-                for cnt = 2:length(nuv)
-                    nuvinds_ = findall(x -> x == nuv[cnt], timevals)
-                    resize!(nuvinds_, length(nuvinds_) - 1)
-                    append!(nuvinds, nuvinds_)
-                end
-            end
-            sort!(nuvinds)
-            deleteat!(v, nuvinds)
-            timevals = view(timec, v)
-            obsvals = view(obsc, v)
+        if  !allunique(timevals)
+            nuv      = nonunique(timevals) # non unique values
+            error("Subject: $k, Not all time values is unique ($nuv)!")
         end
         sp = sortperm(timevals)
         timevals_spv = checktimevec(view(timevals, sp))
@@ -583,6 +568,11 @@ function pdimport(data, time, obs; blq = nothing, bl = 0, th = 0, id = Dict{Symb
 
     timevals = checktimevec(Tables.getcolumn(data, time))
     obsvals  = checkobsvec(copy(Tables.getcolumn(data, obs)), warn, blq)
+
+    spt = sortperm(timevals)
+    permute!(obsvals, spt)
+    permute!(timevals, spt)
+    
     pds = PDSubject(timevals, obsvals, bl, th,  id)
     if !isnothing(limitrule)
         applylimitrule!(pds, limitrule)
@@ -601,6 +591,11 @@ Import PD data from time vector `time` and observations vector `obs`.
 function pdimport(time, obs; blq = nothing, bl = 0, th = 0, id = Dict{Symbol, Any}(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true)
     timevals = checktimevec(time)
     obsvals  = checkobsvec(copy(obs), warn, blq)
+
+    spt = sortperm(timevals)
+    permute!(obsvals, spt)
+    permute!(timevals, spt)
+
     pds = PDSubject(timevals, obsvals, bl, th,  id)
     if !isnothing(limitrule)
         applylimitrule!(pds, limitrule)
