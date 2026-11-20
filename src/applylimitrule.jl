@@ -4,14 +4,12 @@
 
 Apply rule to PK subject .
 
-* STEP 1 (NaN step): replace all `NaN` values with nan keyword value (if `nan` not NaN);
+* STEP 1: if `replace_blq` NaN or values < lloq replaced btmax and atmax values
 
-* STEP 2 (LLOQ step): if value not NaN or missing - replace values below `lloq` with `btmax` value if this value befor Tmax or with atmax if this value after Tmax (if `lloq` not NaN);
-
-* STEP 3 (remove NaN): `rm` == true, then remove all `NaN` and `missing` values.
+* STEP 2: if `drop_missing` drop all missing values;
 """
 function applylimitrule!(data::Union{PKSubject, PDSubject}, rule::LimitRule)
-    if rule.rm && length(getfield(data, :obs)) != 1 error("Can't remove observations if multiple data provided.") end
+    if rule.drop_missing && length(getfield(data, :obs)) != 1 error("Can't remove observations if multiple data provided.") end
     applylimitrule!(data.time, getobs(data), rule)
     data
 end
@@ -78,17 +76,10 @@ function applylimitrule!(time, obs, rule::LimitRule)
     cmax, tmax, tmaxn = ctmax(time, obs)
     #NaN Rule
     obsn = length(obs)
-    if !isnan(rule.nan)
+    #Replace BLQ  rule
+    if !isnan(rule.replace_blq)
         for i = 1:obsn
-            if isnan(obs[i])
-                obs[i] = rule.nan
-            end
-        end
-    end
-    #LLOQ rule
-    if !isnan(rule.lloq)
-        for i = 1:obsn
-            if !isnanormissing(obs[i]) && obs[i] <= rule.lloq
+            if !ismissing(obs[i]) && (isnan(obs[i]) || obs[i] <= rule.lloq)
                 if i <= tmaxn
                     obs[i] = rule.btmax
                 else
@@ -97,9 +88,9 @@ function applylimitrule!(time, obs, rule::LimitRule)
             end
         end
     end
-    #NaN Remove rule
-    if rule.rm
-        inds = findall(isnanormissing, obs)
+    #Missing Remove rule
+    if rule.drop_missing
+        inds = findall(ismissing, obs)
         deleteat!(time, inds)
         deleteat!(obs, inds)
     end

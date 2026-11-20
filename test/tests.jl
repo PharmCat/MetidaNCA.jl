@@ -258,11 +258,12 @@ include("refdicts.jl")
     @test dsncafromds2[:AUClast] ≈ 9585.189297075749
 
     dsncafromds =  MetidaNCA.nca(missingpk, :Time, :Concentration;
-    limitrule = MetidaNCA.LimitRule(;lloq = 0, btmax = 0, atmax = NaN, nan = NaN, rm = true))
+    limitrule = MetidaNCA.LimitRule(;lloq = 0, btmax = 0, atmax = NaN, replace_blq = true, drop_missing = true))
     @test  sbj[:AUClast]  ≈ dsncafromds[:AUClast]
 
-    dsncafromds =  MetidaNCA.pkimport(missingpk, :Time, :Concentration, :Subject;
-    limitrule = MetidaNCA.LimitRule(;lloq = 0, btmax = 0, atmax = NaN, nan = NaN, rm = true))
+    # limitrule keeyword deprecated
+    #dsncafromds =  MetidaNCA.pkimport(missingpk, :Time, :Concentration, :Subject;
+    #limitrule = MetidaNCA.LimitRule(;lloq = 0, btmax = 0, atmax = NaN, nan = NaN, rm = true))
 
 
     # PD import
@@ -273,55 +274,21 @@ include("refdicts.jl")
     # Multiple time
 
     # repeated time values are not supported
-    @test_throws "Subject: (1,), Not all time values is unique" MetidaNCA.pkimport(multtimepk, :Time, :Concentration, :Subject; warn = false)
+    @test_throws "Subject: (1,), Not all time values is unique ([96.0, 2.5, 4.0])!" MetidaNCA.pkimport(multtimepk, :Time, :Concentration, :Subject; warn = false)
 
     @test Set(MetidaNCA.nonunique(multtimepk.Time)) == Set([96.0, 4.0, 2.5])
 
     @test MetidaNCA.nonunique([3.0, 1.0, 3.0, 2.0, 1.0]) == [3.0, 1.0]
 
-    dsmultt = MetidaNCA.pdimport(multtimepk, :Time, :Concentration, :Subject; warn = false)
-    @test MetidaNCA.gettime(dsmultt[1]) ≈ [0.0
-    0.5
-    1.0
-    1.5
-    2.0
-    2.5
-    3.0
-    4.0
-    5.0
-    6.0
-    8.0
-    10.0
-    12.0
-    24.0
-    48.0
-    72.0
-    96.0]
-    @test MetidaNCA.getobs(dsmultt[1]) ≈ [0.0
-    178.949
-    190.869
-    164.927
-    139.962
-    129.59
-    131.369
-    150.854
-    121.239
-    139.229
-    128.52
-    143.243
-    144.964
-    133.16
-    137.271
-    112.846
-    0.0]
-
+    @test_throws "Subject: (1,), Not all time values is unique ([96.0, 2.5, 4.0])!" MetidaNCA.pdimport(multtimepk, :Time, :Concentration, :Subject; warn = false)
+ 
     # Apply modify! function
     function newparam(data)
         data.result[:AUChalf] = data.result[:AUClast] / 2
     end
 
     dsncafromds =  MetidaNCA.nca(missingpk, :Time, :Concentration;
-    limitrule = MetidaNCA.LimitRule(;lloq = 0, btmax = 0, atmax = NaN, nan = NaN, rm = true), modify! = newparam)
+    limitrule = MetidaNCA.LimitRule(;lloq = 0, btmax = 0, atmax = NaN, replace_blq = false, drop_missing = true), modify! = newparam)
     @test dsncafromds[:AUChalf] ≈ dsncafromds[:AUClast] / 2
 
     # a string column gives the same values as the numeric one: "NaN" is BLQ,
@@ -1582,13 +1549,22 @@ end
     end
 end
 @testset "  applylimitrule!                                          " begin
+
+    lr = MetidaNCA.LimitRule(;lloq = 0.5, btmax = 0.5, atmax = NaN, replace_blq = true, drop_missing = true)
+    t = [1, 3, 5]
+    c = [NaN, 1.0 , 0.5]
+    MetidaNCA.applylimitrule!(t, c, lr)
+
+    c = [1.0, 1.0 , missing]
+    MetidaNCA.applylimitrule!(t, c, lr)
+
+
     ds = MetidaNCA.pkimport(pkdata2, :Time, :Concentration, [:Subject, :Formulation])
     sort!(ds, :Subject)
-    lr = MetidaNCA.LimitRule(;lloq = 0.5, btmax = 0.0, atmax = NaN, nan = NaN, rm = true)
     MetidaNCA.applylimitrule!(ds[1], lr)
     dsnca = MetidaNCA.nca!(ds, adm = :ev, calcm = :luldt)
 
-    lr = MetidaNCA.LimitRule(;lloq = 0.5, btmax = 0.5, atmax = NaN, nan = NaN, rm = true)
+   
     function af(sbj)
         sbj.id[:Subject] == 1
     end
@@ -1610,10 +1586,11 @@ end
     @test isnan(MetidaNCA.getobs(ds)[15])
     @test length(ds) == 18
     MetidaNCA.applylimitrule!(ds, lr)
-    @test length(ds) == 16
+    @test length(ds) == 17
+    @test isnan(MetidaNCA.getobs(ds)[14])
 
     ds = MetidaNCA.pkimport(missingpk, :Time, :Concentration)
-    lr = MetidaNCA.LimitRule(;lloq = 180, btmax = 0.0, atmax = 0.5, nan = 1000, rm = false)
+    lr = MetidaNCA.LimitRule(;lloq = 180, btmax = 0.0, atmax = 0.5, replace_blq = true, drop_missing = true)
     MetidaNCA.applylimitrule!(ds, lr)
     @test MetidaNCA.getobs(ds) ==  [0.0
     0.0
@@ -1627,9 +1604,8 @@ end
     0.5
     0.5
     0.5
- 1000.0
     0.5
- 1000.0
+    0.5
     0.5
     0.5
     0.5]
@@ -2197,6 +2173,8 @@ end
         @test length(MetidaNCA.nca!(ds)) == length(ds)
     end
 
+    #=
+    # DEPRECATED 
     @testset "  limitrule as an import keyword                       " begin
         lr = MetidaNCA.LimitRule(lloq = 5.0, btmax = 0.0, atmax = 0.0)
         s1 = MetidaNCA.pkimport([0.0, 1.0, 2.0, 3.0], [0.0, 10.0, 5.0, 1.0]; limitrule = lr)
@@ -2213,6 +2191,7 @@ end
         MetidaNCA.applylimitrule!(dsr, lr)
         @test all(i -> isequal(MetidaNCA.getobs(ds[i]), MetidaNCA.getobs(dsr[i])), 1:length(ds))
     end
+    =#
 
     @testset "  show methods                                        " begin
         io = IOBuffer()

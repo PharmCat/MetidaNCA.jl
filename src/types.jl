@@ -298,14 +298,13 @@ end
 * `lloq` - LLOQ - low limit of quantification;
 * `btmax` - value for points before Tmax;
 * `atmat` - values for points after Tmax;
-* `nan` - values for replacing `NaN`;
-* `rm` - if `true`, removee all `NaN` points.
+* `replace_blq` - ;
+* `drop_missing` - .
 
 Rule for PK subject.
 
-* STEP 1 (NaN step): replace all `NaN` and `missing` values with nan keyword value (if `nan` not NaN);
-* STEP 2 (LLOQ step): replace values below `lloq` with `btmax` value if this value befor Tmax or with atmax if this value after Tmax (if `lloq` not NaN);
-* STEP 3 (remove NaN): `rm` == true, then remove all `NaN` and `missing` values.
+* STEP 1: if `replace_blq` NaN or values < lloq replaced btmax and atmax values
+* STEP 2: if `drop_missing` drop all missing values;
 
 See also: [`applylimitrule!`](@ref)
 """
@@ -313,8 +312,8 @@ struct LimitRule{T<:Number}
     lloq::T
     btmax::T
     atmax::T
-    nan::T
-    rm::Bool
+    replace_blq::Bool
+    drop_missing::Bool
     # Need to rewrite intervals 
     # drop before dosetime
     # dosetieme - first
@@ -322,14 +321,14 @@ struct LimitRule{T<:Number}
     # aftet Cmax - last
     # first afer last
     # other 
-    function LimitRule(lloq::T, btmax, atmax, nan, rm::Bool) where T <: Number
-        new{T}(lloq, T(btmax), T(atmax), T(nan), rm)::LimitRule
+    function LimitRule(lloq::T, btmax, atmax, replace_blq::Bool, drop_missing::Bool) where T <: Number
+        new{T}(lloq, T(btmax), T(atmax), replace_blq, drop_missing)::LimitRule
     end
-    function LimitRule(lloq::Int, btmax, atmax, nan, rm::Bool)
-        new{Float64}(Float64(lloq), Float64(btmax), Float64(atmax), Float64(nan), rm)::LimitRule
+    function LimitRule(lloq::Int, btmax, atmax, replace_blq::Bool, drop_missing::Bool)
+        new{Float64}(Float64(lloq), Float64(btmax), Float64(atmax), replace_blq, drop_missing)::LimitRule
     end
-    function LimitRule(;nan = NaN, lloq = NaN, btmax = NaN, atmax = NaN,  rm::Bool = false)
-        LimitRule(lloq, btmax, atmax, nan, rm)
+    function LimitRule(;replace_blq = true, lloq = 0, btmax = NaN, atmax = NaN,  drop_missing::Bool = false)
+        LimitRule(lloq, btmax, atmax, replace_blq, drop_missing)
     end
 end
 #=

@@ -24,6 +24,19 @@ function firstobs(time::Vector{<:Tuple}, obs, vol, dosetime)
     end
     error("Observations not found")
 end
+
+function lastobs(time::Vector{T}, obs::Vector, lasttime) where T <: Number
+    @inbounds for i = length(time):-1:1
+        if time[i] <= lasttime && !isnanormissing(obs[i]) return i end #unitful dosetime?
+    end
+    error("Observations not found")
+end
+function lastobs(time::Vector{<:Tuple}, obs, vol, lasttime)
+    @inbounds for i = 1:length(time)
+        if time[i][2] <= lasttime && !isnanormissing(obs[i]) && !isnanormissing(vol[i]) return i end
+    end
+    error("Observations not found")
+end
 #=
 function ctauminmax(time::AbstractVector, obs::AbstractVector, taulastp::Int)
     fi = 0
@@ -249,9 +262,12 @@ end
 ################################################################################
 # 1
 # Make observation vector and time vector, no points befor Dosetime and nopoints after last nonmissing concentration
-function step_1_filterpksubj(_time::AbstractVector{T1}, _obs::AbstractVector{T2}, dosetime) where T1 where T2
+function step_1_filterpksubj(_time::AbstractVector{T1}, _obs::AbstractVector{T2}, dosetime, lasttime) where T1 where T2
     fobs     = firstobs(_time, _obs, dosetime)
-    li       = findlast(!isnanormissing, _obs)
+    li       = lastobs(_time, _obs, lasttime)
+    if li < fobs
+        error("Wrong observations range; first number = $fobs, last observation namer = $li")
+    end
     n        = li - fobs + 1
     obstype  = typeof(zero(T2))
     nanobst  = NaN * zero(T2)
@@ -444,14 +460,14 @@ Applicable `kwargs` see  [`nca!`](@ref).
 
 See also: [`ElimRange`](@ref), [`DoseTime`](@ref), [`LimitRule`](@ref).
 """
-function nca(args...; blq = NaN, type::Symbol = :bps, bl = 0, th = 0, elimrange = ElimRange(), dosetime = DoseTime(), limitrule::Union{Nothing, LimitRule} = nothing, warn = true, kwargs...)
+function nca(args...; blq = NaN, type::Symbol = :bps, bl = 0, th = 0, elimrange = ElimRange(), dosetime = DoseTime(), warn = true, kwargs...)
     if !(type in (:bps, :ur, :pd)) error("Unknown type") end
     if type == :bps
-        pki    = pkimport(args...; blq = blq, elimrange = elimrange, dosetime = dosetime, limitrule = limitrule, warn = warn)
+        pki    = pkimport(args...; blq = blq, elimrange = elimrange, dosetime = dosetime, warn = warn)
     elseif type == :ur
         pki    = upkimport(args...; blq = blq, elimrange = elimrange, dosetime = dosetime, warn = warn)
     elseif type == :pd
-        pki    = pdimport(args...; blq = blq, th = th, bl = bl, limitrule = limitrule, warn = warn)
+        pki    = pdimport(args...; blq = blq, th = th, bl = bl, warn = warn)
     end
     nca!(pki; kwargs...)
 end
@@ -472,7 +488,10 @@ Non-compartmental (NCA) analysis of PK/PD data.
 
 Other keywords is the same as in `nca!` method for `PKSubject`.
 """
-function nca!(data::DataSet{Subj}, obs::Symbol = Symbol();  wm::Bool = false, io = stdout, kwargs...) where Subj <: AbstractSubject
+function nca!(data::DataSet{Subj}, obs::Symbol = Symbol();
+    wm::Bool = false, 
+    io = stdout, 
+    kwargs...) where Subj <: AbstractSubject
 
     writetostdout = false
     if wm
@@ -598,7 +617,8 @@ With tau `Vz` and `Vz_F` are computed from `AUCtau`.
 `partials` is a vector of vectors, tuples or pairs. Example: `partials = [(1,2), (3,4)]`, `partials = [[1,2], (3,4)]`
 
 """
-function nca!(data::PKSubject{T, OBS}, obs::Symbol = NCARESOBS; 
+function nca!(data::PKSubject{T, OBS}, obs::Symbol = NCARESOBS;
+    limitrule::Union{Nothing, LimitRule} = nothing, 
     adm = :ev, calcm = :lint, usedose::Int = 0,
     intpm = :calcm,  
     partials = nothing, 
@@ -633,7 +653,12 @@ function nca!(data::PKSubject{T, OBS}, obs::Symbol = NCARESOBS;
     used_dosetime_tau  = data.dosetime[usedose].tau
     used_dosetime_time = data.dosetime[usedose].time
     used_dosetime_dose = data.dosetime[usedose].dose
-
+    
+    if usedose < length(data.dosetime)
+        lasttime = data.dosetime[usedose + 1].time
+    else
+        lasttime = last(gettime(data))
+    end
 
     if verbose > 0
         println(io, "  Non-compartmental Pharmacokinetic Analysis")
@@ -650,12 +675,17 @@ function nca!(data::PKSubject{T, OBS}, obs::Symbol = NCARESOBS;
             println(io, "    Tau: $(used_dosetime_tau)")
         end
     end
+
+    
 ################################################################################
     # STEP 1 FILTER ALL BEFORE DOSETIME AND ALL NAN OR MISSING VALUES
     if validobsn(gettime(data), getobs(data, obs)) == 0
         return NCAPKResult(data, options, result)
     end
-    time_cp, obs_cp, einds = step_1_filterpksubj(gettime(data), getobs(data, obs), used_dosetime_time)
+    time_cp, obs_cp, einds = step_1_filterpksubj(gettime(data), getobs(data, obs), used_dosetime_time, lasttime)
+    if !isnothing(limitrule)
+        applylimitrule!(time_cp, obs_cp, limitrule)
+    end 
     if length(obs_cp) < 2
         return NCAPKResult(data, options, result)
     end
@@ -1244,7 +1274,12 @@ Results:
 * AUCBTW - AUC between baseline and threshold;
 
 """
-function nca!(data::PDSubject{T,O}, obs::Union{Symbol, Nothing} = nothing; calcm = :lint, intpm = nothing, verbose = 0, warn = true, io::IO = stdout, modify! = identity, kwargs...) where T where O
+function nca!(data::PDSubject{T,O}, obs::Union{Symbol, Nothing} = nothing; 
+    calcm = :lint, intpm = nothing,
+    verbose = 0, 
+    warn = true, 
+    io::IO = stdout, 
+    modify! = identity, kwargs...) where T where O
     
     ptype  = promote_type(Float64, T, O)
 
@@ -1269,10 +1304,11 @@ function nca!(data::PDSubject{T,O}, obs::Union{Symbol, Nothing} = nothing; calcm
 
     auctype  = promote_type(eltype(gettime(data)), eltype(getobs(data)))
 
+
 ################################################################################
     # STEP 1 FILTER ALL BEFORE DOSETIME AND ALL NAN OR MISSING VALUES
     if validobsn(gettime(data), getobs(data)) == 0 return NCAPDResult(data, options, result) end
-    time_cp, obs_cp, einds = step_1_filterpksubj(gettime(data), getobs(data), first(gettime(data)))
+    time_cp, obs_cp, einds = step_1_filterpksubj(gettime(data), getobs(data), first(gettime(data)), last(gettime(data)))
     if length(obs_cp) < 2
         return NCAPDResult(data, options, result)
     end
