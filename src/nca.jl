@@ -611,8 +611,10 @@ Steady-state parameters (tau used):
 * Cltau_F (`adm = :ev`)
 * Vsstau (`adm = :iv`)
 * Vsstau_pred (`adm = :iv`)
+* Vztau (`adm = :iv`)
+* Vztau_F (`adm = :ev`)
 
-With tau `Vz` and `Vz_F` are computed from `AUCtau`.
+With tau, `Vztau` and `Vztau_F` are computed from `AUCtau`.
 
 `partials` is a vector of vectors, tuples or pairs. Example: `partials = [(1,2), (3,4)]`, `partials = [[1,2], (3,4)]`
 
