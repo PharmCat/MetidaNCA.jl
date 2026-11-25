@@ -5,13 +5,6 @@ function nonunique(v)
     return [x for x in unique(v) if cm[x] > 1]
 end
 
-function checkblq(::T) where T <: AbstractString
-    true
-end
-function checkblq(x::T) where T <: AbstractFloat
-    if !isnan(x) error("Wrong BLQ value") end
-    true
-end
 
 
 parse_gkw(s::String) = [Symbol(s)]
