@@ -4,11 +4,19 @@
 
 ### :Cmax
 
-Maximum concentration from dose time to dose time + tau (if tau > 0). Firs observation used.
+Maximum concentration from dose time to dose time + tau (if tau > 0). First observation used.
 
 ### :Tmax
 
-Time at maximum concentration from dose time to dose time + tau (if tau > 0). Firs observation used.
+Time at maximum concentration from dose time to dose time + tau (if tau > 0). First observation used.
+
+### :Clast
+
+Last observed concentration (>0).
+
+### :Tlast
+
+Time of the last observed concentration (>0).
 
 ### :Tlag
 
@@ -166,6 +174,16 @@ AUC extrapolated to infinity from the predicted concentration.
 AUC_{\infty pred} = AUC_{last} + \frac{C_{last pred}}{\lambda_z}
 ```
 
+`C_{last pred}` (`:Clast_pred`) is the concentration at `Tlast` predicted by the terminal phase regression.
+
+### :MRTinf
+
+Mean residence time extrapolated to infinity. `:MRTinf_pred` uses `AUCinf_pred` and `AUMCinf_pred`.
+
+```math
+MRT_\infty = AUMC_\infty / AUC_\infty
+```
+
 ## If Dose used
 
 ### Clearance
@@ -176,17 +194,37 @@ AUC_{\infty pred} = AUC_{last} + \frac{C_{last pred}}{\lambda_z}
 CL_{last} = Dose / AUC_{last}
 ```
 
-#### :Clinf
+#### :Cl, :Cl_F
 
-Total body clearance for extravascular administration.
+Total body clearance, calculated if `:Kel` is calculated. `:Cl` is reported for
+intravascular administration (`adm = :iv`). For extravascular administration
+(`adm = :ev`) the bioavailability is unknown, so the apparent clearance `:Cl_F`
+(CL/F) is reported instead. `:Cl_pred` and `:Cl_F_pred` use `AUCinf_pred`.
 
 ```math
-CL_\infty = Dose / AUC_\infty
+CL = Dose / AUC_\infty
 ```
 
-#### :Vzinf
+### Volume of distribution
 
-Volume of distribution based on the terminal phase.
+#### :Vz, :Vz_F
+
+Volume of distribution based on the terminal phase. `:Vz` is reported for
+`adm = :iv` and the apparent volume `:Vz_F` (Vz/F) for `adm = :ev`.
+`:Vz_pred` and `:Vz_F_pred` use `AUCinf_pred`.
+
+```math
+V_z = \frac{Dose}{\lambda_z \times AUC_\infty}
+```
+
+#### :Vss
+
+Volume of distribution at steady state, for `adm = :iv` only. `:Vss_pred` uses
+`:Cl_pred` and `:MRTinf_pred`.
+
+```math
+V_{ss} = CL \times MRT_\infty
+```
 
 ##  Steady-state parameters (If τ used)
 
@@ -230,6 +268,33 @@ Fluctuation Tau
 Fluc\tau = ( C_{max} - C_{\tau} ) / C_{avg} * 100 \%
 ```
 
+### :Cltau, :Cltau_F
+
+Clearance at steady state. `:Cltau` is reported for `adm = :iv` and `:Cltau_F`
+for `adm = :ev`.
+
+```math
+CL_\tau = Dose / AUC_\tau
+```
+
+### :Vztau, :Vztau_F
+
+Terminal phase volume of distribution at steady state, if `:Kel` is calculated.
+`:Vztau` is reported for `adm = :iv` and `:Vztau_F` for `adm = :ev`.
+
+```math
+V_{z\tau} = \frac{Dose}{\lambda_z \times AUC_\tau}
+```
+
+### :Vsstau
+
+Volume of distribution at steady state for `adm = :iv`, if `:Kel` is calculated.
+`:Vsstau_pred` uses `:MRTtauinf_pred`.
+
+```math
+V_{ss\tau} = CL_\tau \times MRT_{\tau\inf}
+```
+
 ### :Accind
 
 Accumulation index.
@@ -244,7 +309,7 @@ Accind = \frac{1}{1 - exp(-\lambda_z \tau)}
 MRT_{\tau\inf} = \frac{AUMC_\tau + \tau * (AUC_\infty - AUC_\tau)}{AUC_\tau}
 ```
 !!! note
-    Equal with Pjoenix WinNonlin parameter `MRTINF_obs` calculated for steady-state data.
+    Equal with Phoenix WinNonlin parameter `MRTINF_obs` calculated for steady-state data.
 
 ### :MRTtauinf_pred
 
@@ -253,7 +318,7 @@ MRT_{\tau\inf} = \frac{AUMC_\tau + \tau * (AUC_{\infty pred} - AUC_\tau)}{AUC_\t
 ```
 
 !!! note
-    Equal with Pjoenix WinNonlin parameter `MRTINF_pred` calculated for steady-state data. 
+    Equal with Phoenix WinNonlin parameter `MRTINF_pred` calculated for steady-state data. 
 
 
 ### :Swing
